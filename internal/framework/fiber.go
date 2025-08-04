@@ -1,0 +1,37 @@
+package framework
+
+import (
+	"encoding/json"
+	"time"
+
+	"github.com/Sn0wo2/FileSync/internal/config"
+	"github.com/Sn0wo2/FileSync/internal/router/errorhandler"
+	"github.com/Sn0wo2/FileSync/pkg/debug"
+	"github.com/gofiber/fiber/v2"
+)
+
+func Fiber() *fiber.App {
+	return fiber.New(fiber.Config{
+		AppName:               "QuickNote",
+		CaseSensitive:         true,
+		DisableStartupMessage: false,
+		ErrorHandler:          errorhandler.Error,
+		IdleTimeout:           5 * time.Second,
+		Prefork:               !debug.IsDebugging(),
+		ReadTimeout:           10 * time.Second,
+		ReduceMemoryUsage:     true,
+		StrictRouting:         true,
+		WriteTimeout:          10 * time.Second,
+		JSONEncoder:           json.Marshal,
+		JSONDecoder:           json.Unmarshal,
+		ServerHeader:          config.Instance.Server.Header,
+	})
+}
+
+func Start(app *fiber.App) error {
+	if config.Instance.Server.TLS.Cert != "" && config.Instance.Server.TLS.Key != "" {
+		return app.ListenTLS(config.Instance.Server.Address, config.Instance.Server.TLS.Cert, config.Instance.Server.TLS.Key)
+	}
+
+	return app.Listen(config.Instance.Server.Address)
+}

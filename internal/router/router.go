@@ -1,0 +1,25 @@
+package router
+
+import (
+	"github.com/Sn0wo2/FileSync/internal/config"
+	"github.com/Sn0wo2/FileSync/internal/router/handler"
+	"github.com/Sn0wo2/FileSync/internal/router/notfound"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/compress"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+)
+
+func Init(router fiber.Router) {
+	router.Use(compress.New(compress.Config{
+		Level: compress.LevelBestSpeed,
+	}), cors.New())
+
+	router.All("/health", handler.Health())
+
+	for _, a := range config.Instance.Actions {
+		a := a
+		router.Get(a.Route, handler.Actions(a))
+	}
+
+	notfound.Init("route not found", router)
+}
