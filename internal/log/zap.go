@@ -15,7 +15,7 @@ import (
 )
 
 func Init() {
-	NewLog(config.Instance.Log)
+	Instance = NewLog(config.Instance.Log)
 }
 
 func NewLog(cfg config.Log) *zap.Logger {
