@@ -14,9 +14,11 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-var Instance *zap.Logger
+func Init() {
+	NewLog(config.Instance.Log)
+}
 
-func Init(cfg config.Log) {
+func NewLog(cfg config.Log) *zap.Logger {
 	var logFile string
 	if cfg.Dir != "" {
 		logDir, err := filepath.Abs(cfg.Dir)
@@ -49,7 +51,7 @@ func Init(cfg config.Log) {
 		}
 	}()
 
-	Instance = zap.New(zapcore.NewTee(zapcore.NewCore(zapcore.NewConsoleEncoder(zapcore.EncoderConfig{
+	return zap.New(zapcore.NewTee(zapcore.NewCore(zapcore.NewConsoleEncoder(zapcore.EncoderConfig{
 		TimeKey:          "time",
 		LevelKey:         "level",
 		NameKey:          "logger",

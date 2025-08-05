@@ -19,11 +19,11 @@ func init() {
 	debug.SetGCPercent(50)
 
 	_ = godotenv.Load()
-	if err := config.Init(); err != nil {
+	if err := config.Init(config.NewYAMLLoader(), config.NewJSONLoader()); err != nil {
 		panic(fmt.Errorf("failed to initialize config: %w", err))
 	}
 
-	log.Init(config.Instance.Log)
+	log.Init()
 }
 
 func main() {
