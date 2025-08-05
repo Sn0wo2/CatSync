@@ -17,14 +17,15 @@ func Fiber() *fiber.App {
 		DisableStartupMessage: false,
 		ErrorHandler:          errorhandler.Error,
 		IdleTimeout:           5 * time.Second,
-		Prefork:               !debug.IsDebugging(),
-		ReadTimeout:           10 * time.Second,
-		ReduceMemoryUsage:     true,
-		StrictRouting:         true,
-		WriteTimeout:          10 * time.Second,
-		JSONEncoder:           json.Marshal,
-		JSONDecoder:           json.Unmarshal,
-		ServerHeader:          config.Instance.Server.Header,
+		// dlv cant debug multiple process
+		Prefork:           !debug.IsDebugging(),
+		ReadTimeout:       10 * time.Second,
+		ReduceMemoryUsage: true,
+		StrictRouting:     true,
+		WriteTimeout:      10 * time.Second,
+		JSONEncoder:       json.Marshal,
+		JSONDecoder:       json.Unmarshal,
+		ServerHeader:      config.Instance.Server.Header,
 	})
 }
 

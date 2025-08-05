@@ -17,7 +17,6 @@ func Init(router fiber.Router) {
 	router.All("/health", handler.Health())
 
 	for _, a := range config.Instance.Actions {
-		a := a
 		router.Get(a.Route, handler.Actions(a))
 	}
 

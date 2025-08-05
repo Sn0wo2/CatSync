@@ -27,7 +27,6 @@ type TLS struct {
 	Cert string `yaml:"cert"`
 	Key  string `yaml:"key"`
 }
-
 type Action struct {
 	Route      string      `json:"route" yaml:"route"`
 	Action     action.Type `json:"action" yaml:"action"`
