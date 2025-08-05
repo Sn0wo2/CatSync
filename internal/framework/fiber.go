@@ -12,7 +12,7 @@ import (
 
 func Fiber() *fiber.App {
 	return fiber.New(fiber.Config{
-		AppName:               "QuickNote",
+		AppName:               "FileSync",
 		CaseSensitive:         true,
 		DisableStartupMessage: false,
 		ErrorHandler:          errorhandler.Error,
