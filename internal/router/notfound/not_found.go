@@ -16,9 +16,9 @@ func Init(msg string, router fiber.Router) {
 	}
 
 	router.Use("*", func(ctx *fiber.Ctx) error {
-		log.Instance.Warn(util.TitleCase(msg),
+		log.Instance.Warn("NF >> "+util.TitleCase(msg),
 			zap.String("ctx", util.FiberContextString(ctx)))
 
-		return ctx.Status(fiber.StatusNotFound).JSON(response.New(msg))
+		return response.New(msg).Write(ctx, fiber.StatusNotFound)
 	})
 }

@@ -9,10 +9,10 @@ import (
 )
 
 func Error(ctx *fiber.Ctx, err error) error {
-	log.Instance.Error("Error handler caught error",
+	log.Instance.Error("EH >> Error handler caught error",
 		zap.Error(err),
 		zap.String("ctx", util.FiberContextString(ctx)),
 	)
 
-	return ctx.Status(fiber.StatusInternalServerError).JSON(response.New("oops, something went wrong"))
+	return response.New("oops, something went wrong").Write(ctx, fiber.StatusInternalServerError)
 }
