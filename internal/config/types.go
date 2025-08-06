@@ -31,6 +31,7 @@ type Action struct {
 	Route      string      `json:"route"      yaml:"route"`
 	Action     action.Type `json:"action"     yaml:"action"`
 	ActionData string      `json:"actionData" yaml:"actionData"`
+	UA         string      `json:"ua"         optional:"true" yaml:"ua"`
 }
 
 type Loader interface {

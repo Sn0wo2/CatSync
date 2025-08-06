@@ -5,11 +5,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/Sn0wo2/FileSync/internal/action"
 	"github.com/Sn0wo2/FileSync/internal/config"
 	"github.com/Sn0wo2/FileSync/internal/log"
+	"github.com/Sn0wo2/FileSync/internal/response"
 	"github.com/Sn0wo2/FileSync/internal/util"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
@@ -17,6 +19,16 @@ import (
 
 func Actions(act config.Action) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
+		if act.UA != "" {
+			matched, err := regexp.MatchString(act.UA, string(ctx.Request().Header.UserAgent()))
+			if err != nil {
+				return fmt.Errorf("failed to match user agent: %w", err)
+			}
+			if !matched {
+				return response.New(":(").Write(ctx, fiber.StatusForbidden)
+			}
+		}
+
 		switch act.Action {
 		case action.File:
 			safePath, err := filepath.Abs(act.ActionData)
