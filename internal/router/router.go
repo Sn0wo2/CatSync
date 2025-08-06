@@ -14,7 +14,9 @@ func Init(router fiber.Router) {
 		Level: compress.LevelBestSpeed,
 	}), cors.New())
 
-	router.All("/health", handler.Health())
+	api := router.Group("/v1")
+	api.Get("/health", handler.Health())
+	api.Get("/error", handler.Error())
 
 	for _, a := range config.Instance.Actions {
 		router.Get(a.Route, handler.Actions(a))
