@@ -12,7 +12,6 @@ import (
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/Sn0wo2/CatSync/log"
-	"github.com/Sn0wo2/CatSync/response"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 )
@@ -26,7 +25,9 @@ func Actions(act config.Action) fiber.Handler {
 			}
 
 			if !matched {
-				return response.New(":(").Write(ctx, fiber.StatusForbidden)
+				log.Instance.Info("A >> User agent not matched", zap.String("ua", act.UA), zap.String("ctx", util.FiberContextString(ctx)))
+
+				return ctx.Next()
 			}
 		}
 
@@ -65,6 +66,8 @@ func Actions(act config.Action) fiber.Handler {
 
 			return ctx.Status(fiber.StatusFound).Redirect(act.ActionData)
 		}
+
+		log.Instance.Info("A >> Unknown action", zap.Int("action", int(act.Action)), zap.String("ctx", util.FiberContextString(ctx)))
 
 		return ctx.Next()
 	}
