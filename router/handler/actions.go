@@ -20,10 +20,11 @@ import (
 func Actions(act config.Action) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		if act.UA != "" {
-			matched, err := regexp.MatchString(act.UA, string(ctx.Request().Header.UserAgent()))
+			matched, err := regexp.Match(act.UA, ctx.Request().Header.UserAgent())
 			if err != nil {
 				return fmt.Errorf("failed to match user agent: %w", err)
 			}
+
 			if !matched {
 				return response.New(":(").Write(ctx, fiber.StatusForbidden)
 			}
