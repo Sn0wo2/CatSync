@@ -10,12 +10,15 @@ type JSONLoader struct{}
 func NewJSONLoader() *JSONLoader {
 	return &JSONLoader{}
 }
+
 func (j *JSONLoader) Load(fileName string) (*Config, error) {
-	file, err := os.ReadFile(fileName)
+	file, err := os.ReadFile(fileName) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
+
 	var cfg Config
+
 	return &cfg, json.Unmarshal(file, &cfg)
 }
 

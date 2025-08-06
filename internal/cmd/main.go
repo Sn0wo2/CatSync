@@ -19,6 +19,7 @@ func init() {
 	debug.SetGCPercent(50)
 
 	_ = godotenv.Load()
+
 	if err := config.Init(config.NewYAMLLoader(), config.NewJSONLoader()); err != nil {
 		panic(fmt.Errorf("failed to initialize config: %w", err))
 	}
@@ -27,7 +28,9 @@ func init() {
 }
 
 func main() {
-	defer log.Instance.Sync()
+	defer func() {
+		_ = log.Instance.Sync()
+	}()
 
 	app := framework.Fiber()
 

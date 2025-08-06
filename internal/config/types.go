@@ -7,29 +7,29 @@ import (
 var Instance *Config
 
 type Config struct {
-	Log     Log      `optional:"true" json:"log" yaml:"log"`
-	Server  Server   `json:"server" yaml:"server"`
-	Actions []Action `optional:"true" json:"actions" yaml:"actions"`
+	Log     Log      `json:"log"     optional:"true" yaml:"log"`
+	Server  Server   `json:"server"  yaml:"server"`
+	Actions []Action `json:"actions" optional:"true" yaml:"actions"`
 }
 
 type Log struct {
-	Level string `optional:"true" yaml:"level"`
-	Dir   string `optional:"true" yaml:"dir"`
+	Level string `json:"level" optional:"true" yaml:"level"`
+	Dir   string `json:"dir"   optional:"true" yaml:"dir"`
 }
 
 type Server struct {
 	Address string `json:"address" yaml:"address"`
-	Header  string `optional:"true" json:"header" yaml:"header"`
-	TLS     TLS    `optional:"true" json:"tls" yaml:"tls"`
+	Header  string `json:"header"  optional:"true" yaml:"header"`
+	TLS     TLS    `json:"tls"     optional:"true" yaml:"tls"`
 }
 
 type TLS struct {
-	Cert string `yaml:"cert"`
-	Key  string `yaml:"key"`
+	Cert string `json:"cert" yaml:"cert"`
+	Key  string `json:"key"  yaml:"key"`
 }
 type Action struct {
-	Route      string      `json:"route" yaml:"route"`
-	Action     action.Type `json:"action" yaml:"action"`
+	Route      string      `json:"route"      yaml:"route"`
+	Action     action.Type `json:"action"     yaml:"action"`
 	ActionData string      `json:"actionData" yaml:"actionData"`
 }
 

@@ -20,15 +20,17 @@ func Init() {
 
 func NewLog(cfg config.Log) *zap.Logger {
 	var logFile string
+
 	if cfg.Dir != "" {
 		logDir, err := filepath.Abs(cfg.Dir)
 		if err != nil {
 			panic("failed to resolve log dir path: " + err.Error())
 		}
 
-		if err := os.MkdirAll(logDir, 0o755); err != nil {
+		if err := os.MkdirAll(logDir, 0o750); err != nil {
 			panic("failed to create log directory: " + err.Error())
 		}
+
 		logFile = filepath.Join(logDir, time.Now().Format("2006-01-02")+".log")
 	}
 

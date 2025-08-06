@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,12 +12,15 @@ import (
 
 func Init(loaders ...Loader) error {
 	var err error
+
 	Instance, err = NewConfig(loaders...)
+
 	return err
 }
 
 func NewConfig(loaders ...Loader) (*Config, error) {
 	loaderByExt := make(map[string]Loader)
+
 	for _, l := range loaders {
 		for _, ext := range l.GetAllowFileExtensions() {
 			loaderByExt["."+strings.ToLower(ext)] = l
@@ -46,6 +50,7 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 				tryPath := base + ext
 				if _, err := os.Stat(tryPath); err == nil {
 					foundPath = tryPath
+
 					break
 				}
 			}
@@ -61,6 +66,7 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 				fullPath := filepath.Join(p, "config"+ext)
 				if _, err := os.Stat(fullPath); err == nil {
 					foundPath = fullPath
+
 					break searchLoop
 				}
 			}
@@ -71,10 +77,12 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 		if envPath != "" {
 			return nil, fmt.Errorf("config file specified by env var not found: %s", envPath)
 		}
-		return nil, fmt.Errorf("no config file found in search paths")
+
+		return nil, errors.New("no config file found in search paths")
 	}
 
 	ext := strings.ToLower(filepath.Ext(foundPath))
+
 	loader, ok := loaderByExt[ext]
 	if !ok {
 		return nil, fmt.Errorf("unsupported config file extension: %s", ext)
