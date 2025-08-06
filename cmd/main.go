@@ -7,10 +7,10 @@ import (
 	"runtime/debug"
 	"syscall"
 
-	config2 "github.com/Sn0wo2/FileSync/config"
-	"github.com/Sn0wo2/FileSync/framework"
-	log2 "github.com/Sn0wo2/FileSync/log"
-	"github.com/Sn0wo2/FileSync/router"
+	config2 "github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/framework"
+	log2 "github.com/Sn0wo2/CatSync/log"
+	"github.com/Sn0wo2/CatSync/router"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )

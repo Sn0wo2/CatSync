@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Sn0wo2/FileSync/internal/helper"
+	"github.com/Sn0wo2/CatSync/internal/helper"
 	"github.com/gofiber/fiber/v2"
 )
 

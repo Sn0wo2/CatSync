@@ -4,15 +4,15 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/Sn0wo2/FileSync/config"
-	"github.com/Sn0wo2/FileSync/debug"
-	"github.com/Sn0wo2/FileSync/router/errorhandler"
+	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/debug"
+	"github.com/Sn0wo2/CatSync/router/errorhandler"
 	"github.com/gofiber/fiber/v2"
 )
 
 func Fiber() *fiber.App {
 	return fiber.New(fiber.Config{
-		AppName:               "FileSync",
+		AppName:               "CatSync",
 		CaseSensitive:         true,
 		DisableStartupMessage: false,
 		ErrorHandler:          errorhandler.Error,

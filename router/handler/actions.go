@@ -8,11 +8,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Sn0wo2/FileSync/action"
-	"github.com/Sn0wo2/FileSync/config"
-	"github.com/Sn0wo2/FileSync/internal/util"
-	"github.com/Sn0wo2/FileSync/log"
-	"github.com/Sn0wo2/FileSync/response"
+	"github.com/Sn0wo2/CatSync/action"
+	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/internal/util"
+	"github.com/Sn0wo2/CatSync/log"
+	"github.com/Sn0wo2/CatSync/response"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 )

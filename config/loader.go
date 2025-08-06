@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Sn0wo2/FileSync/debug"
+	"github.com/Sn0wo2/CatSync/debug"
 )
 
 func Init(loaders ...Loader) error {

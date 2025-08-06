@@ -1,9 +1,9 @@
 package router
 
 import (
-	"github.com/Sn0wo2/FileSync/config"
-	handler2 "github.com/Sn0wo2/FileSync/router/handler"
-	"github.com/Sn0wo2/FileSync/router/notfound"
+	"github.com/Sn0wo2/CatSync/config"
+	handler2 "github.com/Sn0wo2/CatSync/router/handler"
+	"github.com/Sn0wo2/CatSync/router/notfound"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"

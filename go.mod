@@ -1,4 +1,4 @@
-module github.com/Sn0wo2/FileSync
+module github.com/Sn0wo2/CatSync
 
 go 1.24.5
 

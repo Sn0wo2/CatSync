@@ -3,8 +3,8 @@ package handler
 import (
 	"errors"
 
-	"github.com/Sn0wo2/FileSync/internal/util"
-	"github.com/Sn0wo2/FileSync/log"
+	"github.com/Sn0wo2/CatSync/internal/util"
+	"github.com/Sn0wo2/CatSync/log"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 )

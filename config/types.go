@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/Sn0wo2/FileSync/action"
+	"github.com/Sn0wo2/CatSync/action"
 )
 
 var Instance *Config
