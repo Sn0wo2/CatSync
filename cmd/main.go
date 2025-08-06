@@ -7,10 +7,10 @@ import (
 	"runtime/debug"
 	"syscall"
 
-	"github.com/Sn0wo2/FileSync/internal/config"
-	"github.com/Sn0wo2/FileSync/internal/framework"
-	"github.com/Sn0wo2/FileSync/internal/log"
-	"github.com/Sn0wo2/FileSync/internal/router"
+	config2 "github.com/Sn0wo2/FileSync/config"
+	"github.com/Sn0wo2/FileSync/framework"
+	log2 "github.com/Sn0wo2/FileSync/log"
+	"github.com/Sn0wo2/FileSync/router"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
@@ -20,16 +20,16 @@ func init() {
 
 	_ = godotenv.Load()
 
-	if err := config.Init(config.NewYAMLLoader(), config.NewJSONLoader()); err != nil {
+	if err := config2.Init(config2.NewYAMLLoader(), config2.NewJSONLoader()); err != nil {
 		panic(fmt.Errorf("failed to initialize config: %w", err))
 	}
 
-	log.Init()
+	log2.Init()
 }
 
 func main() {
 	defer func() {
-		_ = log.Instance.Sync()
+		_ = log2.Instance.Sync()
 	}()
 
 	app := framework.Fiber()
@@ -41,7 +41,7 @@ func main() {
 
 	go func() {
 		if err := framework.Start(app); err != nil {
-			log.Instance.Fatal("Server failed to start",
+			log2.Instance.Fatal("Server failed to start",
 				zap.Error(err),
 			)
 		}
@@ -50,7 +50,7 @@ func main() {
 	<-shutdownChan
 
 	if err := app.Shutdown(); err != nil {
-		log.Instance.Error("Server shutdown error",
+		log2.Instance.Error("Server shutdown error",
 			zap.Error(err),
 		)
 	}

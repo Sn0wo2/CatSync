@@ -1,9 +1,9 @@
 package errorhandler
 
 import (
-	"github.com/Sn0wo2/FileSync/internal/log"
-	"github.com/Sn0wo2/FileSync/internal/response"
 	"github.com/Sn0wo2/FileSync/internal/util"
+	"github.com/Sn0wo2/FileSync/log"
+	"github.com/Sn0wo2/FileSync/response"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"go.uber.org/zap"

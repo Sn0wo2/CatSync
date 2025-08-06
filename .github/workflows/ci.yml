@@ -36,7 +36,7 @@ jobs:
         run: go test ./...
 
       - name: Build binary
-        run: go build -v ./internal/cmd
+        run: go build -v ./cmd
 
       - name: Check for file changes
         id: git-check

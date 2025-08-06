@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/Sn0wo2/FileSync/internal/config"
-	"github.com/Sn0wo2/FileSync/internal/router/errorhandler"
-	"github.com/Sn0wo2/FileSync/pkg/debug"
+	"github.com/Sn0wo2/FileSync/config"
+	"github.com/Sn0wo2/FileSync/debug"
+	"github.com/Sn0wo2/FileSync/router/errorhandler"
 	"github.com/gofiber/fiber/v2"
 )
 

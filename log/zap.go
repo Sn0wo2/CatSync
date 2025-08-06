@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sn0wo2/FileSync/internal/config"
+	"github.com/Sn0wo2/FileSync/config"
 	"github.com/mattn/go-colorable"
 	"github.com/mgutz/ansi"
 	"go.uber.org/zap"
