@@ -35,5 +35,6 @@ type Action struct {
 
 type Loader interface {
 	Load(fileName string) (*Config, error)
+	// GetAllowFileExtensions lowercase
 	GetAllowFileExtensions() []string
 }
