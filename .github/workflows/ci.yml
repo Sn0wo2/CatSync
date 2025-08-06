@@ -38,6 +38,9 @@ jobs:
       - name: Build binary
         run: go build -v -o BuildTest ./cmd
 
+      - name: Remove binary
+        run: rm BuildTest
+
       - name: Check for file changes
         id: git-check
         run: |
