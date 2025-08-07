@@ -7,9 +7,9 @@ import (
 	"runtime/debug"
 	"syscall"
 
-	config2 "github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/framework"
-	log2 "github.com/Sn0wo2/CatSync/log"
+	"github.com/Sn0wo2/CatSync/log"
 	"github.com/Sn0wo2/CatSync/router"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
@@ -20,16 +20,16 @@ func init() {
 
 	_ = godotenv.Load()
 
-	if err := config2.Init(config2.NewYAMLLoader(), config2.NewJSONLoader()); err != nil {
+	if err := config.Init(config.NewYAMLLoader(), config.NewJSONLoader()); err != nil {
 		panic(fmt.Errorf("failed to initialize config: %w", err))
 	}
 
-	log2.Init()
+	log.Init()
 }
 
 func main() {
 	defer func() {
-		_ = log2.Instance.Sync()
+		_ = log.Instance.Sync()
 	}()
 
 	app := framework.Fiber()
@@ -41,7 +41,7 @@ func main() {
 
 	go func() {
 		if err := framework.Start(app); err != nil {
-			log2.Instance.Fatal("Server failed to start",
+			log.Instance.Fatal("Server failed to start",
 				zap.Error(err),
 			)
 		}
@@ -50,7 +50,7 @@ func main() {
 	<-shutdownChan
 
 	if err := app.Shutdown(); err != nil {
-		log2.Instance.Error("Server shutdown error",
+		log.Instance.Error("Server shutdown error",
 			zap.Error(err),
 		)
 	}
