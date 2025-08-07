@@ -6,7 +6,7 @@ release:
 
 builds:
   - id: CatSync
-    main: ./
+    main: ./cmd
     binary: CatSync
     env:
       - CGO_ENABLED=0
