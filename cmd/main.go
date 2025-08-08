@@ -13,6 +13,7 @@ import (
 	"github.com/Sn0wo2/CatSync/log"
 	"github.com/Sn0wo2/CatSync/router"
 	"github.com/Sn0wo2/CatSync/version"
+	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
@@ -34,7 +35,9 @@ func main() {
 		_ = log.Instance.Sync()
 	}()
 
-	log.Instance.Info("CatSync starting...", zap.String("version", version.GetFormatVersion()))
+	if !fiber.IsChild() {
+		log.Instance.Info("CatSync starting...", zap.String("version", version.GetFormatVersion()))
+	}
 
 	app := framework.Fiber()
 
