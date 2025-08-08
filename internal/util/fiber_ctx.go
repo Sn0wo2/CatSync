@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -24,8 +25,11 @@ func FiberContextString(ctx *fiber.Ctx) string {
 
 	sb.WriteString(" ")
 
-	if ctx.Response().StatusCode() != 0 && ctx.Response().StatusCode() != 100 {
-		sb.WriteString(strconv.Itoa(ctx.Response().StatusCode()))
+	if ctx.Response().StatusCode() != 0 {
+		statusCode := ctx.Response().StatusCode()
+		sb.WriteString(strconv.Itoa(statusCode))
+		sb.WriteString(" ")
+		sb.WriteString(http.StatusText(statusCode))
 		sb.WriteString(" ")
 	}
 
