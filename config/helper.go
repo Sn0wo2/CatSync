@@ -19,8 +19,7 @@ func validate(cfg any) error {
 			continue
 		}
 
-		optional := field.Tag.Get("optional")
-		if optional == "true" {
+		if optional := field.Tag.Get("optional"); optional == "true" {
 			continue
 		}
 
