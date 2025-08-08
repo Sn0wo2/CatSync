@@ -12,6 +12,7 @@ import (
 	"github.com/Sn0wo2/CatSync/framework"
 	"github.com/Sn0wo2/CatSync/log"
 	"github.com/Sn0wo2/CatSync/router"
+	"github.com/Sn0wo2/CatSync/version"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
@@ -32,6 +33,8 @@ func main() {
 	defer func() {
 		_ = log.Instance.Sync()
 	}()
+
+	log.Instance.Info("CatSync starting...", zap.String("version", version.GetFormatVersion()))
 
 	app := framework.Fiber()
 
