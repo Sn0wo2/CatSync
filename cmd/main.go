@@ -1,64 +1,64 @@
 package main
 
 import (
-    "fmt"
-    "os"
-    "os/signal"
-    "runtime/debug"
-    "syscall"
+	"fmt"
+	"os"
+	"os/signal"
+	"runtime/debug"
+	"syscall"
 
-    "github.com/Sn0wo2/CatSync/config"
-    "github.com/Sn0wo2/CatSync/config/file"
-    "github.com/Sn0wo2/CatSync/framework"
-    "github.com/Sn0wo2/CatSync/log"
-    "github.com/Sn0wo2/CatSync/router"
-    "github.com/Sn0wo2/CatSync/version"
-    "github.com/gofiber/fiber/v2"
-    "github.com/joho/godotenv"
-    "go.uber.org/zap"
+	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/config/file"
+	"github.com/Sn0wo2/CatSync/framework"
+	"github.com/Sn0wo2/CatSync/log"
+	"github.com/Sn0wo2/CatSync/router"
+	"github.com/Sn0wo2/CatSync/version"
+	"github.com/gofiber/fiber/v2"
+	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 )
 
 func init() {
-    debug.SetGCPercent(50)
+	debug.SetGCPercent(50)
 
-    _ = godotenv.Load()
+	_ = godotenv.Load()
 
-    if err := config.Init(file.NewYAMLLoader(), file.NewJSONLoader()); err != nil {
-        panic(fmt.Errorf("failed to initialize config: %w", err))
-    }
+	if err := config.Init(file.NewYAMLLoader(), file.NewJSONLoader()); err != nil {
+		panic(fmt.Errorf("failed to initialize config: %w", err))
+	}
 
-    log.Init()
+	log.Init()
 }
 
 func main() {
-    defer func() {
-        _ = log.Instance.Sync()
-    }()
+	defer func() {
+		_ = log.Instance.Sync()
+	}()
 
-    if !fiber.IsChild() {
-        log.Instance.Info("Starting CatSync...", zap.String("version", version.GetFormatVersion()))
-    }
+	if !fiber.IsChild() {
+		log.Instance.Info("Starting CatSync...", zap.String("version", version.GetFormatVersion()))
+	}
 
-    app := framework.Fiber()
+	app := framework.Fiber()
 
-    router.Init(app)
+	router.Init(app)
 
-    shutdownChan := make(chan os.Signal, 1)
-    signal.Notify(shutdownChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+	shutdownChan := make(chan os.Signal, 1)
+	signal.Notify(shutdownChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
-    go func() {
-        if err := framework.Start(app); err != nil {
-            log.Instance.Fatal("Server failed to start",
-                zap.Error(err),
-            )
-        }
-    }()
+	go func() {
+		if err := framework.Start(app); err != nil {
+			log.Instance.Fatal("Server failed to start",
+				zap.Error(err),
+			)
+		}
+	}()
 
-    <-shutdownChan
+	<-shutdownChan
 
-    if err := app.Shutdown(); err != nil {
-        log.Instance.Error("Server failed to shutdown",
-            zap.Error(err),
-        )
-    }
+	if err := app.Shutdown(); err != nil {
+		log.Instance.Error("Server failed to shutdown",
+			zap.Error(err),
+		)
+	}
 }
