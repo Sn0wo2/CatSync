@@ -51,7 +51,7 @@ func main() {
 		fmt.Printf("Latest tag: %s\n", lastTag)
 	}
 
-	fmt.Print("Enter new tag:")
+	fmt.Print("Enter new tag: ")
 
 	newTag, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
