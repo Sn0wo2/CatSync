@@ -1,8 +1,9 @@
-package config
+package file
 
 import (
 	"os"
 
+	"github.com/Sn0wo2/CatSync/config"
 	"gopkg.in/yaml.v3"
 )
 
@@ -12,18 +13,15 @@ func NewYAMLLoader() *YAMLLoader {
 	return &YAMLLoader{}
 }
 
-func (y *YAMLLoader) Load(fileName string) (*Config, error) {
+func (y *YAMLLoader) Load(fileName string) (*config.Config, error) {
 	file, err := os.ReadFile(fileName) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
 
-	var cfg Config
-	if err := yaml.Unmarshal(file, &cfg); err != nil {
-		return nil, err
-	}
+	var cfg config.Config
 
-	return &cfg, nil
+	return &cfg, yaml.Unmarshal(file, &cfg)
 }
 
 func (y *YAMLLoader) GetAllowFileExtensions() []string {

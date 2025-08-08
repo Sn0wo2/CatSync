@@ -27,11 +27,6 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 		}
 	}
 
-	allowedExts := make([]string, 0, len(loaderByExt))
-	for ext := range loaderByExt {
-		allowedExts = append(allowedExts, ext)
-	}
-
 	envPath := os.Getenv("CONFIG_PATH")
 	if debug.IsDebugging() {
 		if p := os.Getenv("DEBUG_CONFIG_PATH"); p != "" {
@@ -46,7 +41,7 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 			foundPath = envPath
 		} else {
 			base := strings.TrimSuffix(envPath, filepath.Ext(envPath))
-			for _, ext := range allowedExts {
+			for ext := range loaderByExt {
 				tryPath := base + ext
 				if _, err := os.Stat(tryPath); err == nil {
 					foundPath = tryPath
@@ -62,7 +57,7 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 
 	searchLoop:
 		for _, p := range searchPaths {
-			for _, ext := range allowedExts {
+			for ext := range loaderByExt {
 				fullPath := filepath.Join(p, "config"+ext)
 				if _, err := os.Stat(fullPath); err == nil {
 					foundPath = fullPath
@@ -93,9 +88,5 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 		return nil, fmt.Errorf("failed to load config file %s: %w", foundPath, err)
 	}
 
-	if err := validate(cfg); err != nil {
-		return nil, fmt.Errorf("config validation failed: %w", err)
-	}
-
-	return cfg, nil
+	return cfg, validate(cfg)
 }

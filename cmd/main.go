@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/config/file"
 	"github.com/Sn0wo2/CatSync/framework"
 	"github.com/Sn0wo2/CatSync/log"
 	"github.com/Sn0wo2/CatSync/router"
@@ -17,10 +18,9 @@ import (
 
 func init() {
 	debug.SetGCPercent(50)
-
 	_ = godotenv.Load()
 
-	if err := config.Init(config.NewYAMLLoader(), config.NewJSONLoader()); err != nil {
+	if err := config.Init(file.NewYAMLLoader(), file.NewJSONLoader()); err != nil {
 		panic(fmt.Errorf("failed to initialize config: %w", err))
 	}
 
