@@ -10,6 +10,10 @@ import (
 	"github.com/Sn0wo2/CatSync/debug"
 )
 
+var (
+	ErrConfigNotFound = errors.New("config file not found")
+)
+
 func Init(loaders ...Loader) error {
 	var err error
 
@@ -19,6 +23,9 @@ func Init(loaders ...Loader) error {
 }
 
 func NewConfig(loaders ...Loader) (*Config, error) {
+	if len(loaders) == 0 {
+		return nil, errors.New("no loaders provided")
+	}
 	loaderByExt := make(map[string]Loader)
 
 	for _, l := range loaders {
@@ -69,11 +76,7 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 	}
 
 	if foundPath == "" {
-		if envPath != "" {
-			return nil, fmt.Errorf("config file specified by env var not found: %s", envPath)
-		}
-
-		return nil, errors.New("no config file found in search paths")
+		return nil, ErrConfigNotFound
 	}
 
 	ext := strings.ToLower(filepath.Ext(foundPath))

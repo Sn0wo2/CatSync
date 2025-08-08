@@ -36,6 +36,25 @@ type Action struct {
 
 type Loader interface {
 	Load(fileName string) (*Config, error)
+	Save(fileName string, cfg *Config) error
 	// GetAllowFileExtensions lowercase
 	GetAllowFileExtensions() []string
+}
+
+var DefaultConfig = &Config{
+	Log: Log{
+		Level: "debug",
+		Dir:   "./logs",
+	},
+	Server: Server{
+		Address: ":3000",
+		Header:  "CatSync",
+	},
+	Actions: []Action{
+		{
+			Route:      "/",
+			Action:     action.String,
+			ActionData: "Hello CatSync",
+		},
+	},
 }

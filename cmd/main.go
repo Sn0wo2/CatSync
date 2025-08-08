@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"os"
 	"os/signal"
 	"runtime/debug"
@@ -24,7 +24,14 @@ func init() {
 	_ = godotenv.Load()
 
 	if err := config.Init(file.NewYAMLLoader(), file.NewJSONLoader()); err != nil {
-		panic(fmt.Errorf("failed to initialize config: %w", err))
+		if errors.Is(err, config.ErrConfigNotFound) {
+			config.Instance = config.DefaultConfig
+			if err := file.NewYAMLLoader().Save("./data/config.yml", config.DefaultConfig); err != nil {
+				panic(err)
+			}
+		} else {
+			panic(err)
+		}
 	}
 
 	log.Init()
