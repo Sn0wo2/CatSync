@@ -6,9 +6,9 @@ import (
 )
 
 var (
-	version = "unknown"
-	commit  = "unknown"
-	date    = "unknown"
+	version = "v0.0.0"
+	commit  = "dev"
+	date    = "1970-01-01T00:00:00Z"
 )
 
 func GetVersion() string {
