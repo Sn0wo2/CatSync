@@ -18,6 +18,7 @@ import (
 
 func init() {
 	debug.SetGCPercent(50)
+
 	_ = godotenv.Load()
 
 	if err := config.Init(file.NewYAMLLoader(), file.NewJSONLoader()); err != nil {
