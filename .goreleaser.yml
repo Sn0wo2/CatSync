@@ -10,6 +10,9 @@ builds:
     binary: CatSync
     env:
       - CGO_ENABLED=0
+      - p=4
+      - GODEBUG=cpu.all=off
+      - GOEXPERIMENT=newinliner
     goos:
       - linux
       - darwin
@@ -20,14 +23,15 @@ builds:
     flags:
       - -mod=readonly
       - -trimpath
-    asmflags:
-      - -trimpath
+      - -tags=netgo,osusergo
+      - -buildmode=pie
     gcflags:
       - all=-d=ssa/check_bce/debug=0
+      - all=-B
+      - all=-C
     ldflags:
-      - -s -w -buildid=
-      - -extldflags=-static
-      - -linkmode internal
+      - -s -w
+      - -extldflags=-static,-Wl,-O3
       - -X github.com/Sn0wo2/CatSync/version.version={{.Version}}
       - -X github.com/Sn0wo2/CatSync/version.commit={{.Commit}}
       - -X github.com/Sn0wo2/CatSync/version.date={{.Date}}
