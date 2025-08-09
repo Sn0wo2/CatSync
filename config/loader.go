@@ -76,6 +76,7 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 
 	if foundPath == "" {
 		DefaultConfig.ConfigPath = envPath
+
 		return DefaultConfig, ErrConfigNotFound
 	}
 
