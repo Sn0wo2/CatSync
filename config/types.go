@@ -25,8 +25,8 @@ var DefaultConfig = &Config{
 }
 
 type Config struct {
-	IsDefault  bool   `json:"-" yaml:"-"`
-	ConfigPath string `json:"-" yaml:"-"`
+	IsDefault  bool   `json:"-" optional:"true" yaml:"-"`
+	ConfigPath string `json:"-" optional:"true" yaml:"-"`
 
 	Log     Log      `json:"log"     optional:"true" yaml:"log"`
 	Server  Server   `json:"server"  yaml:"server"`
