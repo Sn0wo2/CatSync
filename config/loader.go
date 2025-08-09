@@ -75,7 +75,7 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 	}
 
 	if foundPath == "" {
-		return nil, ErrConfigNotFound
+		return &Config{ConfigPath: envPath}, ErrConfigNotFound
 	}
 
 	ext := strings.ToLower(filepath.Ext(foundPath))
@@ -89,6 +89,8 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config file %s: %w", foundPath, err)
 	}
+
+	cfg.ConfigPath = foundPath
 
 	return cfg, validate(cfg)
 }
