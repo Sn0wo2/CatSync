@@ -10,9 +10,7 @@ import (
 	"github.com/Sn0wo2/CatSync/debug"
 )
 
-var (
-	ErrConfigNotFound = errors.New("config file not found")
-)
+var ErrConfigNotFound = errors.New("config file not found")
 
 func Init(loaders ...Loader) error {
 	var err error
@@ -26,6 +24,7 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 	if len(loaders) == 0 {
 		return nil, errors.New("no loaders provided")
 	}
+
 	loaderByExt := make(map[string]Loader)
 
 	for _, l := range loaders {

@@ -31,11 +31,11 @@ func (y *YAMLLoader) Save(fileName string, cfg *config.Config) error {
 		return err
 	}
 
-	if err := os.MkdirAll(filepath.Dir(fileName), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(fileName), 0o750); err != nil {
 		return err
 	}
 
-	return os.WriteFile(fileName, file, 0644)
+	return os.WriteFile(fileName, file, 0o600)
 }
 
 func (y *YAMLLoader) GetAllowFileExtensions() []string {
