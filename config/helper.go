@@ -60,7 +60,7 @@ func merge(dst, src any) {
 	dstVal := reflect.ValueOf(dst).Elem()
 	srcVal := reflect.ValueOf(src).Elem()
 
-	for i := 0; i < srcVal.NumField(); i++ {
+	for i := range srcVal.NumField() {
 		srcField := srcVal.Field(i)
 		if !srcField.IsZero() {
 			dstVal.Field(i).Set(srcField)
