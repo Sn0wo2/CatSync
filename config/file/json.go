@@ -14,18 +14,16 @@ func NewJSONLoader() *JSONLoader {
 	return &JSONLoader{}
 }
 
-func (j *JSONLoader) Load(fileName string) (*config.Config, error) {
+func (j *JSONLoader) Load(cfg *config.Config, fileName string) error {
 	file, err := os.ReadFile(fileName) //nolint:gosec
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var cfg config.Config
-
-	return &cfg, json.Unmarshal(file, &cfg)
+	return json.Unmarshal(file, cfg)
 }
 
-func (j *JSONLoader) Save(fileName string, cfg *config.Config) error {
+func (j *JSONLoader) Save(cfg *config.Config, fileName string) error {
 	file, err := json.Marshal(cfg)
 	if err != nil {
 		return err

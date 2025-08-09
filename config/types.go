@@ -6,6 +6,24 @@ import (
 
 var Instance *Config
 
+var DefaultConfig = &Config{
+	Log: Log{
+		Level: "debug",
+		Dir:   "./logs",
+	},
+	Server: Server{
+		Address: ":3000",
+		Header:  "CatSync",
+	},
+	Actions: []Action{
+		{
+			Route:      "/",
+			Action:     action.String,
+			ActionData: "Hello CatSync",
+		},
+	},
+}
+
 type Config struct {
 	IsDefault  bool   `json:"-" yaml:"-"`
 	ConfigPath string `json:"-" yaml:"-"`
@@ -38,26 +56,8 @@ type Action struct {
 }
 
 type Loader interface {
-	Load(fileName string) (*Config, error)
-	Save(fileName string, cfg *Config) error
+	Load(cfg *Config, fileName string) error
+	Save(cfg *Config, fileName string) error
 	// GetAllowFileExtensions lowercase
 	GetAllowFileExtensions() []string
-}
-
-var DefaultConfig = &Config{
-	Log: Log{
-		Level: "debug",
-		Dir:   "./logs",
-	},
-	Server: Server{
-		Address: ":3000",
-		Header:  "CatSync",
-	},
-	Actions: []Action{
-		{
-			Route:      "/",
-			Action:     action.String,
-			ActionData: "Hello CatSync",
-		},
-	},
 }

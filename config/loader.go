@@ -75,7 +75,8 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 	}
 
 	if foundPath == "" {
-		return &Config{ConfigPath: envPath}, ErrConfigNotFound
+		DefaultConfig.ConfigPath = envPath
+		return DefaultConfig, ErrConfigNotFound
 	}
 
 	ext := strings.ToLower(filepath.Ext(foundPath))
@@ -85,12 +86,18 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 		return nil, fmt.Errorf("unsupported config file extension: %s", ext)
 	}
 
-	cfg, err := loader.Load(foundPath)
-	if err != nil {
+	var fileCfg Config
+	if err := loader.Load(&fileCfg, foundPath); err != nil {
 		return nil, fmt.Errorf("failed to load config file %s: %w", foundPath, err)
 	}
 
-	cfg.ConfigPath = foundPath
+	if err := validate(&fileCfg); err != nil {
+		return nil, fmt.Errorf("validation failed for config file %s: %w", foundPath, err)
+	}
 
-	return cfg, validate(cfg)
+	merge(DefaultConfig, &fileCfg)
+
+	DefaultConfig.ConfigPath = foundPath
+
+	return DefaultConfig, nil
 }

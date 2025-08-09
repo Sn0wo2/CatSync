@@ -14,18 +14,16 @@ func NewYAMLLoader() *YAMLLoader {
 	return &YAMLLoader{}
 }
 
-func (y *YAMLLoader) Load(fileName string) (*config.Config, error) {
+func (y *YAMLLoader) Load(cfg *config.Config, fileName string) error {
 	file, err := os.ReadFile(fileName) //nolint:gosec
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var cfg config.Config
-
-	return &cfg, yaml.Unmarshal(file, &cfg)
+	return yaml.Unmarshal(file, cfg)
 }
 
-func (y *YAMLLoader) Save(fileName string, cfg *config.Config) error {
+func (y *YAMLLoader) Save(cfg *config.Config, fileName string) error {
 	file, err := yaml.Marshal(cfg)
 	if err != nil {
 		return err
