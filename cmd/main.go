@@ -29,10 +29,12 @@ func init() {
 			if envPath == "" {
 				envPath = "./data/config.yml"
 			}
+
 			config.Instance = config.DefaultConfig
 			if err := file.NewYAMLLoader().Save(envPath, config.DefaultConfig); err != nil {
 				panic(err)
 			}
+
 			config.Instance.IsDefault = true
 			config.Instance.ConfigPath = envPath
 		} else {
