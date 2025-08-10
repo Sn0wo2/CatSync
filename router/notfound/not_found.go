@@ -10,15 +10,16 @@ import (
 	"go.uber.org/zap"
 )
 
-func Init(msg string, router fiber.Router) {
-	if msg = strings.ToLower(msg); msg == "" {
-		msg = "page not found"
+func Init(router fiber.Router, msg ...string) {
+	m := strings.Join(msg, " ")
+	if m = strings.ToLower(m); m == "" {
+		m = "page not found"
 	}
 
 	router.Use("*", func(ctx *fiber.Ctx) error {
-		log.Instance.Warn("NF >> "+util.TitleCase(msg),
+		log.Instance.Warn("NF >> "+util.TitleCase(m),
 			zap.String("ctx", util.FiberContextString(ctx)))
 
-		return response.New(msg).Write(ctx, fiber.StatusNotFound)
+		return response.New(m).Write(ctx, fiber.StatusNotFound)
 	})
 }

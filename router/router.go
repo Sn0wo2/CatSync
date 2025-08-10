@@ -14,13 +14,15 @@ func Init(router fiber.Router) {
 		Level: compress.LevelBestSpeed,
 	}), cors.New())
 
+	debug := router.Group("/v0")
+	debug.Get("/error", handler.Error())
+
 	api := router.Group("/v1")
 	api.Get("/health", handler.Health())
-	api.Get("/error", handler.Error())
 
 	for _, a := range config.Instance.Actions {
 		router.Get(a.Route, handler.Actions(a))
 	}
 
-	notfound.Init("route not found", router)
+	notfound.Init(router)
 }
