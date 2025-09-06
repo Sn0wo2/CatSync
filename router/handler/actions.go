@@ -34,7 +34,7 @@ func Actions(act config.Action) fiber.Handler {
 			}
 		}
 
-		if auth.Query != nil && len(auth.Query) > 0 {
+		if len(auth.Query) > 0 {
 			for k, v := range auth.Query {
 				if ctx.Query(k) != v {
 					log.Instance.Info("A >> Query not matched",
