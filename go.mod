@@ -1,6 +1,6 @@
 module github.com/Sn0wo2/CatSync
 
-go 1.24.5
+go 1.25.1
 
 require (
 	github.com/gofiber/fiber/v2 v2.52.9
