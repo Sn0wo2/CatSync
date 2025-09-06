@@ -18,16 +18,33 @@ import (
 
 func Actions(act config.Action) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		if act.UA != "" {
-			matched, err := regexp.Match(act.UA, ctx.Request().Header.UserAgent())
+		auth := act.Auth
+		if auth.UA != "" {
+			re, err := regexp.Compile(auth.UA)
 			if err != nil {
-				return fmt.Errorf("failed to match user agent: %w", err)
+				return fmt.Errorf("invalid user agent regexp %q: %w", auth.UA, err)
 			}
 
-			if !matched {
-				log.Instance.Info("A >> User agent not matched", zap.String("ua", act.UA), zap.String("ctx", util.FiberContextString(ctx)))
-
+			if !re.MatchString(util.BytesToString(ctx.Request().Header.UserAgent())) {
+				log.Instance.Info("A >> User agent not matched",
+					zap.String("ua", auth.UA),
+					zap.String("ctx", util.FiberContextString(ctx)),
+				)
 				return ctx.Next()
+			}
+		}
+
+		if auth.Query != nil && len(auth.Query) > 0 {
+			for k, v := range auth.Query {
+				if ctx.Query(k) != v {
+					log.Instance.Info("A >> Query not matched",
+						zap.String("key", k),
+						zap.String("expected", v),
+						zap.String("actual", ctx.Query(k)),
+						zap.String("ctx", util.FiberContextString(ctx)),
+					)
+					return ctx.Next()
+				}
 			}
 		}
 

@@ -39,12 +39,12 @@ type Log struct {
 }
 
 type Server struct {
-	Address string `json:"address" yaml:"address"`
-	Header  string `json:"header"  optional:"true" yaml:"header"`
-	TLS     TLS    `json:"tls"     optional:"true" yaml:"tls"`
+	Address string    `json:"address" yaml:"address"`
+	Header  string    `json:"header"  optional:"true" yaml:"header"`
+	TLS     ServerTLS `json:"tls"     optional:"true" yaml:"tls"`
 }
 
-type TLS struct {
+type ServerTLS struct {
 	Cert string `json:"cert" yaml:"cert"`
 	Key  string `json:"key"  yaml:"key"`
 }
@@ -53,7 +53,12 @@ type Action struct {
 	Route      string      `json:"route"      yaml:"route"`
 	Action     action.Type `json:"action"     yaml:"action"`
 	ActionData string      `json:"actionData" yaml:"actionData"`
-	UA         string      `json:"ua"         optional:"true"   yaml:"ua"`
+	Auth       ActionAuth  `json:"auth"         optional:"true"   yaml:"auth"`
+}
+
+type ActionAuth struct {
+	UA    string            `json:"ua" optional:"true" yaml:"ua"`
+	Query map[string]string `json:"query" optional:"true" yaml:"query"`
 }
 
 type Loader interface {
