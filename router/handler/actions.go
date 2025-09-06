@@ -30,6 +30,7 @@ func Actions(act config.Action) fiber.Handler {
 					zap.String("ua", auth.UA),
 					zap.String("ctx", util.FiberContextString(ctx)),
 				)
+
 				return ctx.Next()
 			}
 		}
@@ -43,6 +44,7 @@ func Actions(act config.Action) fiber.Handler {
 						zap.String("actual", ctx.Query(k)),
 						zap.String("ctx", util.FiberContextString(ctx)),
 					)
+
 					return ctx.Next()
 				}
 			}

@@ -53,11 +53,11 @@ type Action struct {
 	Route      string      `json:"route"      yaml:"route"`
 	Action     action.Type `json:"action"     yaml:"action"`
 	ActionData string      `json:"actionData" yaml:"actionData"`
-	Auth       ActionAuth  `json:"auth"         optional:"true"   yaml:"auth"`
+	Auth       ActionAuth  `json:"auth"       optional:"true"   yaml:"auth"`
 }
 
 type ActionAuth struct {
-	UA    string            `json:"ua" optional:"true" yaml:"ua"`
+	UA    string            `json:"ua"    optional:"true" yaml:"ua"`
 	Query map[string]string `json:"query" optional:"true" yaml:"query"`
 }
 
