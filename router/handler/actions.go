@@ -41,6 +41,7 @@ func Actions(act config.Action) fiber.Handler {
 					k = strings.ToLower(k)
 					v = strings.ToLower(v)
 				}
+
 				if ctx.Query(k) != v {
 					log.Instance.Info("A >> Query not matched",
 						zap.String("key", k),
