@@ -54,6 +54,12 @@ func Actions(act config.Action) fiber.Handler {
 			}
 		}
 
+		if len(act.ResponseHeader) > 0 {
+			for k, v := range act.ResponseHeader {
+				ctx.Append(k, v...)
+			}
+		}
+
 		switch act.Action {
 		case action.File:
 			safePath, err := filepath.Abs(act.ActionData)

@@ -1,6 +1,8 @@
 package config
 
 import (
+	"net/http"
+
 	"github.com/Sn0wo2/CatSync/action"
 )
 
@@ -51,10 +53,11 @@ type ServerTLS struct {
 }
 
 type Action struct {
-	Route      string      `json:"route"      yaml:"route"`
-	Action     action.Type `json:"action"     yaml:"action"`
-	ActionData string      `json:"actionData" yaml:"actionData"`
-	Auth       ActionAuth  `json:"auth"       optional:"true"   yaml:"auth"`
+	Route          string      `json:"route"      yaml:"route"`
+	Action         action.Type `json:"action"     yaml:"action"`
+	ActionData     string      `json:"actionData" yaml:"actionData"`
+	ResponseHeader http.Header `json:"responseHeader" optional:"true" yaml:"responseHeader"`
+	Auth           ActionAuth  `json:"auth"       optional:"true"   yaml:"auth"`
 }
 
 type ActionAuth struct {
