@@ -18,6 +18,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var defaultConfig = false
+
 func init() {
 	debug.SetGCPercent(50)
 
@@ -35,7 +37,7 @@ func init() {
 				panic(err)
 			}
 
-			config.Instance.IsDefault = true
+			defaultConfig = true
 			config.Instance.ConfigPath = envPath
 		} else {
 			panic(err)
@@ -54,7 +56,7 @@ func main() {
 		log.Instance.Info("Starting CatSync...", zap.String("version", version.GetFormatVersion()))
 	}
 
-	if config.Instance.IsDefault {
+	if defaultConfig {
 		log.Instance.Warn("You have not set a configuration file, using the default!", zap.String("path", config.Instance.ConfigPath))
 	}
 
