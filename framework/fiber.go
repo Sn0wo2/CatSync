@@ -2,12 +2,14 @@ package framework
 
 import (
 	"encoding/json"
+	"net/http"
 	"time"
 
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/debug"
 	"github.com/Sn0wo2/CatSync/router/errorhandler"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
 )
 
 func Fiber() *fiber.App {
@@ -30,9 +32,13 @@ func Fiber() *fiber.App {
 }
 
 func Start(app *fiber.App) error {
+	addr := config.Instance.Server.Address
+
+	httpHandler := adaptor.FiberApp(app)
+
 	if config.Instance.Server.TLS.Cert != "" && config.Instance.Server.TLS.Key != "" {
-		return app.ListenTLS(config.Instance.Server.Address, config.Instance.Server.TLS.Cert, config.Instance.Server.TLS.Key)
+		return http.ListenAndServeTLS(addr, config.Instance.Server.TLS.Cert, config.Instance.Server.TLS.Key, httpHandler)
 	}
 
-	return app.Listen(config.Instance.Server.Address)
+	return http.ListenAndServe(addr, httpHandler)
 }
