@@ -40,6 +40,34 @@ func executeStep(description string, command string, args ...string) {
 }
 
 func main() {
+	if _, err := runCmd("git", "fetch", "origin"); err != nil {
+		panic(err)
+	}
+
+	status, err := runCmd("git", "status", "--porcelain")
+	if err != nil {
+		panic(err)
+	}
+	if status != "" {
+		panic("Uncommitted changes found, please commit or stash them first.")
+	}
+
+	local, err := runCmd("git", "rev-parse", "@")
+	if err != nil {
+		panic(err)
+	}
+	remote, err := runCmd("git", "rev-parse", "@{u}")
+	if err != nil {
+		panic(err)
+	}
+
+	if local != remote {
+		fmt.Println("Local branch is not up to date with remote, pulling...")
+		if _, err := runCmd("git", "pull"); err != nil {
+			panic(err)
+		}
+	}
+
 	lastTag, err := runCmd("git", "describe", "--tags", "--abbrev=0")
 	if err != nil {
 		panic(err)
