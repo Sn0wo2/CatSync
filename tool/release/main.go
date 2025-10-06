@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,73 +10,59 @@ import (
 	"github.com/Sn0wo2/CatSync/internal/util"
 )
 
-func runCmd(args ...string) (string, error) {
-	output, err := exec.Command("git", args...).CombinedOutput()
+func runCmd(command string, args ...string) (string, error) {
+	out, err := exec.Command(command, args...).CombinedOutput()
+	s := strings.TrimSpace(util.BytesToString(out))
 	if err != nil {
-		var exitError *exec.ExitError
-		if errors.As(err, &exitError) && strings.Contains(string(exitError.Stderr), "No names found") {
+		if strings.Contains(s, "No names found") {
 			return "", nil
 		}
-
-		return "", fmt.Errorf("failed to run command '%s %s': %w\n%s", "git", strings.Join(args, " "), err, util.BytesToString(output))
+		return "", fmt.Errorf("failed to run command '%s %s': %w\n%s", command, strings.Join(args, " "), err, s)
 	}
+	return s, nil
+}
 
-	return strings.TrimSpace(util.BytesToString(output)), nil
+func must(out string, err error) string {
+	if err != nil {
+		panic(err)
+	}
+	return out
 }
 
 func executeStep(description string, command string, args ...string) {
 	fmt.Println(description)
-
 	cmd := exec.Command(command, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-
-	err := cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		panic(err)
 	}
 }
 
 func main() {
-	if _, err := runCmd("fetch", "origin"); err != nil {
-		panic(err)
-	}
+	must(runCmd("git", "fetch", "origin"))
 
-	status, err := runCmd("status", "--porcelain")
-	if err != nil {
-		panic(err)
-	}
-
+	status := must(runCmd("git", "status", "--porcelain"))
 	if status != "" {
 		panic("Uncommitted changes found, please commit or stash them first.")
 	}
 
-	local, err := runCmd("rev-parse", "@")
-	if err != nil {
-		panic(err)
-	}
-
-	remote, err := runCmd("rev-parse", "@{u}")
-	if err != nil {
-		panic(err)
-	}
+	local := must(runCmd("git", "rev-parse", "@"))
+	remote := must(runCmd("git", "rev-parse", "@{u}"))
 
 	if local != remote {
 		fmt.Println("Local branch is not up to date with remote, pulling...")
+		must(runCmd("git", "pull"))
+	}
 
-		if _, err := runCmd("pull"); err != nil {
+	lastTag, err := runCmd("git", "describe", "--tags", "--abbrev=0")
+	if err != nil {
+		if lastTag == "" || strings.Contains(lastTag, "No names found") {
+			lastTag = ""
+		} else {
 			panic(err)
 		}
-	}
-
-	lastTag, err := runCmd("describe", "--tags", "--abbrev=0")
-	if err != nil {
-		panic(err)
-	}
-
-	if err != nil {
-		panic(err)
 	}
 
 	if lastTag == "" {
@@ -87,14 +72,11 @@ func main() {
 	}
 
 	fmt.Print("Enter new tag: ")
-
 	newTag, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
 		panic(err)
 	}
-
 	newTag = strings.TrimSpace(newTag)
-
 	if newTag == "" {
 		panic("No tag entered, aborting.")
 	}
