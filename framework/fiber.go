@@ -35,10 +35,17 @@ func Start(app *fiber.App) error {
 	addr := config.Instance.Server.Address
 
 	httpHandler := adaptor.FiberApp(app)
-
-	if config.Instance.Server.TLS.Cert != "" && config.Instance.Server.TLS.Key != "" {
-		return http.ListenAndServeTLS(addr, config.Instance.Server.TLS.Cert, config.Instance.Server.TLS.Key, httpHandler)
+	server := &http.Server{
+		Addr:         addr,
+		Handler:      httpHandler,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
-	return http.ListenAndServe(addr, httpHandler)
+	if config.Instance.Server.TLS.Cert != "" && config.Instance.Server.TLS.Key != "" {
+		return server.ListenAndServeTLS(config.Instance.Server.TLS.Cert, config.Instance.Server.TLS.Key)
+	}
+
+	return server.ListenAndServe()
 }
