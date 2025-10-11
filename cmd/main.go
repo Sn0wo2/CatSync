@@ -23,7 +23,6 @@ var defaultConfig = false
 
 func init() {
 	// _ = godotenv.Load()
-
 	if err := config.Init(file.NewYAMLLoader(), file.NewJSONLoader()); err != nil {
 		if errors.Is(err, config.ErrConfigNotFound) {
 			envPath := config.Instance.ConfigPath
@@ -68,6 +67,7 @@ func main() {
 
 	go func() {
 		addr, cert, key := config.Instance.Server.Address, config.Instance.Server.TLS.Cert, config.Instance.Server.TLS.Key
+
 		protocol := "http"
 		if cert != "" && key != "" {
 			protocol = "https"
@@ -97,7 +97,7 @@ func main() {
 			logAddresses = append(logAddresses, fmt.Sprintf("%s://%s:%s", protocol, host, port))
 		}
 
-		log.Instance.Info(fmt.Sprintf("Server listening on: %s", strings.Join(logAddresses, ", ")))
+		log.Instance.Info("Server listening on: " + strings.Join(logAddresses, ", "))
 
 		if err := framework.Start(app, addr, cert, key); err != nil {
 			log.Instance.Fatal("Server failed to start",
