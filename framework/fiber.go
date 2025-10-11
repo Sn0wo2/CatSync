@@ -31,20 +31,17 @@ func Fiber() *fiber.App {
 	})
 }
 
-func Start(app *fiber.App) error {
-	addr := config.Instance.Server.Address
-
-	httpHandler := adaptor.FiberApp(app)
+func Start(app *fiber.App, addr, cert, key string) error {
 	server := &http.Server{
 		Addr:         addr,
-		Handler:      httpHandler,
+		Handler:      adaptor.FiberApp(app),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 
-	if config.Instance.Server.TLS.Cert != "" && config.Instance.Server.TLS.Key != "" {
-		return server.ListenAndServeTLS(config.Instance.Server.TLS.Cert, config.Instance.Server.TLS.Key)
+	if cert != "" && key != "" {
+		return server.ListenAndServeTLS(cert, key)
 	}
 
 	return server.ListenAndServe()

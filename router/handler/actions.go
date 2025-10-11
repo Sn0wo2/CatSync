@@ -26,7 +26,7 @@ func Actions(act config.Action) fiber.Handler {
 			}
 
 			if !re.MatchString(util.BytesToString(ctx.Request().Header.UserAgent())) {
-				log.Instance.Info("A >> User agent not matched",
+				log.Instance.Info("Router >> User agent not matched",
 					zap.String("ua", auth.UA),
 					zap.String("ctx", util.FiberContextString(ctx)),
 				)
@@ -35,30 +35,26 @@ func Actions(act config.Action) fiber.Handler {
 			}
 		}
 
-		if len(auth.Query.Map) > 0 {
-			for k, v := range auth.Query.Map {
-				if auth.Query.IgnoreCaseCase {
-					k = strings.ToLower(k)
-					v = strings.ToLower(v)
-				}
+		for k, v := range auth.Query.Map {
+			if auth.Query.IgnoreCaseCase {
+				k = strings.ToLower(k)
+				v = strings.ToLower(v)
+			}
 
-				if ctx.Query(k) != v {
-					log.Instance.Info("A >> Query not matched",
-						zap.String("key", k),
-						zap.String("expected", v),
-						zap.String("actual", ctx.Query(k)),
-						zap.String("ctx", util.FiberContextString(ctx)),
-					)
+			if ctx.Query(k) != v {
+				log.Instance.Info("Router >> Query not matched",
+					zap.String("key", k),
+					zap.String("expected", v),
+					zap.String("actual", ctx.Query(k)),
+					zap.String("ctx", util.FiberContextString(ctx)),
+				)
 
-					return ctx.Next()
-				}
+				return ctx.Next()
 			}
 		}
 
-		if len(act.ResponseHeader) > 0 {
-			for k, v := range act.ResponseHeader {
-				ctx.Append(k, v...)
-			}
+		for k, v := range act.ResponseHeader {
+			ctx.Append(k, v...)
 		}
 
 		switch act.Action {
@@ -84,20 +80,20 @@ func Actions(act config.Action) fiber.Handler {
 
 			ctx.Set(fiber.HeaderContentType, http.DetectContentType(fileBytes))
 
-			log.Instance.Info("A >> Serving file", zap.String("file", safePath), zap.String("ctx", util.FiberContextString(ctx)))
+			log.Instance.Info("Router >> Serving file", zap.String("file", safePath), zap.String("ctx", util.FiberContextString(ctx)))
 
 			return ctx.Send(fileBytes)
 		case action.String:
-			log.Instance.Info("A >> Serving string", zap.String("string", act.ActionData), zap.String("ctx", util.FiberContextString(ctx)))
+			log.Instance.Info("Router >> Serving string", zap.String("string", act.ActionData), zap.String("ctx", util.FiberContextString(ctx)))
 
 			return ctx.SendString(act.ActionData)
 		case action.URL302:
-			log.Instance.Info("A >> Redirecting to URL", zap.String("url", act.ActionData), zap.String("ctx", util.FiberContextString(ctx)))
+			log.Instance.Info("Router >> Redirecting to URL", zap.String("url", act.ActionData), zap.String("ctx", util.FiberContextString(ctx)))
 
 			return ctx.Status(fiber.StatusFound).Redirect(act.ActionData)
 		}
 
-		log.Instance.Info("A >> Unknown action", zap.Int("action", int(act.Action)), zap.String("ctx", util.FiberContextString(ctx)))
+		log.Instance.Info("Router >> Unknown action", zap.Int("action", int(act.Action)), zap.String("ctx", util.FiberContextString(ctx)))
 
 		return ctx.Next()
 	}

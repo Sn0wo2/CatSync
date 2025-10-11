@@ -11,7 +11,7 @@ import (
 
 func Error() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		log.Instance.Info("E >> Error test", zap.String("ctx", util.FiberContextString(ctx)))
+		log.Instance.Info("Router >> Error test", zap.String("ctx", util.FiberContextString(ctx)))
 
 		return errors.New("test error")
 	}

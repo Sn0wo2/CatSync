@@ -2,9 +2,11 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"net"
 	"os"
 	"os/signal"
-	"runtime/debug"
+	"strings"
 	"syscall"
 
 	"github.com/Sn0wo2/CatSync/config"
@@ -14,16 +16,13 @@ import (
 	"github.com/Sn0wo2/CatSync/router"
 	"github.com/Sn0wo2/CatSync/version"
 	"github.com/gofiber/fiber/v2"
-	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
 
 var defaultConfig = false
 
 func init() {
-	debug.SetGCPercent(50)
-
-	_ = godotenv.Load()
+	// _ = godotenv.Load()
 
 	if err := config.Init(file.NewYAMLLoader(), file.NewJSONLoader()); err != nil {
 		if errors.Is(err, config.ErrConfigNotFound) {
@@ -68,7 +67,39 @@ func main() {
 	signal.Notify(shutdownChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
 	go func() {
-		if err := framework.Start(app); err != nil {
+		addr, cert, key := config.Instance.Server.Address, config.Instance.Server.TLS.Cert, config.Instance.Server.TLS.Key
+		protocol := "http"
+		if cert != "" && key != "" {
+			protocol = "https"
+		}
+
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			if strings.HasPrefix(addr, ":") {
+				port = strings.TrimPrefix(addr, ":")
+				host = ""
+			}
+		}
+
+		var logAddresses []string
+
+		if host == "" || host == "0.0.0.0" {
+			logAddresses = append(logAddresses, fmt.Sprintf("%s://localhost:%s", protocol, port))
+
+			if ifaces, err := net.InterfaceAddrs(); err == nil {
+				for _, i := range ifaces {
+					if ipnet, ok := i.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
+						logAddresses = append(logAddresses, fmt.Sprintf("%s://%s:%s", protocol, ipnet.IP.String(), port))
+					}
+				}
+			}
+		} else {
+			logAddresses = append(logAddresses, fmt.Sprintf("%s://%s:%s", protocol, host, port))
+		}
+
+		log.Instance.Info(fmt.Sprintf("Server listening on: %s", strings.Join(logAddresses, ", ")))
+
+		if err := framework.Start(app, addr, cert, key); err != nil {
 			log.Instance.Fatal("Server failed to start",
 				zap.Error(err),
 			)
