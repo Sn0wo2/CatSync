@@ -14,7 +14,25 @@ builds:
       - linux
     goarch:
       - amd64
+      - "386"
+      - arm
       - arm64
+      - mips
+      - mipsle
+      - mips64
+      - mips64le
+      - ppc64le
+      - riscv64
+      - s390x
+    goarm:
+      - "5"
+      - "6"
+      - "7"
+    goamd64:
+      - v1
+      - v2
+      - v3
+      - v4
     flags:
       - -mod=readonly
       - -trimpath
@@ -38,10 +56,53 @@ dockers_v2:
       "org.opencontainers.image.version": "{{.Version}}"
       "org.opencontainers.image.source": "{{ .GitURL }}"
     platforms:
-      - linux/amd64
+      - linux/amd64/v1
+      - linux/amd64/v2
+      - linux/amd64/v3
+      - linux/amd64/v4
+      - linux/arm/5
+      - linux/arm/6
+      - linux/arm/7
       - linux/arm64
+      - linux/386
+      - linux/mips
+      - linux/mipsle
+      - linux/mips64
+      - linux/mips64le
+      - linux/ppc64le
+      - linux/riscv64
+      - linux/s390x
     ids:
       - CatSync
 
 changelog:
-  disable: true
+  disable: false
+  use: github
+  sort: asc
+  groups:
+    - title: "🚀 Features"
+      regexp: "^.*feat(?:\\([^)]+\\))?:+.*$"
+      order: 0
+    - title: "🐛 Bug Fixes"
+      regexp: "^.*fix(?:\\([^)]+\\))?:+.*$"
+      order: 1
+    - title: "⚡️ Performance Improvements"
+      regexp: "^.*perf(?:\\([^)]+\\))?:+.*$"
+      order: 2
+    - title: "📝 Documentation"
+      regexp: "^.*docs(?:\\([^)]+\\))?:+.*$"
+      order: 3
+    - title: "🔧 Maintenance & Chores"
+      regexp: "^.*chore(?:\\([^)]+\\))?:+.*$"
+      order: 4
+    - title: "♻️ Code Refactoring"
+      regexp: "^.*refactor(?:\\([^)]+\\))?:+.*$"
+      order: 5
+    - title: "🧪 Tests"
+      regexp: "^.*test(?:\\([^)]+\\))?:+.*$"
+      order: 6
+    - title: "📦 Dependency Updates"
+      regexp: "^.*deps(?:\\([^)]+\\))?:+.*$"
+      order: 7
+    - title: "📍 Others"
+      order: 999

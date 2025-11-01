@@ -5,12 +5,15 @@ on:
     tags:
       - 'v*.*.*'
       - 'v*.*.*-*'
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   release:
     name: GoReleaser
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
 
     permissions:
       contents: write
