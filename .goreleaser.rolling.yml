@@ -5,7 +5,7 @@ release:
   prerelease: true
 
 builds:
-  - id: CatSync-for-docker
+  - id: CatSync
     main: ./cmd
     binary: CatSync
     env:
@@ -37,12 +37,11 @@ dockers_v2:
       "org.opencontainers.image.revision": "{{ .FullCommit }}"
       "org.opencontainers.image.version": "{{.Version}}"
       "org.opencontainers.image.source": "{{ .GitURL }}"
-      "cat.platform": "{{ .Arch }}"
     platforms:
       - linux/amd64
       - linux/arm64
     ids:
-      - CatSync-for-docker
+      - CatSync
 
 changelog:
   disable: true

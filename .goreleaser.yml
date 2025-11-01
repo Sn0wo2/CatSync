@@ -40,7 +40,6 @@ dockers_v2:
       "org.opencontainers.image.revision": "{{ .FullCommit }}"
       "org.opencontainers.image.version": "{{ .Version }}"
       "org.opencontainers.image.source": "{{ .GitURL }}"
-      "cat.platform": "{{ .Arch }}"
     platforms:
       - linux/amd64
       - linux/arm64
