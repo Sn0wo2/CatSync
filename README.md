@@ -1,6 +1,8 @@
-# 🐱 CatSync
+# CatSync
 
-> Sync the "cat" config
+> Sync the「cat」config.
+
+---
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/Sn0wo2/CatSync)](https://goreportcard.com/report/github.com/Sn0wo2/CatSync)
 [![GitHub release](https://img.shields.io/github/v/release/Sn0wo2/CatSync?color=blue)](https://github.com/Sn0wo2/CatSync/releases)
@@ -13,6 +15,85 @@
 [![CodeQL Advanced](https://github.com/Sn0wo2/CatSync/actions/workflows/codeql.yml/badge.svg)](https://github.com/Sn0wo2/CatSync/actions/workflows/codeql.yml)
 
 ---
+
+## Config & How 2 use
+
+### Default Config:
+
+```yaml
+log:
+  level: debug
+  dir: ./logs
+server:
+  address: :3000
+  header: CatSync
+  tls:
+    cert: ""
+    key: ""
+actions:
+  - route: /
+    action: 1
+    actionData: Hello CatSync
+    responseHeader: { }
+    auth:
+      ua: ""
+      query:
+        map: { }
+        ignoreCaseCase: false
+
+```
+
+---
+
+### All Config Types:
+
+```go
+// https://github.com/Sn0wo2/CatSync/blob/751b12e42959119330abcda34336bee4d9c678fe/config/types.go#L29-L71
+type Config struct {
+// INTERNAL
+ConfigPath string `json:"-" optional:"true" yaml:"-"`
+
+// ---
+
+Log     Log      `json:"log"     optional:"true" yaml:"log"`
+Server  Server   `json:"server"  yaml:"server"`
+Actions []Action `json:"actions" optional:"true" yaml:"actions"`
+}
+
+type Log struct {
+Level string `json:"level" optional:"true" yaml:"level"`
+Dir   string `json:"dir"   optional:"true" yaml:"dir"`
+}
+
+type Server struct {
+Address string    `json:"address" yaml:"address"`
+Header  string    `json:"header"  optional:"true" yaml:"header"`
+TLS     ServerTLS `json:"tls"     optional:"true" yaml:"tls"`
+}
+
+type ServerTLS struct {
+Cert string `json:"cert" yaml:"cert"`
+Key  string `json:"key"  yaml:"key"`
+}
+
+type Action struct {
+Route          string      `json:"route"          yaml:"route"`
+Action         action.Type `json:"action"         yaml:"action"`
+ActionData     string      `json:"actionData"     yaml:"actionData"`
+ResponseHeader http.Header `json:"responseHeader" optional:"true"   yaml:"responseHeader"`
+Auth           ActionAuth  `json:"auth"           optional:"true"   yaml:"auth"`
+}
+
+type ActionAuth struct {
+UA    string          `json:"ua"    optional:"true" yaml:"ua"`
+Query ActionAuthQuery `json:"query" optional:"true" yaml:"query"`
+}
+
+type ActionAuthQuery struct {
+Map            map[string]string `json:"map"            yaml:"map"`
+IgnoreCaseCase bool              `json:"ignoreCaseCase" optional:"true" yaml:"ignoreCaseCase"`
+}
+```
 
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FSn0wo2%2FCatSync.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FSn0wo2%2FCatSync?ref=badge_large)
