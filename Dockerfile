@@ -1,10 +1,12 @@
 FROM alpine:latest
 
-RUN mkdir -p /opt/CatSync
-WORKDIR /opt/CatSync
+ARG TARGETPLATFORM
 
-COPY CatSync /opt/CatSync/CatSync
+RUN mkdir -p /app
+WORKDIR /app
 
-RUN chmod +x /opt/CatSync/CatSync
+COPY $TARGETPLATFORM/CatSync /app/CatSync
 
-ENTRYPOINT ["/opt/CatSync/CatSync"]
+RUN chmod +x /app/CatSync
+
+ENTRYPOINT ["/app/CatSync"]
