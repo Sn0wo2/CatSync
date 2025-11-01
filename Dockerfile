@@ -5,7 +5,7 @@ ARG TARGETPLATFORM
 RUN mkdir -p /app
 WORKDIR /app
 
-COPY $TARGETPLATFORM/CatSync /app/CatSync
+COPY ${TARGETPLATFORM}/CatSync /app/CatSync
 
 RUN chmod +x /app/CatSync
 

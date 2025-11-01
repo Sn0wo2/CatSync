@@ -20,11 +20,6 @@ builds:
     flags:
       - -mod=readonly
       - -trimpath
-      - -buildmode=pie
-    gcflags:
-      - all=-d=ssa/check_bce/debug=0
-      - all=-B
-      - all=-C
     ldflags:
       - -s -w
       - -extldflags=-static,-Wl,-O3
@@ -49,6 +44,8 @@ dockers_v2:
     platforms:
       - linux/amd64
       - linux/arm64
+    ids:
+      - CatSync
 
 changelog:
   disable: false

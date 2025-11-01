@@ -97,3 +97,26 @@ IgnoreCaseCase bool              `json:"ignoreCaseCase" optional:"true" yaml:"ig
 
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FSn0wo2%2FCatSync.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FSn0wo2%2FCatSync?ref=badge_large)
+
+## Docker
+
+### Build Docker image
+
+```bash
+goreleaser release --snapshot --clean
+
+# OR
+
+go build -o CatSync ./cmd
+docker build -t catsync:local .
+```
+
+### Run Docker
+
+```bash
+docker-compose -f docker/docker-compose.yml up -d
+
+# OR
+
+docker run -d -p 3000:3000 -v ./data:/app/data:ro --name catsync catsync:local
+```
