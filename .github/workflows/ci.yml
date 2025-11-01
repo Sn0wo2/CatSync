@@ -99,10 +99,9 @@ jobs:
           signoff: true
           sign-commits: true
 
-  release:
-    name: Release
+  rolling-release:
+    name: Rolling Release
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
       packages: write
@@ -135,6 +134,6 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
-          args: release --clean
+          args: release --snapshot --clean --config .goreleaser.rolling.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

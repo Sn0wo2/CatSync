@@ -23,16 +23,15 @@ builds:
     ldflags:
       - -s -w
       - -extldflags=-static,-Wl,-O3
-      - -X github.com/Sn0wo2/CatSync/version.version={{.Version}}
-      - -X github.com/Sn0wo2/CatSync/version.commit={{.Commit}}
-      - -X github.com/Sn0wo2/CatSync/version.date={{.Date}}
+      - "-X github.com/Sn0wo2/CatSync/version.version={{.Version}}"
+      - "-X github.com/Sn0wo2/CatSync/version.commit={{.Commit}}"
+      - "-X github.com/Sn0wo2/CatSync/version.date={{.Date}}"
 
 dockers_v2:
   - images:
       - "ghcr.io/sn0wo2/{{ .ProjectName }}"
     tags:
       - "{{ .Tag }}"
-      - "{{ if .IsNightly }}nightly{{ end }}"
       - "{{ if not .IsNightly }}latest{{ end }}"
     labels:
       "org.opencontainers.image.title": "{{ .ProjectName }}"
@@ -41,6 +40,7 @@ dockers_v2:
       "org.opencontainers.image.revision": "{{ .FullCommit }}"
       "org.opencontainers.image.version": "{{ .Version }}"
       "org.opencontainers.image.source": "{{ .GitURL }}"
+      "cat.platform": "{{ .Arch }}"
     platforms:
       - linux/amd64
       - linux/arm64
