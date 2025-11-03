@@ -126,7 +126,7 @@ changelog:
       regexp: ^.*perf(?:\\([^)]+\\))?:+.*$
       order: 2
     - title: 📝 Documentation
-      regexp: ^.*docs(?:\\([^)]+\\))?:+.*$"
+      regexp: ^.*docs(?:\\([^)]+\\))?:+.*$
       order: 3
     - title: 🔧 Maintenance & Chores
       regexp: ^.*chore(?:\\([^)]+\\))?:+.*$
