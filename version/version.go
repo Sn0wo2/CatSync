@@ -6,11 +6,12 @@ import (
 )
 
 var (
-	version = "v0.0.0"
+	version = "0.0.0"
 	commit  = "dev"
 	date    = "1970-01-01T00:00:00Z"
 )
 
+// GetVersion without 'v'
 func GetVersion() string {
 	return version
 }
@@ -38,9 +39,10 @@ func GetDateTime() time.Time {
 }
 
 func GetFormatVersion() string {
-	return fmt.Sprintf("%s-%s(%s)", GetVersion(), GetShortCommit(), GetDateTime().Format("060102150405"))
+	return fmt.Sprintf("v%s-%s(%s)", GetVersion(), GetShortCommit(), GetDateTime().Format("060102150405"))
 }
 
+// SetVersion without 'v'
 func SetVersion(ver string) {
 	version = ver
 }
