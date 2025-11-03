@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-ARG TARGETPLATFORM
+LABEL org.opencontainers.image.description="Sync the「cat」config."
 
 RUN mkdir -p /app
 WORKDIR /app

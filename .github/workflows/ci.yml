@@ -152,6 +152,6 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
-          args: release --clean -f .goreleaser.rolling.yml
+          args: release --clean -f .goreleaser.rolling.yml --release-notes ROLLING.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
