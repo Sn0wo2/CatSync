@@ -15,10 +15,10 @@ builds:
       - linux
       - darwin
     goarch:
-      - arm
       - amd64
-      - arm64
       - "386"
+      - arm64
+      - arm
     goarm:
       - "6"
       - "7"
@@ -63,6 +63,11 @@ dockers:
     goarch: amd64
     goamd64: v4
   - image_templates:
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-386"
+    use: buildx
+    goos: linux
+    goarch: "386"
+  - image_templates:
       - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv6"
     use: buildx
     goos: linux
@@ -79,11 +84,6 @@ dockers:
     use: buildx
     goos: linux
     goarch: arm64
-  - image_templates:
-      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-386"
-    use: buildx
-    goos: linux
-    goarch: "386"
 
 docker_manifests:
   - name_template: "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}"
@@ -92,10 +92,10 @@ docker_manifests:
       - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v2"
       - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v3"
       - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v4"
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-386"
       - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv6"
       - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv7"
       - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-arm64"
-      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-386"
 
 changelog:
   disable: false
