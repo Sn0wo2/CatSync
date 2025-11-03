@@ -1,16 +1,17 @@
-name: Release
+name: Rolling Release
 
 on:
   push:
-    tags: ['v*.*.*', 'v*.*.*-*']
+    branches: [main, dev]
   workflow_dispatch:
-  
-jobs:
-  release:
-    name: GoReleaser
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
 
+jobs:
+  rolling-release:
+    name: GoReleaser Rolling
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}
+      cancel-in-progress: true
     permissions:
       contents: write
       packages: write
@@ -43,10 +44,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Force update git tag
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git tag -f v0.0.0-rolling
+          git push -f origin v0.0.0-rolling
+          gh release delete v0.0.0-rolling --yes | true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
-          args: release --clean
+          args: release --clean -f .goreleaser.rolling.yml --release-notes ROLLING.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Release
+        run: gh release edit v0.0.0-rolling --title "Rolling CatSync!"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
