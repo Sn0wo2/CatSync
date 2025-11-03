@@ -92,6 +92,14 @@ type ActionAuthQuery struct {
 	Map            map[string]string `json:"map"            yaml:"map"`
 	IgnoreCaseCase bool              `json:"ignoreCaseCase" optional:"true" yaml:"ignoreCaseCase"`
 }
+
+const (
+	File = iota
+	String = 1
+	TempRedirect = 2
+	Redirect = 3
+)
+
 ```
 
 ## Docker

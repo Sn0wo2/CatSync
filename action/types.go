@@ -3,7 +3,8 @@ package action
 type Type int
 
 const (
-	File = iota
-	String
-	URL302
+	File         = iota
+	String       = 1
+	TempRedirect = 2
+	Redirect     = 3
 )

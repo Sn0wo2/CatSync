@@ -87,10 +87,14 @@ func Actions(act config.Action) fiber.Handler {
 			log.Instance.Info("Router >> Serving string", zap.String("string", act.ActionData), zap.String("ctx", util.FiberContextString(ctx)))
 
 			return ctx.SendString(act.ActionData)
-		case action.URL302:
-			log.Instance.Info("Router >> Redirecting to URL", zap.String("url", act.ActionData), zap.String("ctx", util.FiberContextString(ctx)))
+		case action.TempRedirect:
+			log.Instance.Info("Router >> Temp redirecting to URL", zap.String("url", act.ActionData), zap.String("ctx", util.FiberContextString(ctx)))
 
 			return ctx.Status(fiber.StatusFound).Redirect(act.ActionData)
+		case action.Redirect:
+			log.Instance.Info("Router >> Redirecting to URL", zap.String("url", act.ActionData), zap.String("ctx", util.FiberContextString(ctx)))
+
+			return ctx.Status(fiber.StatusMovedPermanently).Redirect(act.ActionData)
 		}
 
 		log.Instance.Info("Router >> Unknown action", zap.Int("action", int(act.Action)), zap.String("ctx", util.FiberContextString(ctx)))
