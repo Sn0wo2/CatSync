@@ -10,6 +10,7 @@ builds:
     binary: CatSync
     env:
       - CGO_ENABLED=0
+      - TZ=Asia/Shanghai
     goos:
       - windows
       - linux

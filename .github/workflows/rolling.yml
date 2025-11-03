@@ -73,8 +73,11 @@ jobs:
           args: release --clean -f .goreleaser.rolling.yml --release-notes ROLLING.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TZ: "Asia/Shanghai"
 
       - name: Update Release
-        run: gh release edit v0.0.0-rolling --title "Rolling CatSync!"
+        run: |
+          TIME=$(TZ="Asia/Shanghai" date --rfc-3339=seconds)
+          gh release edit v0.0.0-rolling --title "Rolling CatSync! (UTC+8 $TIME)"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

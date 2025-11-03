@@ -43,7 +43,7 @@ func GetFormatVersion() string {
 }
 
 func GetCLIVersion() string {
-	return fmt.Sprintf("version: %s\ncommit: %s\nbuild date: %s\nos: %s\narch: %s", GetVersion(), GetCommit(), GetDate(), GetOS(), GetArch())
+	return fmt.Sprintf("version: %s\ncommit: %s\nbuild date: UTC+8 %s\nos: %s\narch: %s", GetVersion(), GetCommit(), GetDate(), GetOS(), GetArch())
 }
 
 // SetVersion without 'v'
