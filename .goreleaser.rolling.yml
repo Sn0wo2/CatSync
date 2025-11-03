@@ -33,73 +33,73 @@ builds:
     ldflags:
       - -s -w
       - -extldflags=-static,-Wl,-O3
-      - "-X github.com/Sn0wo2/CatSync/version.version={{.Version}}"
-      - "-X github.com/Sn0wo2/CatSync/version.commit={{.Commit}}"
-      - "-X github.com/Sn0wo2/CatSync/version.date={{.Date}}"
+      - -X github.com/Sn0wo2/CatSync/version.version={{.Version}}
+      - -X github.com/Sn0wo2/CatSync/version.commit={{.Commit}}
+      - -X github.com/Sn0wo2/CatSync/version.date={{.Date}}
 
 dockers:
   - image_templates:
-      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v1"
+      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v1
     use: buildx
     goos: linux
     goarch: amd64
     goamd64: v1
     build_flag_templates:
-      - "--platform=linux/amd64/v1"
+      - --platform=linux/amd64/v1
   - image_templates:
-      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v2"
+      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v2
     use: buildx
     goos: linux
     goarch: amd64
     goamd64: v2
     build_flag_templates:
-      - "--platform=linux/amd64/v2"
+      - --platform=linux/amd64/v2
   - image_templates:
-      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v3"
+      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v3
     use: buildx
     goos: linux
     goarch: amd64
     goamd64: v3
     build_flag_templates:
-      - "--platform=linux/amd64/v3"
+      - --platform=linux/amd64/v3
   - image_templates:
-      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-386"
+      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-386
     use: buildx
     goos: linux
     goarch: "386"
     build_flag_templates:
-      - "--platform=linux/386"
+      - --platform=linux/386
   - image_templates:
-      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-arm64"
+      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-arm64
     use: buildx
     goos: linux
     goarch: arm64
     build_flag_templates:
-      - "--platform=linux/arm64"
+      - --platform=linux/arm64
   - image_templates:
-      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv6"
+      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv6
     use: buildx
     goos: linux
     goarch: arm
     goarm: "6"
     build_flag_templates:
-      - "--platform=linux/arm/v6"
+      - --platform=linux/arm/v6
   - image_templates:
-      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv7"
+      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv7
     use: buildx
     goos: linux
     goarch: arm
     goarm: "7"
     build_flag_templates:
-      - "--platform=linux/arm/v7"
+      - --platform=linux/arm/v7
 
 docker_manifests:
-  - name_template: "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}"
+  - name_template: ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}
     image_templates:
-      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v1"
-      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v2"
-      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v3"
-      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-386"
-      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-arm64"
-      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv6"
-      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv7"
+      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v1
+      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v2
+      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v3
+      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-386
+      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-arm64
+      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv6
+      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv7
