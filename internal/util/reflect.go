@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -22,8 +23,9 @@ func Validate(stru any) error {
 	v := reflect.ValueOf(stru)
 	if v.Kind() == reflect.Ptr {
 		if v.IsNil() {
-			return fmt.Errorf("validate: nil pointer received")
+			return errors.New("validate: nil pointer received")
 		}
+
 		v = v.Elem()
 	}
 
@@ -73,5 +75,6 @@ func Validate(stru any) error {
 			return fmt.Errorf("validate: field [%s] is required but empty", field.Name)
 		}
 	}
+
 	return nil
 }
