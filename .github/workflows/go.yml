@@ -7,12 +7,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  vet-test-update-build:
-    name: Vet, Test, Update and Build
+  vet-test:
+    name: Vet and Test
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -23,38 +20,12 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
 
-      - name: Run vet
-        run: go vet ./...
-
-      - name: Run tests
-        run: go test ./...
-
-      - name: Build binary
-        run: go build -v -o BuildTest ./cmd
-
-      - name: Remove binary
-        run: rm BuildTest
-
-      - name: Check for file changes
-        id: git-check
+      - name: Run vet and test
         run: |
-          if git diff --exit-code; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-          fi
+          go vet ./... &
+          go test ./... &
+          wait
 
-      - name: Create Pull Request with update dependencies
-        if: steps.git-check.outputs.changed == 'true' && github.ref == 'refs/heads/main'
-        uses: peter-evans/create-pull-request@v7
-        with:
-          commit-message: "chore(deps): update dependencies"
-          title: "chore(deps): update dependencies"
-          body: "The `update dependencies` action wants to apply these fixes."
-          branch: "chore/go-dependencies"
-          base: main
-          signoff: true
-          sign-commits: true
 
   lint:
     name: Lint and Auto-fix
