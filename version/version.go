@@ -62,14 +62,7 @@ func GetDateTime() time.Time {
 }
 
 func GetDateLocal() time.Time {
-	utc := GetDateTime()
-
-	shanghai, err := time.LoadLocation("Asia/Shanghai")
-	if err != nil {
-		return utc
-	}
-
-	return utc.In(shanghai)
+	return GetDateTime().Local()
 }
 
 // SetDate RFC3339 UTC
