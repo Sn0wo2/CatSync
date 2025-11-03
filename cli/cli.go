@@ -12,6 +12,7 @@ func Execute() {
 
 	if version := *versionFlag || *vFlag; version {
 		handleVersion()
+
 		return
 	}
 }

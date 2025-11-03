@@ -6,9 +6,11 @@ import (
 	"github.com/Sn0wo2/CatSync/action"
 )
 
-var Instance *Config
-var Path string
-var Default bool
+var (
+	Instance *Config
+	Path     string
+	Default  bool
+)
 
 var DefaultConfig = &Config{
 	Log: Log{

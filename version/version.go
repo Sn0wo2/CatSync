@@ -42,6 +42,7 @@ func GetShortCommit() string {
 	if len(commit) > 7 {
 		return commit[:7]
 	}
+
 	return commit
 }
 
@@ -56,15 +57,18 @@ func GetDate() string {
 
 func GetDateTime() time.Time {
 	t, _ := time.Parse(time.RFC3339, date)
+
 	return t
 }
 
 func GetDateLocal() time.Time {
 	utc := GetDateTime()
+
 	shanghai, err := time.LoadLocation("Asia/Shanghai")
 	if err != nil {
 		return utc
 	}
+
 	return utc.In(shanghai)
 }
 
