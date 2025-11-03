@@ -1,6 +1,9 @@
 version: 2
 project_name: catsync
 
+release:
+  prerelease: true
+
 builds:
   - id: CatSync
     main: ./cmd
@@ -8,13 +11,22 @@ builds:
     env:
       - CGO_ENABLED=0
     goos:
+      - windows
       - linux
+      - darwin
     goarch:
+      - arm
       - amd64
-      - "386"
       - arm64
-      - ppc64le
-      - riscv64
+      - "386"
+    goarm:
+      - "6"
+      - "7"
+    goamd64:
+      - "v1"
+      - "v2"
+      - "v3"
+      - "v4"
     flags:
       - -mod=readonly
       - -trimpath
@@ -25,27 +37,49 @@ builds:
       - "-X github.com/Sn0wo2/CatSync/version.commit={{.Commit}}"
       - "-X github.com/Sn0wo2/CatSync/version.date={{.Date}}"
 
-dockers_v2:
-  - id: catsync
-    images:
-      - "ghcr.io/sn0wo2/{{ .ProjectName }}"
-    tags:
-      - "{{ .Tag }}"
-    ids:
-      - CatSync
-    labels:
-      "org.opencontainers.image.title": "{{ .ProjectName }}"
-      "org.opencontainers.image.description": "Sync the「cat」config."
-      "org.opencontainers.image.created": "{{ .Date }}"
-      "org.opencontainers.image.revision": "{{ .FullCommit }}"
-      "org.opencontainers.image.version": "{{.Version}}"
-      "org.opencontainers.image.source": "{{ .GitURL }}"
-    platforms:
-      - linux/amd64
-      - linux/386
-      - linux/arm64
-      - linux/ppc64le
-      - linux/riscv64
+dockers:
+  - image_templates: [ "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v1" ]
+    goos: linux
+    goarch: amd64
+    goamd64: v1
+  - image_templates: [ "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v2" ]
+    goos: linux
+    goarch: amd64
+    goamd64: v2
+  - image_templates: [ "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v3" ]
+    goos: linux
+    goarch: amd64
+    goamd64: v3
+  - image_templates: [ "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v4" ]
+    goos: linux
+    goarch: amd64
+    goamd64: v4
+  - image_templates: [ "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv6" ]
+    goos: linux
+    goarch: arm
+    goarm: "6"
+  - image_templates: [ "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv7" ]
+    goos: linux
+    goarch: arm
+    goarm: "7"
+  - image_templates: [ "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-arm64" ]
+    goos: linux
+    goarch: arm64
+  - image_templates: [ "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-386" ]
+    goos: linux
+    goarch: "386"
+
+docker_manifests:
+  - name_template: "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}"
+    image_templates:
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v1"
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v2"
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v3"
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v4"
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv6"
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv7"
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-arm64"
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-386"
 
 changelog:
   disable: false
