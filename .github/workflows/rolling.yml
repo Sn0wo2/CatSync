@@ -78,6 +78,6 @@ jobs:
       - name: Update Release
         run: |
           TIME=$(TZ="Asia/Shanghai" date --rfc-3339=seconds)
-          gh release edit v0.0.0-rolling --title "Rolling CatSync! (UTC+8 $TIME)"
+          gh release edit v0.0.0-rolling --title "Rolling CatSync! ($TIME)"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
