@@ -92,11 +92,11 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 		return nil, fmt.Errorf("failed to load config file %s: %w", foundPath, err)
 	}
 
-	if err := validate(&fileCfg); err != nil {
+	if err := fileCfg.validate(); err != nil {
 		return nil, fmt.Errorf("validation failed for config file %s: %w", foundPath, err)
 	}
 
-	merge(DefaultConfig, &fileCfg)
+	DefaultConfig.merge(&fileCfg)
 
 	DefaultConfig.ConfigPath = foundPath
 

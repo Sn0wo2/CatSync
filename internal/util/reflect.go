@@ -1,4 +1,4 @@
-package config
+package util
 
 import (
 	"fmt"
@@ -6,16 +6,35 @@ import (
 	"strings"
 )
 
-func validate(cfg any) error {
-	v := reflect.ValueOf(cfg)
+func Merge[T any](dst, src *T) {
+	dstVal := reflect.ValueOf(dst).Elem()
+	srcVal := reflect.ValueOf(src).Elem()
+
+	for i := 0; i < srcVal.NumField(); i++ {
+		srcField := srcVal.Field(i)
+		if !srcField.IsZero() {
+			dstVal.Field(i).Set(srcField)
+		}
+	}
+}
+
+func Validate(stru any) error {
+	v := reflect.ValueOf(stru)
 	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return fmt.Errorf("validate: nil pointer received")
+		}
 		v = v.Elem()
 	}
 
+	if v.Kind() != reflect.Struct {
+		return fmt.Errorf("validate: input must be a struct or a pointer to a struct, but got %s", v.Kind())
+	}
+
 	t := v.Type()
-	for i := range t.NumField() {
+	for i := 0; i < v.NumField(); i++ {
 		field := t.Field(i)
-		if field.PkgPath != "" {
+		if field.PkgPath != "" { // Skip unexported fields
 			continue
 		}
 
@@ -42,29 +61,17 @@ func validate(cfg any) error {
 		case reflect.Slice, reflect.Map, reflect.Array:
 			isEmpty = value.Len() == 0
 		case reflect.Struct:
-			if err := validate(value.Addr().Interface()); err != nil {
-				return fmt.Errorf("%s.%s: %w", t.Name(), field.Name, err)
+			if value.CanAddr() {
+				if err := Validate(value.Addr().Interface()); err != nil {
+					return fmt.Errorf("%s.%s: %w", t.Name(), field.Name, err)
+				}
 			}
-		// reflect.Bool, reflect.Uintptr, reflect.Complex64, reflect.Complex128, reflect.Chan, reflect.Func, reflect.UnsafePointer, reflect.Invalid
 		default:
 		}
 
 		if isEmpty {
-			return fmt.Errorf("config field [%s] is required but empty", field.Name)
+			return fmt.Errorf("validate: field [%s] is required but empty", field.Name)
 		}
 	}
-
 	return nil
-}
-
-func merge(dst, src any) {
-	dstVal := reflect.ValueOf(dst).Elem()
-	srcVal := reflect.ValueOf(src).Elem()
-
-	for i := range srcVal.NumField() {
-		srcField := srcVal.Field(i)
-		if !srcField.IsZero() {
-			dstVal.Field(i).Set(srcField)
-		}
-	}
 }
