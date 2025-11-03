@@ -15,6 +15,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+    if: ${{ !startsWith(github.event_name, 'pull_request') }}
 
     steps:
       - name: Checkout repository
@@ -44,13 +45,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create semver tag for goreleaser
-        run: |
-          git config user.name "${{ github.actor }}"
-          git config user.email "${{ github.actor }}@users.noreply.github.com"
-          TIMESTAMP=$(date +%Y%m%d%H%M%S)
-          git tag "v0.0.0-rolling.$TIMESTAMP"
-          git push origin "v0.0.0-rolling.$TIMESTAMP"
+      - name: Delete current release assets
+        uses: 8Mi-Tech/delete-release-assets-action@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: v0.0.0-rolling
+          deleteOnlyFromDrafts: false
+
+      - name: Tag Repo
+        uses: richardsimko/update-tag@v1
+        with:
+          tag_name: v0.0.0-rolling
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -58,14 +63,11 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
-          args: release --clean -f .goreleaser.rolling.yml
+          args: release --clean -f .goreleaser.rolling.yml --release-notes ROLLING.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Rename release to fixed tag
-        run: |
-          LATEST_TAG=$(git describe --tags --abbrev=0)
-          gh release edit $LATEST_TAG --tag rolling --title "Rolling Release - $(date +'%Y-%m-%d %H:%M:%S')" --prerelease
-          git push --delete origin $LATEST_TAG || true
+      - name: Update Release
+        run: gh release edit v0.0.0-rolling --title "Rolling CatSync!"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
