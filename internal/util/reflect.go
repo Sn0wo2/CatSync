@@ -10,7 +10,7 @@ func Merge[T any](dst, src *T) {
 	dstVal := reflect.ValueOf(dst).Elem()
 	srcVal := reflect.ValueOf(src).Elem()
 
-	for i := 0; i < srcVal.NumField(); i++ {
+	for i := range srcVal.NumField() {
 		srcField := srcVal.Field(i)
 		if !srcField.IsZero() {
 			dstVal.Field(i).Set(srcField)
@@ -32,7 +32,7 @@ func Validate(stru any) error {
 	}
 
 	t := v.Type()
-	for i := 0; i < v.NumField(); i++ {
+	for i := range v.NumField() {
 		field := t.Field(i)
 		if field.PkgPath != "" { // Skip unexported fields
 			continue
