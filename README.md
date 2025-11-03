@@ -48,57 +48,63 @@ actions:
 ### All Config Types:
 
 ```go
-// https://github.com/Sn0wo2/CatSync/blob/751b12e42959119330abcda34336bee4d9c678fe/config/types.go#L29-L71
+// config/types.go
 type Config struct {
-// INTERNAL
-ConfigPath string `json:"-" optional:"true" yaml:"-"`
+	Log     Log      `json:"log"     optional:"true" yaml:"log"`
+	Server  Server   `json:"server"  yaml:"server"`
+	Actions []Action `json:"actions" optional:"true" yaml:"actions"`
 
-// ---
-
-Log     Log      `json:"log"     optional:"true" yaml:"log"`
-Server  Server   `json:"server"  yaml:"server"`
-Actions []Action `json:"actions" optional:"true" yaml:"actions"`
+	// --- INTERNAL ---
+	
+	ConfigPath string `json:"-" optional:"true" yaml:"-"`
 }
 
 type Log struct {
-Level string `json:"level" optional:"true" yaml:"level"`
-Dir   string `json:"dir"   optional:"true" yaml:"dir"`
+	Level string `json:"level" optional:"true" yaml:"level"`
+	Dir   string `json:"dir"   optional:"true" yaml:"dir"`
 }
 
 type Server struct {
-Address string    `json:"address" yaml:"address"`
-Header  string    `json:"header"  optional:"true" yaml:"header"`
-TLS     ServerTLS `json:"tls"     optional:"true" yaml:"tls"`
+	Address string    `json:"address" yaml:"address"`
+	Header  string    `json:"header"  optional:"true" yaml:"header"`
+	TLS     ServerTLS `json:"tls"     optional:"true" yaml:"tls"`
 }
 
 type ServerTLS struct {
-Cert string `json:"cert" yaml:"cert"`
-Key  string `json:"key"  yaml:"key"`
+	Cert string `json:"cert" yaml:"cert"`
+	Key  string `json:"key"  yaml:"key"`
 }
 
 type Action struct {
-Route          string      `json:"route"          yaml:"route"`
-Action         action.Type `json:"action"         yaml:"action"`
-ActionData     string      `json:"actionData"     yaml:"actionData"`
-ResponseHeader http.Header `json:"responseHeader" optional:"true"   yaml:"responseHeader"`
-Auth           ActionAuth  `json:"auth"           optional:"true"   yaml:"auth"`
+	Route          string      `json:"route"          yaml:"route"`
+	Action         action.Type `json:"action"         yaml:"action"`
+	ActionData     string      `json:"actionData"     yaml:"actionData"`
+	ResponseHeader http.Header `json:"responseHeader" optional:"true"   yaml:"responseHeader"`
+	Auth           ActionAuth  `json:"auth"           optional:"true"   yaml:"auth"`
 }
 
 type ActionAuth struct {
-UA    string          `json:"ua"    optional:"true" yaml:"ua"`
-Query ActionAuthQuery `json:"query" optional:"true" yaml:"query"`
+	UA    string          `json:"ua"    optional:"true" yaml:"ua"`
+	Query ActionAuthQuery `json:"query" optional:"true" yaml:"query"`
 }
 
 type ActionAuthQuery struct {
-Map            map[string]string `json:"map"            yaml:"map"`
-IgnoreCaseCase bool              `json:"ignoreCaseCase" optional:"true" yaml:"ignoreCaseCase"`
+	Map            map[string]string `json:"map"            yaml:"map"`
+	IgnoreCaseCase bool              `json:"ignoreCaseCase" optional:"true" yaml:"ignoreCaseCase"`
 }
 ```
 
-## License
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FSn0wo2%2FCatSync.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FSn0wo2%2FCatSync?ref=badge_large)
-
 ## Docker
+
+### Run Docker
+
+```bash
+docker-compose -f docker/docker-compose.yml up -d
+
+# OR(Replace 'latest' to 'local'  use your self build images)
+
+docker run -d -p 3000:3000 -v ./data:/app/data:ro --name catsync catsync:latest
+```
 
 ### Build Docker image
 
@@ -110,13 +116,5 @@ goreleaser release --snapshot --clean
 go build -o CatSync ./cmd
 docker build -t catsync:local .
 ```
-
-### Run Docker
-
-```bash
-docker-compose -f docker/docker-compose.yml up -d
-
-# OR
-
-docker run -d -p 3000:3000 -v ./data:/app/data:ro --name catsync catsync:local
-```
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FSn0wo2%2FCatSync.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FSn0wo2%2FCatSync?ref=badge_large)
