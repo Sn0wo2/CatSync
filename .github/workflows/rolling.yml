@@ -44,13 +44,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Force update git tag
+      - name: Create semver tag for goreleaser
         run: |
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
-          git tag -f v0.0.0-rolling
-          git push -f origin v0.0.0-rolling
-          gh release delete v0.0.0-rolling --yes | true
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          git tag "v0.0.0-rolling.$TIMESTAMP"
+          git push origin "v0.0.0-rolling.$TIMESTAMP"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -58,11 +58,14 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
-          args: release --clean -f .goreleaser.rolling.yml --release-notes ROLLING.md
+          args: release --clean -f .goreleaser.rolling.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update Release
-        run: gh release edit v0.0.0-rolling --title "Rolling CatSync!"
+      - name: Rename release to fixed tag
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0)
+          gh release edit $LATEST_TAG --tag rolling --title "Rolling Release - $(date +'%Y-%m-%d %H:%M:%S')" --prerelease
+          git push --delete origin $LATEST_TAG || true
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
