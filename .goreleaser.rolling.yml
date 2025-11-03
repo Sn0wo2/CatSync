@@ -1,9 +1,6 @@
 version: 2
 project_name: catsync
 
-release:
-  prerelease: true
-
 builds:
   - id: CatSync
     main: ./cmd
@@ -15,24 +12,9 @@ builds:
     goarch:
       - amd64
       - "386"
-      - arm
       - arm64
-      - mips
-      - mipsle
-      - mips64
-      - mips64le
       - ppc64le
       - riscv64
-      - s390x
-    goarm:
-      - "5"
-      - "6"
-      - "7"
-    goamd64:
-      - v1
-      - v2
-      - v3
-      - v4
     flags:
       - -mod=readonly
       - -trimpath
@@ -44,10 +26,13 @@ builds:
       - "-X github.com/Sn0wo2/CatSync/version.date={{.Date}}"
 
 dockers_v2:
-  - images:
+  - id: catsync
+    images:
       - "ghcr.io/sn0wo2/{{ .ProjectName }}"
     tags:
-      - rolling
+      - "{{ .Tag }}"
+    ids:
+      - CatSync
     labels:
       "org.opencontainers.image.title": "{{ .ProjectName }}"
       "org.opencontainers.image.description": "Sync the「cat」config."
@@ -56,24 +41,11 @@ dockers_v2:
       "org.opencontainers.image.version": "{{.Version}}"
       "org.opencontainers.image.source": "{{ .GitURL }}"
     platforms:
-      - linux/amd64/v1
-      - linux/amd64/v2
-      - linux/amd64/v3
-      - linux/amd64/v4
-      - linux/arm/5
-      - linux/arm/6
-      - linux/arm/7
-      - linux/arm64
+      - linux/amd64
       - linux/386
-      - linux/mips
-      - linux/mipsle
-      - linux/mips64
-      - linux/mips64le
+      - linux/arm64
       - linux/ppc64le
       - linux/riscv64
-      - linux/s390x
-    ids:
-      - CatSync
 
 changelog:
   disable: false
