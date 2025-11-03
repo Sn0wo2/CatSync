@@ -23,10 +23,10 @@ builds:
       - "6"
       - "7"
     goamd64:
-      - "v1"
-      - "v2"
-      - "v3"
-      - "v4"
+      - v1
+      - v2
+      - v3
+      - v4
     flags:
       - -mod=readonly
       - -trimpath
@@ -38,34 +38,50 @@ builds:
       - "-X github.com/Sn0wo2/CatSync/version.date={{.Date}}"
 
 dockers:
-  - image_templates: [ "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v1" ]
+  - image_templates:
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v1"
+    use: buildx
     goos: linux
     goarch: amd64
     goamd64: v1
-  - image_templates: [ "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v2" ]
+  - image_templates:
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v2"
+    use: buildx
     goos: linux
     goarch: amd64
     goamd64: v2
-  - image_templates: [ "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v3" ]
+  - image_templates:
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v3"
+    use: buildx
     goos: linux
     goarch: amd64
     goamd64: v3
-  - image_templates: [ "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v4" ]
+  - image_templates:
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v4"
+    use: buildx
     goos: linux
     goarch: amd64
     goamd64: v4
-  - image_templates: [ "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv6" ]
+  - image_templates:
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv6"
+    use: buildx
     goos: linux
     goarch: arm
     goarm: "6"
-  - image_templates: [ "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv7" ]
+  - image_templates:
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv7"
+    use: buildx
     goos: linux
     goarch: arm
     goarm: "7"
-  - image_templates: [ "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-arm64" ]
+  - image_templates:
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-arm64"
+    use: buildx
     goos: linux
     goarch: arm64
-  - image_templates: [ "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-386" ]
+  - image_templates:
+      - "ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-386"
+    use: buildx
     goos: linux
     goarch: "386"
 
