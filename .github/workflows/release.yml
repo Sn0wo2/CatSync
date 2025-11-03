@@ -2,11 +2,8 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
-      - 'v*.*.*-*'
-    branches:
-      - main
+    tags: ['v*.*.*', 'v*.*.*-*']
+    branches: [main, dev]
   workflow_dispatch:
   
 concurrency:
