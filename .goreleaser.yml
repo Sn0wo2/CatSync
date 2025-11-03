@@ -45,6 +45,9 @@ dockers:
     goarch: amd64
     goamd64: v1
     build_flag_templates:
+      - --label "org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync"
+      - --label "org.opencontainers.image.description=Sync the「cat」config."
+      - --label "org.opencontainers.image.licenses=MIT"
       - --platform=linux/amd64/v1
   - image_templates:
       - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v2
@@ -53,6 +56,9 @@ dockers:
     goarch: amd64
     goamd64: v2
     build_flag_templates:
+      - --label "org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync"
+      - --label "org.opencontainers.image.description=Sync the「cat」config."
+      - --label "org.opencontainers.image.licenses=MIT"
       - --platform=linux/amd64/v2
   - image_templates:
       - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v3
@@ -61,6 +67,9 @@ dockers:
     goarch: amd64
     goamd64: v3
     build_flag_templates:
+      - --label "org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync"
+      - --label "org.opencontainers.image.description=Sync the「cat」config."
+      - --label "org.opencontainers.image.licenses=MIT"
       - --platform=linux/amd64/v3
   - image_templates:
       - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-386
@@ -68,6 +77,9 @@ dockers:
     goos: linux
     goarch: "386"
     build_flag_templates:
+      - --label "org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync"
+      - --label "org.opencontainers.image.description=Sync the「cat」config."
+      - --label "org.opencontainers.image.licenses=MIT"
       - --platform=linux/386
   - image_templates:
       - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-arm64
@@ -75,6 +87,9 @@ dockers:
     goos: linux
     goarch: arm64
     build_flag_templates:
+      - --label "org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync"
+      - --label "org.opencontainers.image.description=Sync the「cat」config."
+      - --label "org.opencontainers.image.licenses=MIT"
       - --platform=linux/arm64
   - image_templates:
       - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv6
@@ -83,6 +98,9 @@ dockers:
     goarch: arm
     goarm: "6"
     build_flag_templates:
+      - --label "org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync"
+      - --label "org.opencontainers.image.description=Sync the「cat」config."
+      - --label "org.opencontainers.image.licenses=MIT"
       - --platform=linux/arm/v6
   - image_templates:
       - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv7
@@ -91,54 +109,37 @@ dockers:
     goarch: arm
     goarm: "7"
     build_flag_templates:
+      - --label "org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync"
+      - --label "org.opencontainers.image.description=Sync the「cat」config."
+      - --label "org.opencontainers.image.licenses=MIT"
       - --platform=linux/arm/v7
-
-docker_manifests:
-  - name_template: ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}
-    image_templates:
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v1
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v2
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v3
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-386
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-arm64
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv6
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv7
-  - name_template: ghcr.io/sn0wo2/{{ .ProjectName }}:latest
-    image_templates:
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v1
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v2
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v3
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-386
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-arm64
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv6
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv7
 
 changelog:
   use: github
   groups:
     - title: 🚀 Features
-      regexp: ^.*feat(?:\\([^)]+\\))?:+.*$
+      regexp: "^.*feat(?:\\([^)]+\\))?:+.*$"
       order: 0
     - title: 🐛 Bug Fixes
-      regexp: ^.*fix(?:\\([^)]+\\))?:+.*$
+      regexp: "^.*fix(?:\\([^)]+\\))?:+.*$"
       order: 1
     - title: ⚡️ Performance Improvements
-      regexp: ^.*perf(?:\\([^)]+\\))?:+.*$
+      regexp: "^.*perf(?:\\([^)]+\\))?:+.*$"
       order: 2
     - title: 📝 Documentation
-      regexp: ^.*docs(?:\\([^)]+\\))?:+.*$
+      regexp: "^.*docs(?:\\([^)]+\\))?:+.*$"
       order: 3
     - title: 🔧 Maintenance & Chores
-      regexp: ^.*chore(?:\\([^)]+\\))?:+.*$
+      regexp: "^.*chore(?:\\([^)]+\\))?:+.*$"
       order: 4
     - title: ♻️ Code Refactoring
-      regexp: ^.*refactor(?:\\([^)]+\\))?:+.*$
+      regexp: "^.*refactor(?:\\([^)]+\\))?:+.*$"
       order: 5
     - title: 🧪 Tests
-      regexp: ^.*test(?:\\([^)]+\\))?:+.*$
+      regexp: "^.*test(?:\\([^)]+\\))?:+.*$"
       order: 6
     - title: 📦 Dependency Updates
-      regexp: ^.*deps(?:\\([^)]+\\))?:+.*$
+      regexp: "^.*deps(?:\\([^)]+\\))?:+.*$"
       order: 7
     - title: 📍 Others
       order: 999
