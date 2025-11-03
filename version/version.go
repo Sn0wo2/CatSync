@@ -6,16 +6,32 @@ import (
 )
 
 var (
+	// version without 'v'
 	version = "0.0.0"
 	commit  = "dev"
-	date    = "1970-01-01T00:00:00Z"
-	os      = "unknown"
-	arch    = "unknown"
+	// date RFC3339 UTC
+	date = "1970-01-01T00:00:00Z"
+	os   = "unknown"
+	arch = "unknown"
 )
 
 // GetVersion without 'v'
 func GetVersion() string {
 	return version
+}
+
+func GetFormatVersion() string {
+	return fmt.Sprintf("v%s-%s(%s)", GetVersion(), GetShortCommit(), GetDateLocal())
+}
+
+func GetCLIVersion() string {
+	return fmt.Sprintf("version: %s\ncommit: %s\nbuild date: %s\nos: %s\narch: %s",
+		GetVersion(), GetCommit(), GetDateLocal(), GetOS(), GetArch())
+}
+
+// SetVersion without 'v'
+func SetVersion(ver string) {
+	version = ver
 }
 
 func GetCommit() string {
@@ -29,6 +45,11 @@ func GetShortCommit() string {
 	return commit
 }
 
+func SetCommit(comm string) {
+	commit = comm
+}
+
+// GetDate RFC3339 UTC
 func GetDate() string {
 	return date
 }
@@ -38,23 +59,16 @@ func GetDateTime() time.Time {
 	return t
 }
 
-func GetFormatVersion() string {
-	return fmt.Sprintf("v%s-%s(%s)", GetVersion(), GetShortCommit(), GetDate())
+func GetDateLocal() time.Time {
+	utc := GetDateTime()
+	shanghai, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		return utc
+	}
+	return utc.In(shanghai)
 }
 
-func GetCLIVersion() string {
-	return fmt.Sprintf("version: %s\ncommit: %s\nbuild date: %s+08:00\nos: %s\narch: %s", GetVersion(), GetCommit(), GetDate(), GetOS(), GetArch())
-}
-
-// SetVersion without 'v'
-func SetVersion(ver string) {
-	version = ver
-}
-
-func SetCommit(comm string) {
-	commit = comm
-}
-
+// SetDate RFC3339 UTC
 func SetDate(dat string) {
 	date = dat
 }
