@@ -22,6 +22,7 @@ import (
 
 func init() {
 	// _ = godotenv.Load()
+	cli.Execute()
 	if err := config.Init(file.NewYAMLLoader(), file.NewJSONLoader()); err != nil {
 		if errors.Is(err, config.ErrConfigNotFound) {
 			envPath := config.Path
@@ -40,13 +41,10 @@ func init() {
 			panic(err)
 		}
 	}
-
-	log.Init()
 }
 
 func main() {
-	cli.Execute()
-
+	log.Init()
 	defer func() {
 		_ = log.Instance.Sync()
 	}()
