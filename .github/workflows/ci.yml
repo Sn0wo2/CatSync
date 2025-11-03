@@ -155,3 +155,8 @@ jobs:
           args: release --clean -f .goreleaser.rolling.yml --release-notes ROLLING.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Release
+        run: gh release edit v0.0.0-rolling --title "Rolling CatSync!"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
