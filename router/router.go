@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/router/handler"
+	"github.com/Sn0wo2/CatSync/router/middleware"
 	"github.com/Sn0wo2/CatSync/router/notfound"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
@@ -12,7 +13,7 @@ import (
 func Init(router fiber.Router) {
 	router.Use(compress.New(compress.Config{
 		Level: compress.LevelBestSpeed,
-	}), cors.New())
+	}), cors.New(), middleware.Server())
 
 	debug := router.Group("/v0")
 	debug.Get("/error", handler.Error())
