@@ -9,7 +9,7 @@
 [![GitHub License](https://img.shields.io/github/license/Sn0wo2/CatSync)](LICENSE)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FSn0wo2%2FCatSync.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FSn0wo2%2FCatSync?ref=badge_shield)
 
-[![Go CI](https://github.com/Sn0wo2/CatSync/actions/workflows/ci.yml/badge.svg)](https://github.com/Sn0wo2/CatSync/actions/workflows/ci.yml)
+[![Go CI](https://github.com/Sn0wo2/CatSync/actions/workflows/go.yml/badge.svg)](https://github.com/Sn0wo2/CatSync/actions/workflows/go.yml)
 [![Release](https://github.com/Sn0wo2/CatSync/actions/workflows/release.yml/badge.svg)](https://github.com/Sn0wo2/CatSync/actions/workflows/release.yml)
 [![Dependabot Updates](https://github.com/Sn0wo2/CatSync/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/Sn0wo2/CatSync/actions/workflows/dependabot/dependabot-updates)
 [![CodeQL Advanced](https://github.com/Sn0wo2/CatSync/actions/workflows/codeql.yml/badge.svg)](https://github.com/Sn0wo2/CatSync/actions/workflows/codeql.yml)
@@ -99,9 +99,11 @@ type ActionAuthQuery struct {
 ### Run Docker
 
 ```bash
+
+# Recommend
 docker-compose -f docker/docker-compose.yml up -d
 
-# OR(Replace 'latest' to 'local'  use your self build images)
+# OR: Replace 'latest' with 'local' to use your self-built images
 
 docker run -d -p 3000:3000 -v ./data:/app/data:ro --name catsync catsync:latest
 ```
@@ -109,6 +111,8 @@ docker run -d -p 3000:3000 -v ./data:/app/data:ro --name catsync catsync:latest
 ### Build Docker image
 
 ```bash
+
+# Recommend
 goreleaser release --snapshot --clean
 
 # OR
