@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/Sn0wo2/CatSync/cli"
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/config/file"
 	"github.com/Sn0wo2/CatSync/framework"
@@ -19,13 +20,11 @@ import (
 	"go.uber.org/zap"
 )
 
-var defaultConfig = false
-
 func init() {
 	// _ = godotenv.Load()
 	if err := config.Init(file.NewYAMLLoader(), file.NewJSONLoader()); err != nil {
 		if errors.Is(err, config.ErrConfigNotFound) {
-			envPath := config.Instance.ConfigPath
+			envPath := config.Path
 			if envPath == "" {
 				envPath = "./data/config.yml"
 			}
@@ -35,8 +34,8 @@ func init() {
 				panic(err)
 			}
 
-			defaultConfig = true
-			config.Instance.ConfigPath = envPath
+			config.Default = true
+			config.Path = envPath
 		} else {
 			panic(err)
 		}
@@ -46,6 +45,8 @@ func init() {
 }
 
 func main() {
+	cli.Execute()
+
 	defer func() {
 		_ = log.Instance.Sync()
 	}()
@@ -54,8 +55,8 @@ func main() {
 		log.Instance.Info("Starting CatSync...", zap.String("version", version.GetFormatVersion()))
 	}
 
-	if defaultConfig {
-		log.Instance.Warn("You have not set a configuration file, using the default!", zap.String("path", config.Instance.ConfigPath))
+	if config.Default {
+		log.Instance.Warn("You have not set a configuration file, using the default!", zap.String("path", config.Path))
 	}
 
 	app := framework.Fiber()

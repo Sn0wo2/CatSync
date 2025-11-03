@@ -7,6 +7,8 @@ import (
 )
 
 var Instance *Config
+var Path string
+var Default bool
 
 var DefaultConfig = &Config{
 	Log: Log{
@@ -30,10 +32,6 @@ type Config struct {
 	Log     Log      `json:"log"     optional:"true" yaml:"log"`
 	Server  Server   `json:"server"  yaml:"server"`
 	Actions []Action `json:"actions" optional:"true" yaml:"actions"`
-
-	// --- INTERNAL ---
-
-	ConfigPath string `json:"-" optional:"true" yaml:"-"`
 }
 
 type Log struct {

@@ -75,7 +75,7 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 	}
 
 	if foundPath == "" {
-		DefaultConfig.ConfigPath = envPath
+		Path = envPath
 
 		return DefaultConfig, ErrConfigNotFound
 	}
@@ -98,7 +98,7 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 
 	DefaultConfig.merge(&fileCfg)
 
-	DefaultConfig.ConfigPath = foundPath
+	Path = foundPath
 
 	return DefaultConfig, nil
 }
