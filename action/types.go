@@ -1,10 +1,13 @@
 package action
 
+type Data = any
+
 type Type int
 
 const (
-	File         = iota
-	String       = 1
-	TempRedirect = 2
-	Redirect     = 3
+	File = iota
+	String
+	TempRedirect
+	Redirect
+	JSON
 )
