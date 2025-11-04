@@ -26,7 +26,6 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
-      - -extldflags=-static,-Wl,-O3
       - -X github.com/Sn0wo2/CatSync/version.version={{.Version}}
       - -X github.com/Sn0wo2/CatSync/version.commit={{.Commit}}
       - -X github.com/Sn0wo2/CatSync/version.date={{.Date}}
