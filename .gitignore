@@ -33,7 +33,9 @@ go.work.sum
 
 # CatSync
 data/
+docker/data/
 logs/
 
 # goreleaser
 dist/
+
