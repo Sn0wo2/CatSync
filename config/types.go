@@ -4,18 +4,19 @@ import (
 	"net/http"
 
 	"github.com/Sn0wo2/CatSync/action"
+	"github.com/Sn0wo2/CatSync/version"
+	"github.com/gofiber/fiber/v2"
 )
 
 var (
-	Instance *Config
-	Path     string
-	Default  bool
+	Path string
 )
 
 var DefaultConfig = &Config{
 	Log: Log{
-		Level: "debug",
-		Dir:   "./logs",
+		Level:      "debug",
+		Dir:        "./logs",
+		FileFormat: "2006-01-02.log",
 	},
 	Server: Server{
 		Address: ":3000",
@@ -25,7 +26,17 @@ var DefaultConfig = &Config{
 		{
 			Route:      "/",
 			Action:     action.String,
-			ActionData: "Hello CatSync",
+			ActionData: "Hello from CatSync!",
+		},
+		{
+			Route:  "/json",
+			Action: action.JSON,
+			ActionData: fiber.Map{
+				"msg": "Hello from CatSync!",
+				"data": fiber.Map{
+					"version": version.GetFormatVersion(),
+				},
+			},
 		},
 	},
 }
@@ -37,8 +48,9 @@ type Config struct {
 }
 
 type Log struct {
-	Level string `json:"level" optional:"true" yaml:"level"`
-	Dir   string `json:"dir"   optional:"true" yaml:"dir"`
+	Dir        string `json:"dir"   optional:"true" yaml:"dir"`
+	Level      string `json:"level" optional:"true" yaml:"level"`
+	FileFormat string `json:"fileFormat" yaml:"fileFormat"`
 }
 
 type Server struct {
@@ -55,7 +67,7 @@ type ServerTLS struct {
 type Action struct {
 	Route          string      `json:"route"          yaml:"route"`
 	Action         action.Type `json:"action"         yaml:"action"`
-	ActionData     string      `json:"actionData"     yaml:"actionData"`
+	ActionData     action.Data `json:"actionData"     yaml:"actionData"`
 	ResponseHeader http.Header `json:"responseHeader" optional:"true"   yaml:"responseHeader"`
 	Auth           ActionAuth  `json:"auth"           optional:"true"   yaml:"auth"`
 }

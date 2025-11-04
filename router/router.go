@@ -8,22 +8,23 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"go.uber.org/zap"
 )
 
-func Init(router fiber.Router) {
+func Init(logger *zap.Logger, cfg *config.Config, router fiber.Router) {
 	router.Use(compress.New(compress.Config{
 		Level: compress.LevelBestSpeed,
-	}), cors.New(), middleware.Server())
+	}), cors.New(), middleware.Server(logger, cfg))
 
 	debug := router.Group("/v0")
-	debug.Get("/error", handler.Error())
+	debug.Get("/error", handler.Error(logger, cfg))
 
 	api := router.Group("/v1")
-	api.Get("/health", handler.Health())
+	api.Get("/health", handler.Health(logger, cfg))
 
-	for _, a := range config.Instance.Actions {
-		router.Get(a.Route, handler.Actions(a))
+	for _, a := range cfg.Actions {
+		router.Get(a.Route, handler.Actions(logger, cfg, a))
 	}
 
-	notfound.Init(router)
+	notfound.Init(logger, router)
 }

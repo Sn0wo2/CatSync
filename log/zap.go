@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sn0wo2/CatSync/config"
 	"github.com/mattn/go-colorable"
 	"github.com/mgutz/ansi"
 	"go.uber.org/zap"
@@ -14,15 +13,11 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-func Init() {
-	Instance = NewLog(config.Instance.Log)
-}
-
-func NewLog(cfg config.Log) *zap.Logger {
+func NewLog(dir, logLevel, logFileFormat string) *zap.Logger {
 	var logFile string
 
-	if cfg.Dir != "" {
-		logDir, err := filepath.Abs(cfg.Dir)
+	if dir != "" {
+		logDir, err := filepath.Abs(dir)
 		if err != nil {
 			panic("failed to resolve log dir path: " + err.Error())
 		}
@@ -31,11 +26,11 @@ func NewLog(cfg config.Log) *zap.Logger {
 			panic("failed to create log directory: " + err.Error())
 		}
 
-		logFile = filepath.Join(logDir, time.Now().Format("2006-01-02")+".log")
+		logFile = filepath.Join(logDir, time.Now().Format(logFileFormat))
 	}
 
 	level := func() zapcore.Level {
-		switch strings.ToLower(cfg.Level) {
+		switch strings.ToLower(logLevel) {
 		case "info":
 			return zapcore.InfoLevel
 		case "warn", "warning":

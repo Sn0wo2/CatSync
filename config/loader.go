@@ -12,15 +12,7 @@ import (
 
 var ErrConfigNotFound = errors.New("config file not found")
 
-func Init(loaders ...Loader) error {
-	var err error
-
-	Instance, err = NewConfig(loaders...)
-
-	return err
-}
-
-func NewConfig(loaders ...Loader) (*Config, error) {
+func New(loaders ...Loader) (*Config, error) {
 	if len(loaders) == 0 {
 		return nil, errors.New("no loaders provided")
 	}
@@ -92,11 +84,11 @@ func NewConfig(loaders ...Loader) (*Config, error) {
 		return nil, fmt.Errorf("failed to load config file %s: %w", foundPath, err)
 	}
 
-	if err := fileCfg.validate(); err != nil {
+	if err := fileCfg.Validate(); err != nil {
 		return nil, fmt.Errorf("validation failed for config file %s: %w", foundPath, err)
 	}
 
-	DefaultConfig.merge(&fileCfg)
+	DefaultConfig.Merge(&fileCfg)
 
 	Path = foundPath
 

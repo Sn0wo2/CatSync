@@ -1,7 +1,6 @@
 package framework
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -10,14 +9,15 @@ import (
 	"github.com/Sn0wo2/CatSync/router/errorhandler"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"go.uber.org/zap"
 )
 
-func Fiber() *fiber.App {
+func NewFiber(logger *zap.Logger, cfg *config.Config) *fiber.App {
 	return fiber.New(fiber.Config{
 		AppName:               "CatSync",
 		CaseSensitive:         true,
 		DisableStartupMessage: false,
-		ErrorHandler:          errorhandler.Error,
+		ErrorHandler:          errorhandler.Error(logger),
 		IdleTimeout:           5 * time.Second,
 		// dlv cant debug multiple process
 		Prefork:           !debug.IsDebugging(),
@@ -25,13 +25,11 @@ func Fiber() *fiber.App {
 		ReduceMemoryUsage: true,
 		StrictRouting:     true,
 		WriteTimeout:      10 * time.Second,
-		JSONEncoder:       json.Marshal,
-		JSONDecoder:       json.Unmarshal,
-		ServerHeader:      config.Instance.Server.Header,
+		ServerHeader:      cfg.Server.Header,
 	})
 }
 
-func Start(app *fiber.App, addr, cert, key string) error {
+func StartFiber(app *fiber.App, addr, cert, key string) error {
 	server := &http.Server{
 		Addr:         addr,
 		Handler:      adaptor.FiberApp(app),

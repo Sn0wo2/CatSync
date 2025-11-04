@@ -2,21 +2,17 @@ package handler
 
 import (
 	"fmt"
-	"net/http"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/Sn0wo2/CatSync/action"
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/internal/util"
-	"github.com/Sn0wo2/CatSync/log"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 )
 
-func Actions(act config.Action) fiber.Handler {
+func Actions(logger *zap.Logger, cfg *config.Config, act config.Action) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		auth := act.Auth
 		if auth.UA != "" {
@@ -26,7 +22,7 @@ func Actions(act config.Action) fiber.Handler {
 			}
 
 			if !re.MatchString(util.BytesToString(ctx.Request().Header.UserAgent())) {
-				log.Instance.Info("Router >> User agent not matched",
+				logger.Info("Router >> User agent not matched",
 					zap.String("ua", auth.UA),
 					zap.String("ctx", util.FiberContextString(ctx)),
 				)
@@ -42,7 +38,7 @@ func Actions(act config.Action) fiber.Handler {
 			}
 
 			if ctx.Query(k) != v {
-				log.Instance.Info("Router >> Query not matched",
+				logger.Info("Router >> Query not matched",
 					zap.String("key", k),
 					zap.String("expected", v),
 					zap.String("actual", ctx.Query(k)),
@@ -57,48 +53,12 @@ func Actions(act config.Action) fiber.Handler {
 			ctx.Append(k, v...)
 		}
 
-		switch act.Action {
-		case action.File:
-			safePath, err := filepath.Abs(act.ActionData)
-			if err != nil {
-				return fmt.Errorf("failed to get absolute path: %w", err)
-			}
-
-			wd, err := os.Getwd()
-			if err != nil {
-				return fmt.Errorf("failed to get working directory: %w", err)
-			}
-
-			if !strings.HasPrefix(safePath, filepath.Join(wd, "data")) {
-				return fmt.Errorf("file path is not in data directory: %s", safePath)
-			}
-
-			fileBytes, err := os.ReadFile(safePath) //nolint:gosec
-			if err != nil {
-				return fmt.Errorf("failed to read file: %w", err)
-			}
-
-			ctx.Set(fiber.HeaderContentType, http.DetectContentType(fileBytes))
-
-			log.Instance.Info("Router >> Serving file", zap.String("file", safePath), zap.String("ctx", util.FiberContextString(ctx)))
-
-			return ctx.Send(fileBytes)
-		case action.String:
-			log.Instance.Info("Router >> Serving string", zap.String("string", act.ActionData), zap.String("ctx", util.FiberContextString(ctx)))
-
-			return ctx.SendString(act.ActionData)
-		case action.TempRedirect:
-			log.Instance.Info("Router >> Temp redirecting to URL", zap.String("url", act.ActionData), zap.String("ctx", util.FiberContextString(ctx)))
-
-			return ctx.Status(fiber.StatusFound).Redirect(act.ActionData)
-		case action.Redirect:
-			log.Instance.Info("Router >> Redirecting to URL", zap.String("url", act.ActionData), zap.String("ctx", util.FiberContextString(ctx)))
-
-			return ctx.Status(fiber.StatusMovedPermanently).Redirect(act.ActionData)
+		handler, ok := action.HandlerRegistry[act.Action]
+		if !ok {
+			logger.Info("Router >> Unknown action", zap.Int("action", int(act.Action)), zap.String("ctx", util.FiberContextString(ctx)))
+			return ctx.Next()
 		}
 
-		log.Instance.Info("Router >> Unknown action", zap.Int("action", int(act.Action)), zap.String("ctx", util.FiberContextString(ctx)))
-
-		return ctx.Next()
+		return handler.Execute(logger, ctx, act.ActionData)
 	}
 }
