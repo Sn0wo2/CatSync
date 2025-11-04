@@ -38,7 +38,7 @@ builds:
       - -X github.com/Sn0wo2/CatSync/version.commit={{.Commit}}
       - -X github.com/Sn0wo2/CatSync/version.date={{.Date}}
       - -X github.com/Sn0wo2/CatSync/version.os={{.Os}}
-      - -X github.com/Sn0wo2/CatSync/version.arch={{.Arch}}{{.Arm}}{{.Amd64}}
+      - -X github.com/Sn0wo2/CatSync/version.arch={{.Arch}}{{.Amd64}}{{.Arm}}
 
 dockers:
   - image_templates:
@@ -48,9 +48,18 @@ dockers:
     goarch: amd64
     goamd64: v1
     build_flag_templates:
-      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync
       - --label=org.opencontainers.image.description=Sync the「cat」config.
+      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync
+      - --label=org.opencontainers.image.url=https://github.com/Sn0wo2/CatSync
+      - --label=org.opencontainers.image.vendor=Sn0wo2
+      - --label=org.opencontainers.image.authors=Sn0wo2
       - --label=org.opencontainers.image.licenses=MIT
+      - --label=org.opencontainers.image.license.name=MIT License
+      - --label=org.opencontainers.image.license.spdx=MIT
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --label=org.opencontainers.image.revision={{.Commit}}
+      - --label=org.opencontainers.image.git.branch={{ .Branch }}
+      - --label=org.opencontainers.image.created={{.Date}}
       - --platform=linux/amd64/v1
   - image_templates:
       - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v2
@@ -59,9 +68,18 @@ dockers:
     goarch: amd64
     goamd64: v2
     build_flag_templates:
-      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync
       - --label=org.opencontainers.image.description=Sync the「cat」config.
+      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync
+      - --label=org.opencontainers.image.url=https://github.com/Sn0wo2/CatSync
+      - --label=org.opencontainers.image.vendor=Sn0wo2
+      - --label=org.opencontainers.image.authors=Sn0wo2
       - --label=org.opencontainers.image.licenses=MIT
+      - --label=org.opencontainers.image.license.name=MIT License
+      - --label=org.opencontainers.image.license.spdx=MIT
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --label=org.opencontainers.image.revision={{.Commit}}
+      - --label=org.opencontainers.image.git.branch={{ .Branch }}
+      - --label=org.opencontainers.image.created={{.Date}}
       - --platform=linux/amd64/v2
   - image_templates:
       - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v3
@@ -70,9 +88,18 @@ dockers:
     goarch: amd64
     goamd64: v3
     build_flag_templates:
-      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync
       - --label=org.opencontainers.image.description=Sync the「cat」config.
+      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync
+      - --label=org.opencontainers.image.url=https://github.com/Sn0wo2/CatSync
+      - --label=org.opencontainers.image.vendor=Sn0wo2
+      - --label=org.opencontainers.image.authors=Sn0wo2
       - --label=org.opencontainers.image.licenses=MIT
+      - --label=org.opencontainers.image.license.name=MIT License
+      - --label=org.opencontainers.image.license.spdx=MIT
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --label=org.opencontainers.image.revision={{.Commit}}
+      - --label=org.opencontainers.image.git.branch={{ .Branch }}
+      - --label=org.opencontainers.image.created={{.Date}}
       - --platform=linux/amd64/v3
   - image_templates:
       - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-386
@@ -80,9 +107,18 @@ dockers:
     goos: linux
     goarch: "386"
     build_flag_templates:
-      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync
       - --label=org.opencontainers.image.description=Sync the「cat」config.
+      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync
+      - --label=org.opencontainers.image.url=https://github.com/Sn0wo2/CatSync
+      - --label=org.opencontainers.image.vendor=Sn0wo2
+      - --label=org.opencontainers.image.authors=Sn0wo2
       - --label=org.opencontainers.image.licenses=MIT
+      - --label=org.opencontainers.image.license.name=MIT License
+      - --label=org.opencontainers.image.license.spdx=MIT
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --label=org.opencontainers.image.revision={{.Commit}}
+      - --label=org.opencontainers.image.git.branch={{ .Branch }}
+      - --label=org.opencontainers.image.created={{.Date}}
       - --platform=linux/386
   - image_templates:
       - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-arm64
@@ -90,9 +126,18 @@ dockers:
     goos: linux
     goarch: arm64
     build_flag_templates:
-      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync
       - --label=org.opencontainers.image.description=Sync the「cat」config.
+      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync
+      - --label=org.opencontainers.image.url=https://github.com/Sn0wo2/CatSync
+      - --label=org.opencontainers.image.vendor=Sn0wo2
+      - --label=org.opencontainers.image.authors=Sn0wo2
       - --label=org.opencontainers.image.licenses=MIT
+      - --label=org.opencontainers.image.license.name=MIT License
+      - --label=org.opencontainers.image.license.spdx=MIT
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --label=org.opencontainers.image.revision={{.Commit}}
+      - --label=org.opencontainers.image.git.branch={{ .Branch }}
+      - --label=org.opencontainers.image.created={{.Date}}
       - --platform=linux/arm64
   - image_templates:
       - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv6
@@ -101,9 +146,18 @@ dockers:
     goarch: arm
     goarm: "6"
     build_flag_templates:
-      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync
       - --label=org.opencontainers.image.description=Sync the「cat」config.
+      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync
+      - --label=org.opencontainers.image.url=https://github.com/Sn0wo2/CatSync
+      - --label=org.opencontainers.image.vendor=Sn0wo2
+      - --label=org.opencontainers.image.authors=Sn0wo2
       - --label=org.opencontainers.image.licenses=MIT
+      - --label=org.opencontainers.image.license.name=MIT License
+      - --label=org.opencontainers.image.license.spdx=MIT
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --label=org.opencontainers.image.revision={{.Commit}}
+      - --label=org.opencontainers.image.git.branch={{ .Branch }}
+      - --label=org.opencontainers.image.created={{.Date}}
       - --platform=linux/arm/v6
   - image_templates:
       - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-armv7
@@ -112,9 +166,18 @@ dockers:
     goarch: arm
     goarm: "7"
     build_flag_templates:
-      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync
       - --label=org.opencontainers.image.description=Sync the「cat」config.
+      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync
+      - --label=org.opencontainers.image.url=https://github.com/Sn0wo2/CatSync
+      - --label=org.opencontainers.image.vendor=Sn0wo2
+      - --label=org.opencontainers.image.authors=Sn0wo2
       - --label=org.opencontainers.image.licenses=MIT
+      - --label=org.opencontainers.image.license.name=MIT License
+      - --label=org.opencontainers.image.license.spdx=MIT
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --label=org.opencontainers.image.revision={{.Commit}}
+      - --label=org.opencontainers.image.git.branch={{ .Branch }}
+      - --label=org.opencontainers.image.created={{.Date}}
       - --platform=linux/arm/v7
 
 docker_manifests:

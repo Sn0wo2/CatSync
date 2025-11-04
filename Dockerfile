@@ -7,6 +7,8 @@ LABEL org.opencontainers.image.url=https://github.com/Sn0wo2/CatSync
 LABEL org.opencontainers.image.vendor=Sn0wo2
 LABEL org.opencontainers.image.authors=Sn0wo2
 LABEL org.opencontainers.image.licenses=MIT
+LABEL org.opencontainers.image.license.name="MIT License"
+LABEL org.opencontainers.image.license.spdx=MIT
 
 COPY CatSync /CatSync
 
