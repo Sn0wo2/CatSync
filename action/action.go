@@ -37,7 +37,9 @@ func (h *StringHandler) Execute(logger *zap.Logger, ctx *fiber.Ctx, data Data) e
 	if !ok {
 		return fmt.Errorf("invalid action data type for string action: %T", data)
 	}
+
 	logger.Info("Action >> Serve String", zap.String("data", actionData), zap.String("ctx", util.FiberContextString(ctx)))
+
 	return ctx.SendString(actionData)
 }
 
@@ -79,12 +81,13 @@ func (h *FileHandler) Execute(logger *zap.Logger, ctx *fiber.Ctx, data Data) err
 		return fmt.Errorf("cannot read directory: %s", safePath)
 	}
 
-	fileBytes, err := os.ReadFile(safePath)
+	fileBytes, err := os.ReadFile(filepath.Clean(safePath))
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
 
 	ctx.Set(fiber.HeaderContentType, http.DetectContentType(fileBytes))
+
 	return ctx.Send(fileBytes)
 }
 

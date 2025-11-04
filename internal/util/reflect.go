@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -14,7 +15,7 @@ func Merge[T any](dst, src *T) {
 	srcVal := reflect.ValueOf(src).Elem()
 	srcType := srcVal.Type()
 
-	for i := 0; i < srcVal.NumField(); i++ {
+	for i := range srcVal.NumField() {
 		srcField := srcVal.Field(i)
 		if optional := srcType.Field(i).Tag.Get("optional"); optional == "true" {
 			continue
@@ -48,9 +49,11 @@ func mergeYamlNodeRecursive(node *yaml.Node, value reflect.Value) {
 		if value.IsNil() {
 			return
 		}
+
 		value = value.Elem()
 	}
 
+	//nolint:exhaustive
 	switch node.Kind {
 	case yaml.DocumentNode:
 		for _, n := range node.Content {
@@ -60,19 +63,26 @@ func mergeYamlNodeRecursive(node *yaml.Node, value reflect.Value) {
 		if value.Kind() != reflect.Struct {
 			return
 		}
+
 		t := value.Type()
+
 		for i := 0; i < len(node.Content); i += 2 {
 			keyNode := node.Content[i]
 			valueNode := node.Content[i+1]
 
 			fieldName := keyNode.Value
-			var field reflect.StructField
-			var found bool
-			for j := 0; j < t.NumField(); j++ {
+
+			var (
+				field reflect.StructField
+				found bool
+			)
+
+			for j := range t.NumField() {
 				tag := t.Field(j).Tag.Get("yaml")
 				if tag == fieldName {
 					field = t.Field(j)
 					found = true
+
 					break
 				}
 			}
@@ -85,19 +95,21 @@ func mergeYamlNodeRecursive(node *yaml.Node, value reflect.Value) {
 	case yaml.ScalarNode:
 		if value.CanSet() {
 			var newValue string
+
 			currentValue := node.Value
 
+			//nolint:exhaustive
 			switch value.Kind() {
 			case reflect.String:
 				newValue = value.String()
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				newValue = fmt.Sprintf("%d", value.Int())
+				newValue = strconv.FormatInt(value.Int(), 10)
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				newValue = fmt.Sprintf("%d", value.Uint())
+				newValue = strconv.FormatUint(value.Uint(), 10)
 			case reflect.Float32, reflect.Float64:
 				newValue = fmt.Sprintf("%g", value.Float()) // Use %g for cleaner float output
 			case reflect.Bool:
-				newValue = fmt.Sprintf("%t", value.Bool())
+				newValue = strconv.FormatBool(value.Bool())
 			default:
 				// For other types, don't attempt to update the node value
 				return

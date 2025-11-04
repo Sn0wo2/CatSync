@@ -8,9 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-var (
-	Path string
-)
+var Path string
 
 var DefaultConfig = &Config{
 	Log: Log{
@@ -48,8 +46,8 @@ type Config struct {
 }
 
 type Log struct {
-	Dir        string `json:"dir"   optional:"true" yaml:"dir"`
-	Level      string `json:"level" optional:"true" yaml:"level"`
+	Dir        string `json:"dir"        optional:"true"   yaml:"dir"`
+	Level      string `json:"level"      optional:"true"   yaml:"level"`
 	FileFormat string `json:"fileFormat" yaml:"fileFormat"`
 }
 

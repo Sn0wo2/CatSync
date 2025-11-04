@@ -27,11 +27,13 @@ func init() {
 
 func main() {
 	var cfgDefault bool
+
 	cfg, err := config.New(file.NewYAMLLoader(), file.NewJSONLoader())
 	if err != nil {
 		if !errors.Is(err, config.ErrConfigNotFound) {
 			panic(err)
 		}
+
 		envPath := config.Path
 		if envPath == "" {
 			envPath = "./data/config.yml"
@@ -41,6 +43,7 @@ func main() {
 		if err := file.NewYAMLLoader().Save(config.DefaultConfig, envPath); err != nil {
 			panic(err)
 		}
+
 		cfgDefault = true
 		config.Path = envPath
 	}
