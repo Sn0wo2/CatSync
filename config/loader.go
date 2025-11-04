@@ -32,17 +32,15 @@ func New(loaders ...Loader) (*Config, error) {
 		}
 	}
 
-	var foundPath string
-
 	if envPath != "" {
 		if _, err := os.Stat(envPath); err == nil {
-			foundPath = envPath
+			Path = envPath
 		} else {
 			base := strings.TrimSuffix(envPath, filepath.Ext(envPath))
 			for ext := range loaderByExt {
 				tryPath := base + ext
 				if _, err := os.Stat(tryPath); err == nil {
-					foundPath = tryPath
+					Path = tryPath
 
 					break
 				}
@@ -50,7 +48,7 @@ func New(loaders ...Loader) (*Config, error) {
 		}
 	}
 
-	if foundPath == "" {
+	if Path == "" {
 		searchPaths := []string{"./data/"}
 
 	searchLoop:
@@ -58,7 +56,7 @@ func New(loaders ...Loader) (*Config, error) {
 			for ext := range loaderByExt {
 				fullPath := filepath.Join(p, "config"+ext)
 				if _, err := os.Stat(fullPath); err == nil {
-					foundPath = fullPath
+					Path = fullPath
 
 					break searchLoop
 				}
@@ -66,31 +64,29 @@ func New(loaders ...Loader) (*Config, error) {
 		}
 	}
 
-	if foundPath == "" {
+	if Path == "" {
 		Path = envPath
 
-		return DefaultConfig, ErrConfigNotFound
+		return nil, ErrConfigNotFound
 	}
 
-	ext := strings.ToLower(filepath.Ext(foundPath))
+	ext := strings.ToLower(filepath.Ext(Path))
 
 	loader, ok := loaderByExt[ext]
 	if !ok {
 		return nil, fmt.Errorf("unsupported config file extension: %s", ext)
 	}
 
-	var fileCfg Config
-	if err := loader.Load(&fileCfg, foundPath); err != nil {
-		return nil, fmt.Errorf("failed to load config file %s: %w", foundPath, err)
+	fileCfg := &Config{}
+	if err := loader.Load(fileCfg, Path); err != nil {
+		return nil, fmt.Errorf("failed to load config file %s: %w", Path, err)
 	}
 
-	if err := fileCfg.Validate(); err != nil {
-		return nil, fmt.Errorf("validation failed for config file %s: %w", foundPath, err)
+	if err := fileCfg.Validate(loader.GetTag()); err != nil {
+		return nil, fmt.Errorf("validation failed for config file %s: %w", Path, err)
 	}
 
-	DefaultConfig.Merge(&fileCfg)
+	fileCfg.Merge(DefaultConfig)
 
-	Path = foundPath
-
-	return DefaultConfig, nil
+	return fileCfg, nil
 }

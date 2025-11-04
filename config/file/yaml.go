@@ -15,32 +15,28 @@ func NewYAMLLoader() *YAMLLoader {
 	return &YAMLLoader{}
 }
 
+func (y *YAMLLoader) GetTag() string {
+	return "yaml"
+}
+
 func (y *YAMLLoader) Load(cfg *config.Config, fileName string) error {
 	file, err := os.ReadFile(fileName) //nolint:gosec
 	if err != nil {
 		return err
 	}
 
-	var node yaml.Node
-	if err := yaml.Unmarshal(file, &node); err != nil {
+	node := &yaml.Node{}
+	if err := yaml.Unmarshal(file, node); err != nil {
 		return err
 	}
 
-	var fileCfg config.Config
-	if err := yaml.Unmarshal(file, &fileCfg); err != nil {
+	if err := yaml.Unmarshal(file, cfg); err != nil {
 		return err
 	}
 
-	config.DefaultConfig.Merge(&fileCfg)
-	util.MergeYamlNode(&node, config.DefaultConfig)
+	util.MergeYamlNode(node, cfg)
 
-	if err := y.saveNode(&node, fileName); err != nil {
-		return err
-	}
-
-	*cfg = *config.DefaultConfig
-
-	return nil
+	return y.saveNode(node, fileName)
 }
 
 func (y *YAMLLoader) Save(cfg *config.Config, fileName string) error {

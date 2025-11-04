@@ -10,6 +10,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var DefaultConfigProvider func() (any, bool)
+
 func Merge[T any](dst, src *T) {
 	dstVal := reflect.ValueOf(dst).Elem()
 	srcVal := reflect.ValueOf(src).Elem()
@@ -78,8 +80,7 @@ func mergeYamlNodeRecursive(node *yaml.Node, value reflect.Value) {
 			)
 
 			for j := range t.NumField() {
-				tag := t.Field(j).Tag.Get("yaml")
-				if tag == fieldName {
+				if t.Field(j).Tag.Get("yaml") == fieldName {
 					field = t.Field(j)
 					found = true
 
@@ -88,16 +89,12 @@ func mergeYamlNodeRecursive(node *yaml.Node, value reflect.Value) {
 			}
 
 			if found {
-				fieldValue := value.FieldByName(field.Name)
-				mergeYamlNodeRecursive(valueNode, fieldValue)
+				mergeYamlNodeRecursive(valueNode, value.FieldByName(field.Name))
 			}
 		}
 	case yaml.ScalarNode:
 		if value.CanSet() {
 			var newValue string
-
-			currentValue := node.Value
-
 			//nolint:exhaustive
 			switch value.Kind() {
 			case reflect.String:
@@ -107,15 +104,16 @@ func mergeYamlNodeRecursive(node *yaml.Node, value reflect.Value) {
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 				newValue = strconv.FormatUint(value.Uint(), 10)
 			case reflect.Float32, reflect.Float64:
-				newValue = fmt.Sprintf("%g", value.Float()) // Use %g for cleaner float output
+				// Use %g for cleaner float output, avoiding trailing zeros.
+				newValue = fmt.Sprintf("%g", value.Float())
 			case reflect.Bool:
 				newValue = strconv.FormatBool(value.Bool())
 			default:
-				// For other types, don't attempt to update the node value
+				// Unsupported types are ignored to prevent incorrect mutations.
 				return
 			}
 
-			if currentValue != newValue {
+			if node.Value != newValue && newValue != "" {
 				node.Value = newValue
 			}
 		}
@@ -129,8 +127,8 @@ func mergeYamlNodeRecursive(node *yaml.Node, value reflect.Value) {
 	}
 }
 
-func Validate(stru any) error {
-	v := reflect.ValueOf(stru)
+func Validate(cfg any, tag string) error {
+	v := reflect.ValueOf(cfg)
 	if v.Kind() == reflect.Ptr {
 		if v.IsNil() {
 			return errors.New("validate: nil pointer received")
@@ -146,11 +144,8 @@ func Validate(stru any) error {
 	t := v.Type()
 	for i := range v.NumField() {
 		field := t.Field(i)
-		if field.PkgPath != "" { // Skip unexported fields
-			continue
-		}
 
-		if optional := field.Tag.Get("optional"); optional == "true" {
+		if field.PkgPath != "" || field.Tag.Get("optional") == "true" {
 			continue
 		}
 
@@ -174,17 +169,38 @@ func Validate(stru any) error {
 			isEmpty = value.Len() == 0
 		case reflect.Struct:
 			if value.CanAddr() {
-				if err := Validate(value.Addr().Interface()); err != nil {
-					return fmt.Errorf("%s.%s: %w", t.Name(), field.Name, err)
+				if err := Validate(value.Addr().Interface(), tag); err != nil {
+					return err
 				}
 			}
 		default:
-			// Do nothing for other types.
+			// Other types are not checked for emptiness
 		}
 
-		if isEmpty {
-			return fmt.Errorf("validate: field [%s] is required but empty", field.Name)
+		if !isEmpty {
+			continue
 		}
+
+		tagValue := field.Tag.Get(tag)
+
+		errMsg := fmt.Sprintf("validate: field [%s] is required but empty", field.Name)
+		if tagValue != "" {
+			errMsg = fmt.Sprintf("validate: field [%s](%s) is required but empty", field.Name, tagValue)
+		}
+
+		if DefaultConfigProvider != nil {
+			if defaultCfg, ok := DefaultConfigProvider(); ok {
+				parentStruct := reflect.ValueOf(defaultCfg).Elem().FieldByName(t.Name())
+				if parentStruct.IsValid() {
+					defaultValue := parentStruct.FieldByName(field.Name)
+					if defaultValue.IsValid() {
+						errMsg += fmt.Sprintf(", default value is: '%v'", defaultValue.Interface())
+					}
+				}
+			}
+		}
+
+		return errors.New(errMsg)
 	}
 
 	return nil

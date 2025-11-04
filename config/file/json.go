@@ -14,6 +14,10 @@ func NewJSONLoader() *JSONLoader {
 	return &JSONLoader{}
 }
 
+func (j *JSONLoader) GetTag() string {
+	return "json"
+}
+
 func (j *JSONLoader) Load(cfg *config.Config, fileName string) error {
 	file, err := os.ReadFile(fileName) //nolint:gosec
 	if err != nil {

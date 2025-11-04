@@ -40,7 +40,7 @@ var DefaultConfig = &Config{
 }
 
 type Config struct {
-	Log     Log      `json:"log"     optional:"true" yaml:"log"`
+	Log     Log      `json:"log"     yaml:"log"`
 	Server  Server   `json:"server"  yaml:"server"`
 	Actions []Action `json:"actions" optional:"true" yaml:"actions"`
 }
@@ -81,6 +81,7 @@ type ActionAuthQuery struct {
 }
 
 type Loader interface {
+	GetTag() string
 	Load(cfg *Config, fileName string) error
 	Save(cfg *Config, fileName string) error
 	// GetAllowFileExtensions lowercase

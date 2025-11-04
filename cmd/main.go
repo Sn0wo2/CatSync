@@ -40,7 +40,7 @@ func main() {
 		}
 
 		cfg = config.DefaultConfig
-		if err := file.NewYAMLLoader().Save(config.DefaultConfig, envPath); err != nil {
+		if err := file.NewYAMLLoader().Save(cfg, envPath); err != nil {
 			panic(err)
 		}
 
