@@ -1,4 +1,4 @@
-FROM scratch
+FROM alpine:latest
 
 LABEL org.opencontainers.image.title=CatSync
 LABEL org.opencontainers.image.description="Sync the「cat」config."
@@ -10,6 +10,12 @@ LABEL org.opencontainers.image.licenses=MIT
 LABEL org.opencontainers.image.license.name="MIT License"
 LABEL org.opencontainers.image.license.spdx=MIT
 
-COPY CatSync /CatSync
+RUN mkdir -p /app
 
-ENTRYPOINT ["/CatSync"]
+COPY CatSync /app/CatSync
+
+WORKDIR /app
+
+RUN chmod +x /app/CatSync
+
+ENTRYPOINT ["/app/CatSync"]

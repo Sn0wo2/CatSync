@@ -1,9 +1,9 @@
 services:
-  catsync:
+  CatSync:
     image: ghcr.io/sn0wo2/catsync:latest
-    container_name: catsync
+    container_name: CatSync
     restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:
-      - ./data:/app/data:ro
+      - ./data:/app/data
