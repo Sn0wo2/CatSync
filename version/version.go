@@ -62,7 +62,7 @@ func GetDateTime() time.Time {
 }
 
 func GetDateLocal() time.Time {
-	return GetDateTime().Local()
+	return GetDateTime().Local() //nolint:gosmopolitan
 }
 
 // SetDate RFC3339 UTC
