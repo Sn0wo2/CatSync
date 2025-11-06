@@ -21,12 +21,12 @@ func GetVersion() string {
 }
 
 func GetFormatVersion() string {
-	return fmt.Sprintf("v%s-%s(%s)", GetVersion(), GetShortCommit(), GetDateLocal())
+	return fmt.Sprintf("v%s-%s(%s)", GetVersion(), GetShortCommit(), GetDateLocal().Format("20060102"))
 }
 
 func GetCLIVersion() string {
-	return fmt.Sprintf("version: %s\ncommit: %s\nbuild date: %s\nos: %s\narch: %s",
-		GetVersion(), GetCommit(), GetDateLocal(), GetOS(), GetArch())
+	return fmt.Sprintf("CatSync[%s]: \ncommit: %s\nbuild date: %s\nos: %s\narch: %s",
+		GetFormatVersion(), GetCommit(), GetDateLocal(), GetOS(), GetArch())
 }
 
 // SetVersion without 'v'
