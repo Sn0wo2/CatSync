@@ -16,14 +16,14 @@ type Handler interface {
 	Execute(logger *zap.Logger, ctx *fiber.Ctx, data Data) error
 }
 
-var HandlerRegistry = make(map[Type]Handler)
+var HandlerRegistry = make(map[Operation]Handler)
 
 func init() {
-	HandlerRegistry[String] = NewString()
-	HandlerRegistry[File] = NewFile()
-	HandlerRegistry[TempRedirect] = NewTempRedirect()
-	HandlerRegistry[Redirect] = NewRedirect()
-	HandlerRegistry[JSON] = NewJSON()
+	HandlerRegistry[OperationString] = NewString()
+	HandlerRegistry[OperationFile] = NewFile()
+	HandlerRegistry[OperationTempRedirect] = NewTempRedirect()
+	HandlerRegistry[OperationRedirect] = NewRedirect()
+	HandlerRegistry[OperationJSON] = NewJSON()
 }
 
 type StringHandler struct{}

@@ -53,7 +53,7 @@ func Actions(logger *zap.Logger, cfg *config.Config, act config.Action) fiber.Ha
 			ctx.Append(k, v...)
 		}
 
-		handler, ok := action.HandlerRegistry[act.Action]
+		handler, ok := action.HandlerRegistry[act.Operation]
 		if !ok {
 			logger.Info("Router >> Unknown action", zap.Int("action", int(act.Action)), zap.String("ctx", util.FiberContextString(ctx)))
 
