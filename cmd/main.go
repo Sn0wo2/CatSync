@@ -83,7 +83,6 @@ func main() {
 		if err != nil {
 			if strings.HasPrefix(addr, ":") {
 				port = strings.TrimPrefix(addr, ":")
-				host = ""
 			}
 		}
 
@@ -113,6 +112,8 @@ func main() {
 	}()
 
 	<-shutdownChan
+
+	logger.Info("Shutting down server...")
 
 	if err := app.Shutdown(); err != nil {
 		logger.Error("Server failed to shutdown",
