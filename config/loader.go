@@ -88,5 +88,7 @@ func New(loaders ...Loader) (*Config, error) {
 
 	fileCfg.Merge(DefaultConfig)
 
+	fileCfg.Check()
+
 	return fileCfg, nil
 }
