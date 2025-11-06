@@ -33,6 +33,7 @@ func (c *Config) Check() {
 					" - route: [%s]\n"+
 					" - index: [%d]\n", a.Route, i)
 			}
+
 			a.Operation = a.Action.ToOperation()
 		}
 	}
