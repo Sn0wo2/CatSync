@@ -27,12 +27,12 @@ var DefaultConfig = &Config{
 	Actions: []Action{
 		{
 			Route:      "/",
-			Action:     action.String,
+			Operation:  action.OperationString,
 			ActionData: "Hello from CatSync!",
 		},
 		{
-			Route:  "/json",
-			Action: action.JSON,
+			Route:     "/json",
+			Operation: action.OperationJSON,
 			ActionData: fiber.Map{
 				"msg": "Hello from CatSync!",
 				"data": fiber.Map{
