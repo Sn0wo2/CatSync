@@ -34,18 +34,12 @@ func main() {
 			panic(err)
 		}
 
-		envPath := config.Path
-		if envPath == "" {
-			envPath = "./data/config.yml"
-		}
-
 		cfg = config.DefaultConfig
-		if err := file.NewYAMLLoader().Save(cfg, envPath); err != nil {
+		if err := file.NewYAMLLoader().Save(cfg, config.Path); err != nil {
 			panic(err)
 		}
 
 		cfgDefault = true
-		config.Path = envPath
 	}
 
 	logger := log.NewLog(cfg.Log.Dir, cfg.Log.Level, cfg.Log.FileFormat)

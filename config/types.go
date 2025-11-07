@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/Sn0wo2/CatSync/action"
@@ -9,6 +10,7 @@ import (
 )
 
 var Path string
+var ErrConfigNotFound = errors.New("no config file found in default search paths")
 
 var DefaultConfig = &Config{
 	Log: Log{
