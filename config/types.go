@@ -9,8 +9,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-var Path string
-var ErrConfigNotFound = errors.New("no config file found in default search paths")
+var (
+	Path              string
+	ErrConfigNotFound = errors.New("no config file found in default search paths")
+)
 
 var DefaultConfig = &Config{
 	Log: Log{

@@ -73,6 +73,7 @@ func New(loaders ...Loader) (*Config, error) {
 	// p1 & p2 fallback
 	if Path == "" {
 		Path = "./data/config.yml"
+
 		return nil, ErrConfigNotFound
 	}
 
@@ -80,6 +81,7 @@ func New(loaders ...Loader) (*Config, error) {
 
 	loader, ok := loaderByExt[ext]
 	retryIndex := 0
+
 retryLoaders:
 	if !ok {
 		if retryIndex >= len(loaders) {
@@ -94,8 +96,10 @@ retryLoaders:
 	if err := loader.Load(fileCfg, Path); err != nil {
 		if !ok {
 			_, _ = fmt.Fprintf(os.Stderr, "loader %s failed to load config file %s: %v. Retrying with next loader... %d/%d: %v\n", loader.GetTag(), Path, err, retryIndex, len(loaders), err)
+
 			goto retryLoaders
 		}
+
 		return nil, fmt.Errorf("failed to load config file %s: %w", Path, err)
 	}
 
