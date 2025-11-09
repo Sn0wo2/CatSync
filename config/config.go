@@ -11,16 +11,33 @@ import (
 	"github.com/Sn0wo2/CatSync/internal/util"
 )
 
+var (
+	CurrentLoaders []Loader
+)
+
 func init() {
 	util.DefaultConfigProvider = func() (any, bool) {
 		return DefaultConfig, true
 	}
 }
 
+func (c *Config) Reload() error {
+	newCfg, err := New(CurrentLoaders...)
+	if err != nil {
+		return err
+	}
+
+	*c = *newCfg
+
+	return nil
+}
+
 func New(loaders ...Loader) (*Config, error) {
 	if len(loaders) == 0 {
 		return nil, errors.New("no loaders provided")
 	}
+
+	CurrentLoaders = loaders
 
 	loaderByExt := make(map[string]Loader)
 
@@ -123,7 +140,8 @@ func (c *Config) Merge(src *Config) {
 }
 
 func (c *Config) Check() {
-	for i, a := range c.Actions {
+	for i := range c.Actions {
+		a := &c.Actions[i]
 		if a.Operation == "" {
 			if a.Action == 0 {
 				_, _ = fmt.Fprintf(os.Stderr, "Config > Action 'operation' field is empty!\n"+
