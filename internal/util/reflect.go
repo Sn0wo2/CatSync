@@ -22,6 +22,7 @@ func ReplaceVersionInAny(data any, version string) any {
 		for k, v := range m {
 			result[k] = ReplaceVersionInAny(v, version)
 		}
+
 		return result
 	}
 
@@ -30,6 +31,7 @@ func ReplaceVersionInAny(data any, version string) any {
 		for i, v := range s {
 			result[i] = ReplaceVersionInAny(v, version)
 		}
+
 		return result
 	}
 

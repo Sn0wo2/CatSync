@@ -67,7 +67,7 @@ type ServerTLS struct {
 
 type Action struct {
 	Route          string          `json:"route"          yaml:"route"`
-	Action         ActionType      `json:"action"         optional:"true"   yaml:"action"` //nolint:staticcheck
+	Action         ActionType      `json:"action"         optional:"true"   yaml:"action"`
 	Operation      ActionOperation `json:"operation"      optional:"true"   yaml:"operation"`
 	ActionData     any             `json:"actionData"     yaml:"actionData"`
 	ResponseHeader http.Header     `json:"responseHeader" optional:"true"   yaml:"responseHeader"`

@@ -55,6 +55,7 @@ func (h *ReloadHandler) Execute(app *framework.Context, ctx *fiber.Ctx, data Dat
 	go func() {
 		if err := app.Config.Reload(); err != nil {
 			app.Logger.Error("Action >> Config reload failed", zap.Error(err))
+
 			return
 		}
 	}()
@@ -73,6 +74,7 @@ func (h *StringHandler) Execute(app *framework.Context, ctx *fiber.Ctx, data Dat
 	if !ok {
 		return fmt.Errorf("invalid action data type for string action: expected string, got %T", data)
 	}
+
 	app.Logger.Info("Action >> Serve String", zap.String("data", str), zap.String("ctx", util.FiberContextString(ctx)))
 
 	return ctx.SendString(str)
