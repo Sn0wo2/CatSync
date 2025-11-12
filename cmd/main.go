@@ -11,7 +11,7 @@ import (
 
 	"github.com/Sn0wo2/CatSync/cli"
 	"github.com/Sn0wo2/CatSync/config"
-	"github.com/Sn0wo2/CatSync/config/file"
+	"github.com/Sn0wo2/CatSync/config/loader"
 	"github.com/Sn0wo2/CatSync/framework"
 	"github.com/Sn0wo2/CatSync/log"
 	"github.com/Sn0wo2/CatSync/router"
@@ -28,14 +28,14 @@ func init() {
 func main() {
 	var cfgDefault bool
 
-	cfg, err := config.New(file.NewYAMLLoader(), file.NewJSONLoader())
+	cfg, err := config.New(loader.NewYAMLLoader(), loader.NewJSONLoader())
 	if err != nil {
 		if !errors.Is(err, config.ErrConfigNotFound) {
 			panic(err)
 		}
 
 		cfg = config.DefaultConfig
-		if err := file.NewYAMLLoader().Save(cfg, config.Path); err != nil {
+		if err := loader.NewYAMLLoader().Save(cfg, config.Path); err != nil {
 			panic(err)
 		}
 
@@ -58,7 +58,7 @@ func main() {
 
 	app := framework.NewFiber(logger, cfg)
 
-	router.Init(logger, cfg, app)
+	router.Init(app)
 
 	shutdownChan := make(chan os.Signal, 1)
 	signal.Notify(shutdownChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
@@ -98,7 +98,7 @@ func main() {
 
 		logger.Info("Server listening on: " + strings.Join(logAddresses, ", "))
 
-		if err := framework.StartFiber(app, addr, cert, key); err != nil {
+		if err := app.StartFiber(addr, cert, key); err != nil {
 			logger.Fatal("Server failed to start",
 				zap.Error(err),
 			)

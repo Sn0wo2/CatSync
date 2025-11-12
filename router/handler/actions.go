@@ -7,12 +7,13 @@ import (
 
 	"github.com/Sn0wo2/CatSync/action"
 	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/framework"
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 )
 
-func Actions(logger *zap.Logger, cfg *config.Config, act config.Action) fiber.Handler {
+func Actions(app *framework.Context, act config.Action) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		auth := act.Auth
 		if auth.UA != "" {
@@ -22,7 +23,7 @@ func Actions(logger *zap.Logger, cfg *config.Config, act config.Action) fiber.Ha
 			}
 
 			if !re.MatchString(util.BytesToString(ctx.Request().Header.UserAgent())) {
-				logger.Info("Router >> User agent not matched",
+				app.Logger.Info("Router >> User agent not matched",
 					zap.String("ua", auth.UA),
 					zap.String("ctx", util.FiberContextString(ctx)),
 				)
@@ -38,7 +39,7 @@ func Actions(logger *zap.Logger, cfg *config.Config, act config.Action) fiber.Ha
 			}
 
 			if ctx.Query(k) != v {
-				logger.Info("Router >> Query not matched",
+				app.Logger.Info("Router >> Query not matched",
 					zap.String("key", k),
 					zap.String("expected", v),
 					zap.String("actual", ctx.Query(k)),
@@ -55,11 +56,11 @@ func Actions(logger *zap.Logger, cfg *config.Config, act config.Action) fiber.Ha
 
 		handler, ok := action.HandlerRegistry[act.Operation]
 		if !ok {
-			logger.Info("Router >> Unknown action", zap.Int("action", int(act.Action)), zap.String("ctx", util.FiberContextString(ctx)))
+			app.Logger.Info("Router >> Unknown action", zap.Int("action", int(act.Action)), zap.String("ctx", util.FiberContextString(ctx)))
 
 			return ctx.Next()
 		}
 
-		return handler.Execute(logger, ctx, act.ActionData)
+		return handler.Execute(app, ctx, act.ActionData)
 	}
 }

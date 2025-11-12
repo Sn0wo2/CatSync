@@ -12,14 +12,25 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewFiber(logger *zap.Logger, cfg *config.Config) *fiber.App {
-	return fiber.New(fiber.Config{
+type Context struct {
+	*fiber.App
+	Logger *zap.Logger
+	Config *config.Config
+}
+
+func NewFiber(logger *zap.Logger, cfg *config.Config) *Context {
+	app := &Context{
+		Logger: logger,
+		Config: cfg,
+	}
+
+	app.App = fiber.New(fiber.Config{
 		AppName:               "CatSync",
 		CaseSensitive:         true,
 		DisableStartupMessage: false,
 		ErrorHandler:          errorhandler.Error(logger),
 		IdleTimeout:           5 * time.Second,
-		// dlv cant debug multiple process
+		// dlv cant debug multiple process(prefork)
 		Prefork:           !debug.IsDebugging(),
 		ReadTimeout:       10 * time.Second,
 		ReduceMemoryUsage: true,
@@ -27,12 +38,14 @@ func NewFiber(logger *zap.Logger, cfg *config.Config) *fiber.App {
 		WriteTimeout:      10 * time.Second,
 		ServerHeader:      cfg.Server.Header,
 	})
+
+	return app
 }
 
-func StartFiber(app *fiber.App, addr, cert, key string) error {
+func (ctx *Context) StartFiber(addr, cert, key string) error {
 	server := &http.Server{
 		Addr:         addr,
-		Handler:      adaptor.FiberApp(app),
+		Handler:      adaptor.FiberApp(ctx.App),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,

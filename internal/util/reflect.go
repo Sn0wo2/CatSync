@@ -12,6 +12,34 @@ import (
 
 var DefaultConfigProvider func() (any, bool)
 
+func ReplaceVersionInAny(data any, version string) any {
+	if data == nil {
+		return nil
+	}
+
+	if m, ok := data.(map[string]any); ok {
+		result := make(map[string]any)
+		for k, v := range m {
+			result[k] = ReplaceVersionInAny(v, version)
+		}
+		return result
+	}
+
+	if s, ok := data.([]any); ok {
+		result := make([]any, len(s))
+		for i, v := range s {
+			result[i] = ReplaceVersionInAny(v, version)
+		}
+		return result
+	}
+
+	if s, ok := data.(string); ok && s == "{{version}}" {
+		return version
+	}
+
+	return data
+}
+
 func Merge[T any](dst, src *T) {
 	dstVal := reflect.ValueOf(dst).Elem()
 	srcVal := reflect.ValueOf(src).Elem()

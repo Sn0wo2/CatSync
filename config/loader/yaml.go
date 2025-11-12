@@ -1,4 +1,4 @@
-package file
+package loader
 
 import (
 	"os"
@@ -36,7 +36,16 @@ func (y *YAMLLoader) Load(cfg *config.Config, fileName string) error {
 
 	util.MergeYamlNode(node, cfg)
 
-	return y.saveNode(node, fileName)
+	cd, err := yaml.Marshal(node)
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(fileName), 0o750); err != nil {
+		return err
+	}
+
+	return os.WriteFile(fileName, cd, 0o600)
 }
 
 func (y *YAMLLoader) Save(cfg *config.Config, fileName string) error {
@@ -54,17 +63,4 @@ func (y *YAMLLoader) Save(cfg *config.Config, fileName string) error {
 
 func (y *YAMLLoader) GetAllowFileExtensions() []string {
 	return []string{"yaml", "yml"}
-}
-
-func (y *YAMLLoader) saveNode(node *yaml.Node, fileName string) error {
-	file, err := yaml.Marshal(node)
-	if err != nil {
-		return err
-	}
-
-	if err := os.MkdirAll(filepath.Dir(fileName), 0o750); err != nil {
-		return err
-	}
-
-	return os.WriteFile(fileName, file, 0o600)
 }

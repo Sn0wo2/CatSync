@@ -6,9 +6,9 @@ import (
 	"go.uber.org/zap"
 )
 
-func Server(_ *zap.Logger, _ *config.Config) fiber.Handler {
+func Server(_ *zap.Logger, cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		c.Set("Server", "CatSync")
+		c.Set("Server", cfg.Server.Header)
 
 		return c.Next()
 	}

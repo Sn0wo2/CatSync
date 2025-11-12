@@ -3,10 +3,6 @@ package config
 import (
 	"errors"
 	"net/http"
-
-	"github.com/Sn0wo2/CatSync/action"
-	"github.com/Sn0wo2/CatSync/version"
-	"github.com/gofiber/fiber/v2"
 )
 
 var (
@@ -27,16 +23,19 @@ var DefaultConfig = &Config{
 	Actions: []Action{
 		{
 			Route:      "/",
-			Operation:  action.OperationString,
-			ActionData: "Hello from CatSync!",
+			Operation:  OperationString,
+			ActionData: "Hello, CatSync!",
 		},
 		{
-			Route:     "/json",
-			Operation: action.OperationJSON,
-			ActionData: fiber.Map{
-				"msg": "Hello from CatSync!",
-				"data": fiber.Map{
-					"version": version.GetFormatVersion(),
+			Route:     "/version",
+			Operation: OperationVersion,
+			ActionData: struct {
+				Msg  string `json:"msg"  yaml:"msg"`
+				Data any    `json:"data" yaml:"data"`
+			}{
+				Msg: "Hello, CatSync!",
+				Data: map[string]string{
+					"version": "{{version}}",
 				},
 			},
 		},
@@ -67,12 +66,58 @@ type ServerTLS struct {
 }
 
 type Action struct {
-	Route          string           `json:"route"          yaml:"route"`
-	Action         action.Type      `json:"action"         optional:"true"   yaml:"action"` //nolint:staticcheck
-	Operation      action.Operation `json:"operation"      optional:"true"   yaml:"operation"`
-	ActionData     action.Data      `json:"actionData"     yaml:"actionData"`
-	ResponseHeader http.Header      `json:"responseHeader" optional:"true"   yaml:"responseHeader"`
-	Auth           ActionAuth       `json:"auth"           optional:"true"   yaml:"auth"`
+	Route          string          `json:"route"          yaml:"route"`
+	Action         ActionType      `json:"action"         optional:"true"   yaml:"action"` //nolint:staticcheck
+	Operation      ActionOperation `json:"operation"      optional:"true"   yaml:"operation"`
+	ActionData     any             `json:"actionData"     yaml:"actionData"`
+	ResponseHeader http.Header     `json:"responseHeader" optional:"true"   yaml:"responseHeader"`
+	Auth           ActionAuth      `json:"auth"           optional:"true"   yaml:"auth"`
+}
+
+// Deprecated: Use config.ActionOperation instead.
+type ActionType int
+
+const (
+	File = iota
+	String
+	TempRedirect
+	Redirect
+	JSON
+)
+
+func (t *ActionType) ToOperation() ActionOperation {
+	switch *t {
+	case String:
+		return OperationString
+	case TempRedirect:
+		return OperationTempRedirect
+	case Redirect:
+		return OperationRedirect
+	case JSON:
+		return OperationJSON
+	default: // 0(default): File
+		return OperationFile
+	}
+}
+
+type ActionOperation string
+
+const (
+	// System
+	OperationVersion ActionOperation = "system-version"
+	OperationReload  ActionOperation = "system-reload"
+
+	// Actions
+	OperationFile         ActionOperation = "file"
+	OperationString       ActionOperation = "string"
+	OperationTempRedirect ActionOperation = "temp_redirect"
+	OperationRedirect     ActionOperation = "redirect"
+	OperationJSON         ActionOperation = "json"
+)
+
+type ActionVersion struct {
+	Msg  string `json:"msg"  yaml:"msg"`
+	Data any    `json:"data" yaml:"data"`
 }
 
 type ActionAuth struct {
