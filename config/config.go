@@ -11,9 +11,7 @@ import (
 	"github.com/Sn0wo2/CatSync/internal/util"
 )
 
-var (
-	CurrentLoaders []Loader
-)
+var CurrentLoaders []Loader
 
 func init() {
 	util.DefaultConfigProvider = func() (any, bool) {
