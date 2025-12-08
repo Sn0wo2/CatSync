@@ -2,9 +2,9 @@ name: Release
 
 on:
   push:
-    tags: ['v*.*.*', 'v*.*.*-*']
+    tags: [ 'v*.*.*', 'v*.*.*-*' ]
   workflow_dispatch:
-  
+
 jobs:
   release:
     name: GoReleaser

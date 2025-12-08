@@ -128,5 +128,7 @@ goreleaser release --snapshot --clean
 go build -o CatSync ./cmd
 docker build -t catsync:local .
 ```
+
 ## License
+
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FSn0wo2%2FCatSync.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FSn0wo2%2FCatSync?ref=badge_large)
