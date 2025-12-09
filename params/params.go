@@ -21,30 +21,39 @@ func Set[F any, T any](c *Ctx, field F, val T) *Ctx {
 	if c.vals == nil {
 		c.vals = make(map[any]any)
 	}
+
 	c.vals[field] = Value[T]{v: val}
+
 	return c
 }
 
 func Get[F any, T any](c *Ctx, field F) (T, bool) {
 	if c.vals == nil {
 		var zero T
+
 		return zero, false
 	}
+
 	raw, ok := c.vals[field]
 	if !ok {
 		var zero T
+
 		return zero, false
 	}
+
 	v, ok := raw.(Value[T])
 	if !ok {
 		var zero T
+
 		return zero, false
 	}
+
 	return v.Get(), true
 }
 
 func (c *Ctx) GetConfig() *config.Config {
 	cfg, _ := Get[Config, *config.Config](c, Config{})
+
 	return cfg
 }
 
@@ -54,6 +63,7 @@ func (c *Ctx) SetConfig(cfg *config.Config) *Ctx {
 
 func (c *Ctx) GetLogger() *zap.Logger {
 	logger, _ := Get[Logger, *zap.Logger](c, Logger{})
+
 	return logger
 }
 
