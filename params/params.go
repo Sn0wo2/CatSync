@@ -2,6 +2,7 @@ package params
 
 import (
 	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/framework"
 	"go.uber.org/zap"
 )
 
@@ -71,7 +72,17 @@ func (c *Ctx) SetLogger(logger *zap.Logger) *Ctx {
 	return Set[Logger, *zap.Logger](c, Logger{}, logger)
 }
 
+func (c *Ctx) GetFramework() *framework.Framework {
+	fw, _ := Get[Framework, *framework.Framework](c, Framework{})
+	return fw
+}
+
+func (c *Ctx) SetFramework(fw *framework.Framework) *Ctx {
+	return Set[Framework, *framework.Framework](c, Framework{}, fw)
+}
+
 type (
-	Config struct{}
-	Logger struct{}
+	Config    struct{}
+	Logger    struct{}
+	Framework struct{}
 )
