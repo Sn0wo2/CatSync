@@ -15,7 +15,7 @@ var CurrentLoaders []Loader
 
 func init() {
 	util.DefaultConfigProvider = func() (any, bool) {
-		return DefaultConfig, true
+		return GetDefaultConfig(), true
 	}
 }
 
@@ -122,7 +122,7 @@ retryLoaders:
 		return nil, fmt.Errorf("validation failed for config file %s: %w", Path, err)
 	}
 
-	fileCfg.Merge(DefaultConfig)
+	fileCfg.Merge(GetDefaultConfig())
 
 	fileCfg.Check()
 
@@ -138,20 +138,5 @@ func (c *Config) Merge(src *Config) {
 }
 
 func (c *Config) Check() {
-	for i := range c.Actions {
-		a := &c.Actions[i]
-		if a.Operation == "" {
-			if a.Action == 0 {
-				_, _ = fmt.Fprintf(os.Stderr, "Config > Action 'operation' field is empty!\n"+
-					" - route: [%s]\n"+
-					" - index: [%d]\n", a.Route, i)
-			} else {
-				_, _ = fmt.Fprintf(os.Stderr, "Config > Action 'action' field is deprecated and will be removed in v1.11.0. Please use the 'operation' field instead.\n"+
-					" - route: [%s]\n"+
-					" - index: [%d]\n", a.Route, i)
-			}
-
-			a.Operation = a.Action.ToOperation()
-		}
-	}
+	// v2 empty now
 }
