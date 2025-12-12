@@ -57,15 +57,15 @@ type ServerTLS struct {
 
 type Action struct {
 	Route          string      `json:"route"          yaml:"route"`
-	ResponseHeader http.Header `json:"responseHeader" optional:"true"   yaml:"responseHeader"`
-	Auth           ActionAuth  `json:"auth"           optional:"true"   yaml:"auth"`
+	ResponseHeader http.Header `json:"responseHeader" optional:"true" yaml:"responseHeader"`
+	Auth           ActionAuth  `json:"auth"           optional:"true" yaml:"auth"`
 
 	// --- Action Types ---
-	Operation Operation `json:"operation"     yaml:"operation"`
+	Operation Operation `json:"operation" yaml:"operation"`
 
 	// --- Action Data ---
-	ActionOperationFile   *FileData   `json:"file,omitempty"      optional:"true"      yaml:"file,omitempty"`
-	ActionOperationString *StringData `json:"string,omitempty"     optional:"true"     yaml:"string,omitempty"`
+	ActionOperationFile   *FileData   `json:"file,omitempty"   optional:"true" yaml:"file,omitempty"`
+	ActionOperationString *StringData `json:"string,omitempty" optional:"true" yaml:"string,omitempty"`
 }
 
 type ActionAuth struct {

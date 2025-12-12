@@ -74,6 +74,7 @@ func (c *Ctx) SetLogger(logger *zap.Logger) *Ctx {
 
 func (c *Ctx) GetFramework() *framework.Framework {
 	fw, _ := Get[Framework, *framework.Framework](c, Framework{})
+
 	return fw
 }
 

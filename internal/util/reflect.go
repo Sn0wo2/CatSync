@@ -132,6 +132,7 @@ func getFieldNameForPath(field reflect.StructField, tag string) string {
 	if tagValue != "" {
 		return tagValue
 	}
+
 	return field.Name
 }
 
@@ -184,19 +185,22 @@ func validateWithPath(cfg any, tag string, path string, tagPath string) error {
 			if !isEmpty {
 				if value.Len() > 0 {
 					elem := value.Index(0)
+
 					elemKind := elem.Kind()
 					if elemKind == reflect.Struct || (elemKind == reflect.Ptr && elem.Elem().Kind() == reflect.Struct) {
 						slicePath := field.Name
 						if path != "" {
 							slicePath = path + "." + slicePath
 						}
+
 						sliceTagPath := getFieldNameForPath(field, tag)
 						if tagPath != "" {
 							sliceTagPath = tagPath + "." + sliceTagPath
 						}
 
-						for i := 0; i < value.Len(); i++ {
+						for i := range value.Len() {
 							elementPath := fmt.Sprintf("%s[%d]", slicePath, i)
+
 							elementTagPath := fmt.Sprintf("%s[%d]", sliceTagPath, i)
 							if err := validateWithPath(value.Index(i).Interface(), tag, elementPath, elementTagPath); err != nil {
 								return err
@@ -212,6 +216,7 @@ func validateWithPath(cfg any, tag string, path string, tagPath string) error {
 				if path != "" {
 					mapPath = path + "." + mapPath
 				}
+
 				mapTagPath := getFieldNameForPath(field, tag)
 				if tagPath != "" {
 					mapTagPath = tagPath + "." + mapTagPath
@@ -224,6 +229,7 @@ func validateWithPath(cfg any, tag string, path string, tagPath string) error {
 
 					if v.IsValid() && (v.Kind() == reflect.Struct || (v.Kind() == reflect.Ptr && !v.IsNil() && v.Elem().Kind() == reflect.Struct)) {
 						elementPath := fmt.Sprintf("%s[%v]", mapPath, k.Interface())
+
 						elementTagPath := fmt.Sprintf("%s[%v]", mapTagPath, k.Interface())
 						if err := validateWithPath(v.Interface(), tag, elementPath, elementTagPath); err != nil {
 							return err
@@ -237,10 +243,12 @@ func validateWithPath(cfg any, tag string, path string, tagPath string) error {
 				if path != "" {
 					newPath = path + "." + newPath
 				}
+
 				newTagPath := getFieldNameForPath(field, tag)
 				if tagPath != "" {
 					newTagPath = tagPath + "." + newTagPath
 				}
+
 				if err := validateWithPath(value.Addr().Interface(), tag, newPath, newTagPath); err != nil {
 					return err
 				}
