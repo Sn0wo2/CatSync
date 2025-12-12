@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Sn0wo2/go-common/helper"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -32,17 +33,17 @@ func FiberContextString(ctx *fiber.Ctx) string {
 		sb.WriteString(" ")
 	}
 
-	sb.WriteString(BytesToString(ctx.Request().RequestURI()))
+	sb.WriteString(helper.BytesToString(ctx.Request().RequestURI()))
 
 	var headers []string
 
 	ctx.Request().Header.All()(func(key, value []byte) bool {
-		v := BytesToString(value)
+		v := helper.BytesToString(value)
 		if len(v) > 20 {
 			v = v[:12] + "..."
 		}
 
-		headers = append(headers, fmt.Sprintf("%s:%s", BytesToString(key), v))
+		headers = append(headers, fmt.Sprintf("%s:%s", helper.BytesToString(key), v))
 
 		return true
 	})
