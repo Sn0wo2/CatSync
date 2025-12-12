@@ -1,6 +1,6 @@
 # CatSync
 
-> Sync the「cat」config.
+> Sync the「cat」config backend server
 
 ---
 
