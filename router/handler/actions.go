@@ -7,13 +7,14 @@ import (
 
 	"github.com/Sn0wo2/CatSync/action"
 	"github.com/Sn0wo2/CatSync/config"
-	"github.com/Sn0wo2/CatSync/framework"
 	"github.com/Sn0wo2/CatSync/internal/util"
+	"github.com/Sn0wo2/CatSync/params"
+	"github.com/Sn0wo2/go-common/helper"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 )
 
-func Actions(app *framework.Context, act config.Action) fiber.Handler {
+func Actions(c *params.Ctx, act config.Action) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		auth := act.Auth
 		if auth.UA != "" {
@@ -22,8 +23,8 @@ func Actions(app *framework.Context, act config.Action) fiber.Handler {
 				return fmt.Errorf("invalid user agent regexp %q: %w", auth.UA, err)
 			}
 
-			if !re.MatchString(util.BytesToString(ctx.Request().Header.UserAgent())) {
-				app.Logger.Info("Router >> User agent not matched",
+			if !re.MatchString(helper.BytesToString(ctx.Request().Header.UserAgent())) {
+				c.GetLogger().Info("Router >> User agent not matched",
 					zap.String("ua", auth.UA),
 					zap.String("ctx", util.FiberContextString(ctx)),
 				)
@@ -39,7 +40,7 @@ func Actions(app *framework.Context, act config.Action) fiber.Handler {
 			}
 
 			if ctx.Query(k) != v {
-				app.Logger.Info("Router >> Query not matched",
+				c.GetLogger().Info("Router >> Query not matched",
 					zap.String("key", k),
 					zap.String("expected", v),
 					zap.String("actual", ctx.Query(k)),
@@ -56,11 +57,19 @@ func Actions(app *framework.Context, act config.Action) fiber.Handler {
 
 		handler, ok := action.HandlerRegistry[act.Operation]
 		if !ok {
-			app.Logger.Info("Router >> Unknown action", zap.Int("action", int(act.Action)), zap.String("ctx", util.FiberContextString(ctx)))
+			c.GetLogger().Info("Router >> Unknown action", zap.String("operation", string(act.Operation)), zap.String("ctx", util.FiberContextString(ctx)))
 
 			return ctx.Next()
 		}
 
-		return handler.Execute(app, ctx, act.ActionData)
+		var actionData any
+		switch act.Operation {
+		case config.OperationFile:
+			actionData = act.ActionOperationFile
+		case config.OperationString:
+			actionData = act.ActionOperationString
+		}
+
+		return handler.Execute(c, ctx, actionData)
 	}
 }

@@ -8,93 +8,49 @@ import (
 	"strings"
 
 	"github.com/Sn0wo2/CatSync/config"
-	"github.com/Sn0wo2/CatSync/framework"
 	"github.com/Sn0wo2/CatSync/internal/util"
-	"github.com/Sn0wo2/CatSync/version"
+	"github.com/Sn0wo2/CatSync/params"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 )
 
-type Handler interface {
-	Execute(app *framework.Context, ctx *fiber.Ctx, data Data) error
-}
-
-var HandlerRegistry = make(map[config.ActionOperation]Handler)
-
 func init() {
-	HandlerRegistry[config.OperationVersion] = NewVersion()
-	HandlerRegistry[config.OperationReload] = NewReload()
 	HandlerRegistry[config.OperationString] = NewString()
 	HandlerRegistry[config.OperationFile] = NewFile()
-	HandlerRegistry[config.OperationTempRedirect] = NewTempRedirect()
-	HandlerRegistry[config.OperationRedirect] = NewRedirect()
-	HandlerRegistry[config.OperationJSON] = NewJSON()
-}
-
-type VersionHandler struct{}
-
-func NewVersion() *VersionHandler {
-	return &VersionHandler{}
-}
-
-func (h *VersionHandler) Execute(app *framework.Context, ctx *fiber.Ctx, data Data) error {
-	app.Logger.Info("Action >> Serve Version", zap.Any("version", version.GetFormatVersion()), zap.String("ctx", util.FiberContextString(ctx)))
-
-	return ctx.JSON(util.ReplaceVersionInAny(data, version.GetFormatVersion()))
-}
-
-type ReloadHandler struct{}
-
-func NewReload() *ReloadHandler {
-	return &ReloadHandler{}
-}
-
-func (h *ReloadHandler) Execute(app *framework.Context, ctx *fiber.Ctx, data Data) error {
-	app.Logger.Info("Action >> Reload requested", zap.String("ctx", util.FiberContextString(ctx)))
-
-	go func() {
-		if err := app.Config.Reload(); err != nil {
-			app.Logger.Error("Action >> Config reload failed", zap.Error(err))
-
-			return
-		}
-	}()
-
-	return ctx.JSON(data)
 }
 
 type StringHandler struct{}
 
-func NewString() *StringHandler {
+func NewString() Handler {
 	return &StringHandler{}
 }
 
-func (h *StringHandler) Execute(app *framework.Context, ctx *fiber.Ctx, data Data) error {
-	str, ok := data.(string)
+func (h *StringHandler) Execute(c *params.Ctx, ctx *fiber.Ctx, data any) error {
+	stringData, ok := data.(*config.StringData)
 	if !ok {
-		return fmt.Errorf("invalid action data type for string action: expected string, got %T", data)
+		return fmt.Errorf("invalid action data type for string action: expected *StringData, got %T", data)
 	}
 
-	app.Logger.Info("Action >> Serve String", zap.String("data", str), zap.String("ctx", util.FiberContextString(ctx)))
+	c.GetLogger().Info("Action >> Serve String", zap.String("data", stringData.Content), zap.String("ctx", util.FiberContextString(ctx)))
 
-	return ctx.SendString(str)
+	return ctx.SendString(stringData.Content)
 }
 
 type FileHandler struct{}
 
-func NewFile() *FileHandler {
+func NewFile() Handler {
 	return &FileHandler{}
 }
 
-func (h *FileHandler) Execute(app *framework.Context, ctx *fiber.Ctx, data Data) error {
-	path, ok := data.(string)
+func (h *FileHandler) Execute(c *params.Ctx, ctx *fiber.Ctx, data any) error {
+	fileData, ok := data.(*config.FileData)
 	if !ok {
-		return fmt.Errorf("invalid action data type for file action: expected string, got %T", data)
+		return fmt.Errorf("invalid action data type for file action: expected *config.FileData, got %T", data)
 	}
 
-	app.Logger.Info("Action >> Serve File", zap.String("path", path), zap.String("ctx", util.FiberContextString(ctx)))
+	c.GetLogger().Info("Action >> Serve File", zap.String("path", fileData.Path), zap.String("ctx", util.FiberContextString(ctx)))
 
-	safePath, err := filepath.Abs(filepath.Clean(path))
+	safePath, err := filepath.Abs(filepath.Clean(fileData.Path))
 	if err != nil {
 		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
@@ -128,46 +84,4 @@ func (h *FileHandler) Execute(app *framework.Context, ctx *fiber.Ctx, data Data)
 	ctx.Set(fiber.HeaderContentType, http.DetectContentType(fileBytes))
 
 	return ctx.Send(fileBytes)
-}
-
-type RedirectHandler struct {
-	Permanent bool
-}
-
-func NewTempRedirect() *RedirectHandler {
-	return &RedirectHandler{}
-}
-
-func NewRedirect() *RedirectHandler {
-	return &RedirectHandler{
-		Permanent: true,
-	}
-}
-
-func (h *RedirectHandler) Execute(app *framework.Context, ctx *fiber.Ctx, data Data) error {
-	url, ok := data.(string)
-	if !ok {
-		return fmt.Errorf("invalid action data type for redirect action: expected string, got %T", data)
-	}
-
-	status := fiber.StatusFound
-	if h.Permanent {
-		status = fiber.StatusMovedPermanently
-	}
-
-	app.Logger.Info("Action >> Redirect", zap.String("to", url), zap.Int("status", status), zap.String("ctx", util.FiberContextString(ctx)))
-
-	return ctx.Status(status).Redirect(url)
-}
-
-type JSONHandler struct{}
-
-func NewJSON() *JSONHandler {
-	return &JSONHandler{}
-}
-
-func (h *JSONHandler) Execute(app *framework.Context, ctx *fiber.Ctx, data Data) error {
-	app.Logger.Info("Action >> Serve JSON", zap.Any("data", data), zap.String("ctx", util.FiberContextString(ctx)))
-
-	return ctx.JSON(data)
 }
