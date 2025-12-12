@@ -7,14 +7,14 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/Sn0wo2/CatSync/internal/util"
+	"github.com/Sn0wo2/go-common/helper"
 )
 
 //nolint:unparam
 func runCmd(command string, args ...string) (string, error) {
 	out, err := exec.Command(command, args...).CombinedOutput()
 
-	s := strings.TrimSpace(util.BytesToString(out))
+	s := strings.TrimSpace(helper.BytesToString(out))
 	if err != nil {
 		if strings.Contains(s, "No names found") {
 			return "", nil
