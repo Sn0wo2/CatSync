@@ -6,46 +6,36 @@ import (
 )
 
 var (
-	Path              string
-	ErrConfigNotFound = errors.New("no config file found in default search paths")
+	Path                 string
+	ErrConfigNotFound    = errors.New("no config file found in default search paths")
+	ErrInvalidActionData = errors.New("invalid action data")
 )
 
-var DefaultConfig = &Config{
-	Log: Log{
-		Level:      "debug",
-		Dir:        "./logs",
-		FileFormat: "2006-01-02.log",
-	},
-	Server: Server{
-		Address: ":3000",
-		Header:  "CatSync",
-	},
-	Actions: []Action{
-		{
-			Route:      "/",
-			Operation:  OperationString,
-			ActionData: "Hello, CatSync!",
-		},
-		{
-			Route:     "/version",
-			Operation: OperationVersion,
-			ActionData: struct {
-				Msg  string `json:"msg"  yaml:"msg"`
-				Data any    `json:"data" yaml:"data"`
-			}{
-				Msg: "Hello, CatSync!",
-				Data: map[string]string{
-					"version": "{{version}}",
-				},
-			},
-		},
-	},
+// Action Operation
+type Operation string
+
+const (
+	// Actions
+	OperationFile   Operation = "file"
+	OperationString Operation = "string"
+)
+
+type ReloadData struct {
+	Message string `json:"message,omitempty" yaml:"message,omitempty"`
+}
+
+type FileData struct {
+	Path string `json:"path" yaml:"path"`
+}
+
+type StringData struct {
+	Content string `json:"content" yaml:"content"`
 }
 
 type Config struct {
 	Log     Log      `json:"log"     yaml:"log"`
 	Server  Server   `json:"server"  yaml:"server"`
-	Actions []Action `json:"actions" optional:"true" yaml:"actions"`
+	Actions []Action `json:"actions" yaml:"actions"`
 }
 
 type Log struct {
@@ -66,58 +56,16 @@ type ServerTLS struct {
 }
 
 type Action struct {
-	Route          string          `json:"route"          yaml:"route"`
-	Action         ActionType      `json:"action"         optional:"true"   yaml:"action"`
-	Operation      ActionOperation `json:"operation"      optional:"true"   yaml:"operation"`
-	ActionData     any             `json:"actionData"     yaml:"actionData"`
-	ResponseHeader http.Header     `json:"responseHeader" optional:"true"   yaml:"responseHeader"`
-	Auth           ActionAuth      `json:"auth"           optional:"true"   yaml:"auth"`
-}
+	Route          string      `json:"route"          yaml:"route"`
+	ResponseHeader http.Header `json:"responseHeader" optional:"true"   yaml:"responseHeader"`
+	Auth           ActionAuth  `json:"auth"           optional:"true"   yaml:"auth"`
 
-// Deprecated: Use config.ActionOperation instead.
-type ActionType int
+	// --- Action Types ---
+	Operation Operation `json:"operation"     yaml:"operation"`
 
-const (
-	File = iota
-	String
-	TempRedirect
-	Redirect
-	JSON
-)
-
-func (t *ActionType) ToOperation() ActionOperation {
-	switch *t {
-	case String:
-		return OperationString
-	case TempRedirect:
-		return OperationTempRedirect
-	case Redirect:
-		return OperationRedirect
-	case JSON:
-		return OperationJSON
-	default: // 0(default): File
-		return OperationFile
-	}
-}
-
-type ActionOperation string
-
-const (
-	// System
-	OperationVersion ActionOperation = "system-version"
-	OperationReload  ActionOperation = "system-reload"
-
-	// Actions
-	OperationFile         ActionOperation = "file"
-	OperationString       ActionOperation = "string"
-	OperationTempRedirect ActionOperation = "temp_redirect"
-	OperationRedirect     ActionOperation = "redirect"
-	OperationJSON         ActionOperation = "json"
-)
-
-type ActionVersion struct {
-	Msg  string `json:"msg"  yaml:"msg"`
-	Data any    `json:"data" yaml:"data"`
+	// --- Action Data ---
+	ActionOperationFile   *FileData   `json:"file,omitempty"      optional:"true"      yaml:"file,omitempty"`
+	ActionOperationString *StringData `json:"string,omitempty"     optional:"true"     yaml:"string,omitempty"`
 }
 
 type ActionAuth struct {
@@ -128,12 +76,4 @@ type ActionAuth struct {
 type ActionAuthQuery struct {
 	Map            map[string]string `json:"map"            yaml:"map"`
 	IgnoreCaseCase bool              `json:"ignoreCaseCase" optional:"true" yaml:"ignoreCaseCase"`
-}
-
-type Loader interface {
-	GetTag() string
-	Load(cfg *Config, fileName string) error
-	Save(cfg *Config, fileName string) error
-	// GetAllowFileExtensions lowercase
-	GetAllowFileExtensions() []string
 }
