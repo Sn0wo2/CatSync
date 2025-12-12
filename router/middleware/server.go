@@ -1,14 +1,13 @@
 package middleware
 
 import (
-	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/params"
 	"github.com/gofiber/fiber/v2"
-	"go.uber.org/zap"
 )
 
-func Server(_ *zap.Logger, cfg *config.Config) fiber.Handler {
+func Server(p *params.Ctx) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		c.Set("Server", cfg.Server.Header)
+		c.Set("Server", p.GetConfig().Server.Header)
 
 		return c.Next()
 	}
