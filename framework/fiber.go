@@ -12,37 +12,37 @@ import (
 	"go.uber.org/zap"
 )
 
-type Context struct {
-	*fiber.App
-	Logger *zap.Logger
-	Config *config.Config
+type ContextProvider interface {
+	GetLogger() *zap.Logger
+	GetConfig() *config.Config
 }
 
-func NewFiber(logger *zap.Logger, cfg *config.Config) *Context {
-	app := &Context{
-		Logger: logger,
-		Config: cfg,
-	}
+type Framework struct {
+	*fiber.App
+}
 
-	app.App = fiber.New(fiber.Config{
-		AppName:               "CatSync",
-		CaseSensitive:         true,
-		DisableStartupMessage: false,
-		ErrorHandler:          errorhandler.Error(logger),
-		IdleTimeout:           5 * time.Second,
-		// dlv cant debug multiple process(prefork)
-		Prefork:           !debug.IsDebugging(),
-		ReadTimeout:       10 * time.Second,
-		ReduceMemoryUsage: true,
-		StrictRouting:     true,
-		WriteTimeout:      10 * time.Second,
-		ServerHeader:      cfg.Server.Header,
-	})
+func NewFiber(p ContextProvider) *Framework {
+	app := &Framework{
+		App: fiber.New(fiber.Config{
+			AppName:               "CatSync",
+			CaseSensitive:         true,
+			DisableStartupMessage: false,
+			ErrorHandler:          errorhandler.Error(p.GetLogger()),
+			IdleTimeout:           5 * time.Second,
+			// dlv cant debug multiple process(prefork)
+			Prefork:           !debug.IsDebugging(),
+			ReadTimeout:       10 * time.Second,
+			ReduceMemoryUsage: true,
+			StrictRouting:     true,
+			WriteTimeout:      10 * time.Second,
+			ServerHeader:      p.GetConfig().Server.Header,
+		}),
+	}
 
 	return app
 }
 
-func (ctx *Context) StartFiber(addr, cert, key string) error {
+func (ctx *Framework) StartFiber(addr, cert, key string) error {
 	server := &http.Server{
 		Addr:         addr,
 		Handler:      adaptor.FiberApp(ctx.App),
