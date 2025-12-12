@@ -12,36 +12,6 @@ import (
 
 var DefaultConfigProvider func() (any, bool)
 
-func ReplaceVersionInAny(data any, version string) any {
-	if data == nil {
-		return nil
-	}
-
-	if m, ok := data.(map[string]any); ok {
-		result := make(map[string]any)
-		for k, v := range m {
-			result[k] = ReplaceVersionInAny(v, version)
-		}
-
-		return result
-	}
-
-	if s, ok := data.([]any); ok {
-		result := make([]any, len(s))
-		for i, v := range s {
-			result[i] = ReplaceVersionInAny(v, version)
-		}
-
-		return result
-	}
-
-	if s, ok := data.(string); ok && s == "{{version}}" {
-		return version
-	}
-
-	return data
-}
-
 func Merge[T any](dst, src *T) {
 	dstVal := reflect.ValueOf(dst).Elem()
 	srcVal := reflect.ValueOf(src).Elem()
@@ -157,7 +127,19 @@ func mergeYamlNodeRecursive(node *yaml.Node, value reflect.Value) {
 	}
 }
 
+func getFieldNameForPath(field reflect.StructField, tag string) string {
+	tagValue := field.Tag.Get(tag)
+	if tagValue != "" {
+		return tagValue
+	}
+	return field.Name
+}
+
 func Validate(cfg any, tag string) error {
+	return validateWithPath(cfg, tag, "", "")
+}
+
+func validateWithPath(cfg any, tag string, path string, tagPath string) error {
 	v := reflect.ValueOf(cfg)
 	if v.Kind() == reflect.Ptr {
 		if v.IsNil() {
@@ -193,29 +175,98 @@ func Validate(cfg any, tag string) error {
 			isEmpty = value.Uint() == 0
 		case reflect.Float32, reflect.Float64:
 			isEmpty = value.Float() == 0
+		case reflect.Complex64, reflect.Complex128:
+			isEmpty = value.Complex() == 0+0i
 		case reflect.Ptr, reflect.Interface:
 			isEmpty = value.IsNil()
-		case reflect.Slice, reflect.Map, reflect.Array:
+		case reflect.Slice, reflect.Array:
 			isEmpty = value.Len() == 0
+			if !isEmpty {
+				if value.Len() > 0 {
+					elem := value.Index(0)
+					elemKind := elem.Kind()
+					if elemKind == reflect.Struct || (elemKind == reflect.Ptr && elem.Elem().Kind() == reflect.Struct) {
+						slicePath := field.Name
+						if path != "" {
+							slicePath = path + "." + slicePath
+						}
+						sliceTagPath := getFieldNameForPath(field, tag)
+						if tagPath != "" {
+							sliceTagPath = tagPath + "." + sliceTagPath
+						}
+
+						for i := 0; i < value.Len(); i++ {
+							elementPath := fmt.Sprintf("%s[%d]", slicePath, i)
+							elementTagPath := fmt.Sprintf("%s[%d]", sliceTagPath, i)
+							if err := validateWithPath(value.Index(i).Interface(), tag, elementPath, elementTagPath); err != nil {
+								return err
+							}
+						}
+					}
+				}
+			}
+		case reflect.Map:
+			isEmpty = value.Len() == 0
+			if !isEmpty {
+				mapPath := field.Name
+				if path != "" {
+					mapPath = path + "." + mapPath
+				}
+				mapTagPath := getFieldNameForPath(field, tag)
+				if tagPath != "" {
+					mapTagPath = tagPath + "." + mapTagPath
+				}
+
+				iter := value.MapRange()
+				for iter.Next() {
+					k := iter.Key()
+					v := iter.Value()
+
+					if v.IsValid() && (v.Kind() == reflect.Struct || (v.Kind() == reflect.Ptr && !v.IsNil() && v.Elem().Kind() == reflect.Struct)) {
+						elementPath := fmt.Sprintf("%s[%v]", mapPath, k.Interface())
+						elementTagPath := fmt.Sprintf("%s[%v]", mapTagPath, k.Interface())
+						if err := validateWithPath(v.Interface(), tag, elementPath, elementTagPath); err != nil {
+							return err
+						}
+					}
+				}
+			}
 		case reflect.Struct:
 			if value.CanAddr() {
-				if err := Validate(value.Addr().Interface(), tag); err != nil {
+				newPath := field.Name
+				if path != "" {
+					newPath = path + "." + newPath
+				}
+				newTagPath := getFieldNameForPath(field, tag)
+				if tagPath != "" {
+					newTagPath = tagPath + "." + newTagPath
+				}
+				if err := validateWithPath(value.Addr().Interface(), tag, newPath, newTagPath); err != nil {
 					return err
 				}
 			}
+		case reflect.Chan, reflect.Func, reflect.UnsafePointer:
+			isEmpty = value.IsNil()
 		default:
-			// Other types are not checked for emptiness
 		}
 
 		if !isEmpty {
 			continue
 		}
 
-		tagValue := field.Tag.Get(tag)
+		fullPath := field.Name
+		if path != "" {
+			fullPath = path + "." + fullPath
+		}
 
-		errMsg := fmt.Sprintf("validate: field [%s] is required but empty", field.Name)
-		if tagValue != "" {
-			errMsg = fmt.Sprintf("validate: field [%s](%s) is required but empty", field.Name, tagValue)
+		fullTagPath := getFieldNameForPath(field, tag)
+		if tagPath != "" {
+			fullTagPath = tagPath + "." + fullTagPath
+		}
+
+		errMsg := fmt.Sprintf("validate: field [%s] is required but empty", fullPath)
+		if fullTagPath != "" {
+			errMsg = fmt.Sprintf("validate: field [%s](%s) is required but empty", fullPath, fullTagPath)
 		}
 
 		if DefaultConfigProvider != nil {
