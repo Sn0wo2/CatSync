@@ -11,27 +11,6 @@ var (
 	ErrInvalidActionData = errors.New("invalid action data")
 )
 
-// Action Operation
-type Operation string
-
-const (
-	// Actions
-	OperationFile   Operation = "file"
-	OperationString Operation = "string"
-)
-
-type ReloadData struct {
-	Message string `json:"message,omitempty" yaml:"message,omitempty"`
-}
-
-type FileData struct {
-	Path string `json:"path" yaml:"path"`
-}
-
-type StringData struct {
-	Content string `json:"content" yaml:"content"`
-}
-
 type Config struct {
 	Log     Log      `json:"log"     yaml:"log"`
 	Server  Server   `json:"server"  yaml:"server"`
@@ -60,8 +39,7 @@ type Action struct {
 	ResponseHeader http.Header `json:"responseHeader" optional:"true" yaml:"responseHeader"`
 	Auth           ActionAuth  `json:"auth"           optional:"true" yaml:"auth"`
 
-	// --- Action Types ---
-	Operation Operation `json:"operation" yaml:"operation"`
+	Operation ActionOperation `json:"operation" yaml:"operation"`
 
 	// --- Action Data ---
 	ActionOperationFile   *FileData   `json:"file,omitempty"   optional:"true" yaml:"file,omitempty"`
@@ -76,4 +54,23 @@ type ActionAuth struct {
 type ActionAuthQuery struct {
 	Map            map[string]string `json:"map"            yaml:"map"`
 	IgnoreCaseCase bool              `json:"ignoreCaseCase" optional:"true" yaml:"ignoreCaseCase"`
+}
+
+type ActionOperation string
+
+const (
+	ActionOperationFile   ActionOperation = "file"
+	ActionOperationString ActionOperation = "string"
+)
+
+type ReloadData struct {
+	Message string `json:"message,omitempty" yaml:"message,omitempty"`
+}
+
+type FileData struct {
+	Path string `json:"path" yaml:"path"`
+}
+
+type StringData struct {
+	Content string `json:"content" yaml:"content"`
 }

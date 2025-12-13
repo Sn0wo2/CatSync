@@ -65,9 +65,9 @@ func Actions(c *params.Ctx, act config.Action) fiber.Handler {
 		var actionData any
 
 		switch act.Operation {
-		case config.OperationFile:
+		case config.ActionOperationFile:
 			actionData = act.ActionOperationFile
-		case config.OperationString:
+		case config.ActionOperationString:
 			actionData = act.ActionOperationString
 		}
 

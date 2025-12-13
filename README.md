@@ -18,87 +18,73 @@
 
 ## Config & How 2 use
 
-### Default Config:
-
-```yaml
-log:
-  level: debug
-  dir: ./logs
-server:
-  address: :3000
-  header: CatSync
-  tls:
-    cert: ""
-    key: ""
-actions:
-  - route: /
-    action: 1
-    actionData: Hello CatSync
-    responseHeader: { }
-    auth:
-      ua: ""
-      query:
-        map: { }
-        ignoreCaseCase: false
-
-```
-
----
-
 ### All Config Types:
 
 ```go
 // config/types.go
 type Config struct {
-	Log     Log      `json:"log"     optional:"true" yaml:"log"`
-	Server  Server   `json:"server"  yaml:"server"`
-	Actions []Action `json:"actions" optional:"true" yaml:"actions"`
-
-	// --- INTERNAL ---
-	
-	ConfigPath string `json:"-" optional:"true" yaml:"-"`
+Log     Log      `json:"log"     yaml:"log"`
+Server  Server   `json:"server"  yaml:"server"`
+Actions []Action `json:"actions" yaml:"actions"`
 }
 
 type Log struct {
-	Level string `json:"level" optional:"true" yaml:"level"`
-	Dir   string `json:"dir"   optional:"true" yaml:"dir"`
+Dir        string `json:"dir"        optional:"true"   yaml:"dir"`
+Level      string `json:"level"      optional:"true"   yaml:"level"`
+FileFormat string `json:"fileFormat" yaml:"fileFormat"`
 }
 
 type Server struct {
-	Address string    `json:"address" yaml:"address"`
-	Header  string    `json:"header"  optional:"true" yaml:"header"`
-	TLS     ServerTLS `json:"tls"     optional:"true" yaml:"tls"`
+Address string    `json:"address" yaml:"address"`
+Header  string    `json:"header"  optional:"true" yaml:"header"`
+TLS     ServerTLS `json:"tls"     optional:"true" yaml:"tls"`
 }
 
 type ServerTLS struct {
-	Cert string `json:"cert" yaml:"cert"`
-	Key  string `json:"key"  yaml:"key"`
+Cert string `json:"cert" yaml:"cert"`
+Key  string `json:"key"  yaml:"key"`
 }
 
 type Action struct {
-	Route          string      `json:"route"          yaml:"route"`
-	Action         action.Type `json:"action"         yaml:"action"`
-	ActionData     string      `json:"actionData"     yaml:"actionData"`
-	ResponseHeader http.Header `json:"responseHeader" optional:"true"   yaml:"responseHeader"`
-	Auth           ActionAuth  `json:"auth"           optional:"true"   yaml:"auth"`
+Route          string      `json:"route"          yaml:"route"`
+ResponseHeader http.Header `json:"responseHeader" optional:"true" yaml:"responseHeader"`
+Auth           ActionAuth  `json:"auth"           optional:"true" yaml:"auth"`
+
+Operation ActionOperation `json:"operation" yaml:"operation"`
+
+// --- Action Data ---
+ActionOperationFile   *FileData   `json:"file,omitempty"   optional:"true" yaml:"file,omitempty"`
+ActionOperationString *StringData `json:"string,omitempty" optional:"true" yaml:"string,omitempty"`
 }
 
 type ActionAuth struct {
-	UA    string          `json:"ua"    optional:"true" yaml:"ua"`
-	Query ActionAuthQuery `json:"query" optional:"true" yaml:"query"`
+UA    string          `json:"ua"    optional:"true" yaml:"ua"`
+Query ActionAuthQuery `json:"query" optional:"true" yaml:"query"`
 }
 
 type ActionAuthQuery struct {
-	Map            map[string]string `json:"map"            yaml:"map"`
-	IgnoreCaseCase bool              `json:"ignoreCaseCase" optional:"true" yaml:"ignoreCaseCase"`
+Map            map[string]string `json:"map"            yaml:"map"`
+IgnoreCaseCase bool              `json:"ignoreCaseCase" optional:"true" yaml:"ignoreCaseCase"`
 }
 
+type ActionOperation string
+
 const (
-	File = iota
-	String = 1
-	TempRedirect = 2
-	Redirect = 3
+ActionOperationFile   ActionOperation = "file"
+ActionOperationString ActionOperation = "string"
 )
+
+type ReloadData struct {
+Message string `json:"message,omitempty" yaml:"message,omitempty"`
+}
+
+type FileData struct {
+Path string `json:"path" yaml:"path"`
+}
+
+type StringData struct {
+Content string `json:"content" yaml:"content"`
+}
 
 ```
 
