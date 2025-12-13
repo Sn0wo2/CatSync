@@ -15,8 +15,8 @@ import (
 )
 
 func init() {
-	HandlerRegistry[config.ActionOperationString] = NewString()
-	HandlerRegistry[config.ActionOperationFile] = NewFile()
+	HandlerRegistry[config.ActionString] = NewString()
+	HandlerRegistry[config.ActionFile] = NewFile()
 }
 
 type StringHandler struct{}

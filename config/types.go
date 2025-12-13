@@ -39,11 +39,11 @@ type Action struct {
 	ResponseHeader http.Header `json:"responseHeader" optional:"true" yaml:"responseHeader"`
 	Auth           ActionAuth  `json:"auth"           optional:"true" yaml:"auth"`
 
-	Operation ActionOperation `json:"operation" yaml:"operation"`
+	Type ActionType `json:"type" yaml:"type"`
 
 	// --- Action Data ---
-	ActionOperationFile   *FileData   `json:"file,omitempty"   optional:"true" yaml:"file,omitempty"`
-	ActionOperationString *StringData `json:"string,omitempty" optional:"true" yaml:"string,omitempty"`
+	ActionFile   *FileData   `json:"file,omitempty"   optional:"true" yaml:"file,omitempty"`
+	ActionString *StringData `json:"string,omitempty" optional:"true" yaml:"string,omitempty"`
 }
 
 type ActionAuth struct {
@@ -56,11 +56,11 @@ type ActionAuthQuery struct {
 	IgnoreCaseCase bool              `json:"ignoreCaseCase" optional:"true" yaml:"ignoreCaseCase"`
 }
 
-type ActionOperation string
+type ActionType string
 
 const (
-	ActionOperationFile   ActionOperation = "file"
-	ActionOperationString ActionOperation = "string"
+	ActionFile   ActionType = "file"
+	ActionString ActionType = "string"
 )
 
 type ReloadData struct {

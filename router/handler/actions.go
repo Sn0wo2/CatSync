@@ -55,20 +55,20 @@ func Actions(c *params.Ctx, act config.Action) fiber.Handler {
 			ctx.Append(k, v...)
 		}
 
-		handler, ok := action.HandlerRegistry[act.Operation]
+		handler, ok := action.HandlerRegistry[act.Type]
 		if !ok {
-			c.GetLogger().Info("Router >> Unknown action", zap.String("operation", string(act.Operation)), zap.String("ctx", util.FiberContextString(ctx)))
+			c.GetLogger().Info("Router >> Unknown action", zap.String("operation", string(act.Type)), zap.String("ctx", util.FiberContextString(ctx)))
 
 			return ctx.Next()
 		}
 
 		var actionData any
 
-		switch act.Operation {
-		case config.ActionOperationFile:
-			actionData = act.ActionOperationFile
-		case config.ActionOperationString:
-			actionData = act.ActionOperationString
+		switch act.Type {
+		case config.ActionFile:
+			actionData = act.ActionFile
+		case config.ActionString:
+			actionData = act.ActionString
 		}
 
 		return handler.Execute(c, ctx, actionData)
