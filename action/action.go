@@ -9,6 +9,7 @@ import (
 
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/internal/util"
+	"github.com/Sn0wo2/CatSync/version"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 )
@@ -32,6 +33,10 @@ func (h *StringHandler) ProcessAction(p *ProcessData) error {
 		return fmt.Errorf("invalid action data type for string action: expected *ActionStringData, got %T", p.PayLoad)
 	}
 
+	if stringData.ActionVersionModifier.Placeholder != "" {
+		p = NewVersionModifier(version.GetFormatVersion()).ProcessModifier(h).HookProcessData()(p)
+	}
+
 	p.Ctx.GetLogger().Info("Action >> Serve String", zap.String("data", stringData.Content), zap.String("ctx", util.FiberContextString(p.C)))
 
 	return p.C.SendString(stringData.Content)
@@ -49,6 +54,10 @@ func (h *FileHandler) ProcessAction(p *ProcessData) error {
 	fileData, ok := p.PayLoad.(*config.ActionFileData)
 	if !ok {
 		return fmt.Errorf("invalid action data type for file action: expected *config.ActionFileData, got %T", p.PayLoad)
+	}
+
+	if fileData.ActionVersionModifier.Placeholder != "" {
+		p = NewVersionModifier(version.GetFormatVersion()).ProcessModifier(h).HookProcessData()(p)
 	}
 
 	safePath, err := filepath.Abs(filepath.Clean(fileData.Path))
