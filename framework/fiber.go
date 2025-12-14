@@ -51,10 +51,10 @@ func (ctx *Framework) StartFiber() error {
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
-		ErrorLog:     zap.NewStdLog(ctx.Provider.GetLogger()),
+		ErrorLog:     zap.NewStdLog(ctx.GetLogger()),
 	}
 
-	if ctx.GetConfig().Server.TLS.Key != "" && ctx.GetConfig().Server.TLS.Key != "" {
+	if ctx.GetConfig().Server.TLS.Cert != "" && ctx.GetConfig().Server.TLS.Key != "" {
 		return server.ListenAndServeTLS(ctx.GetConfig().Server.TLS.Cert, ctx.GetConfig().Server.TLS.Key)
 	}
 

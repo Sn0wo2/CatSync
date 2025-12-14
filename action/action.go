@@ -50,6 +50,7 @@ func (h *FileHandler) ProcessAction(p *ProcessData) error {
 	if !ok {
 		return fmt.Errorf("invalid action data type for file action: expected *config.ActionFileData, got %T", p.PayLoad)
 	}
+
 	safePath, err := filepath.Abs(filepath.Clean(fileData.Path))
 	if err != nil {
 		return fmt.Errorf("failed to get absolute path: %w", err)

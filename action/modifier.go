@@ -26,6 +26,7 @@ func (v *VersionModifier) ProcessModifier(handler Handler) Handler {
 		Handler: handler,
 		hook: func(p *ProcessData) *ProcessData {
 			p.C.Append("X-Version", v.Version)
+
 			return p
 		},
 	}

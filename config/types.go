@@ -69,14 +69,14 @@ type ActionData interface {
 
 type ActionFileData struct {
 	ActionVersionModifier `json:"actionVersionModifier" yaml:"actionVersionModifier"`
-	Path                  string `json:"path" yaml:"path"`
+	Path                  string `json:"path"                  yaml:"path"`
 }
 
 func (a *ActionFileData) data() {}
 
 type ActionStringData struct {
 	ActionVersionModifier `json:"actionVersionModifier" yaml:"actionVersionModifier"`
-	Content               string `json:"content" yaml:"content"`
+	Content               string `json:"content"               yaml:"content"`
 }
 
 func (a *ActionStringData) data() {}
