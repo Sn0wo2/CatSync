@@ -95,7 +95,7 @@ Content string `json:"content" yaml:"content"`
 ```bash
 
 # Recommend
-docker-compose -f docker/docker-compose.yml up -d
+make run_docker
 
 # OR: Replace 'latest' with 'local' to use your self-built images
 
@@ -107,7 +107,7 @@ docker run -d -p 3000:3000 -v ./data:/app/data:ro --name catsync catsync:latest
 ```bash
 
 # Recommend
-goreleaser release --snapshot --clean
+make test_goreleaser
 
 # OR
 
