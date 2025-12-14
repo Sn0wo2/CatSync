@@ -104,7 +104,7 @@ func main() {
 
 		logger.Info("Server listening on: " + strings.Join(logAddresses, ", "))
 
-		if err := app.StartFiber(addr, cert, key); err != nil {
+		if err := app.StartFiber(); err != nil {
 			logger.Fatal("Server failed to start",
 				zap.Error(err),
 			)
