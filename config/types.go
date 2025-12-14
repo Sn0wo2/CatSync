@@ -42,8 +42,8 @@ type Action struct {
 	Type ActionType `json:"type" yaml:"type"`
 
 	// --- Action Data ---
-	ActionFile   *FileData   `json:"file,omitempty"   optional:"true" yaml:"file,omitempty"`
-	ActionString *StringData `json:"string,omitempty" optional:"true" yaml:"string,omitempty"`
+	ActionFile   *ActionFileData   `json:"file,omitempty"   optional:"true" yaml:"file,omitempty"`
+	ActionString *ActionStringData `json:"string,omitempty" optional:"true" yaml:"string,omitempty"`
 }
 
 type ActionAuth struct {
@@ -63,14 +63,24 @@ const (
 	ActionString ActionType = "string"
 )
 
-type ReloadData struct {
-	Message string `json:"message,omitempty" yaml:"message,omitempty"`
+type ActionData interface {
+	data()
 }
 
-type FileData struct {
-	Path string `json:"path" yaml:"path"`
+type ActionFileData struct {
+	ActionVersionModifier `json:"actionVersionModifier" yaml:"actionVersionModifier"`
+	Path                  string `json:"path" yaml:"path"`
 }
 
-type StringData struct {
-	Content string `json:"content" yaml:"content"`
+func (a *ActionFileData) data() {}
+
+type ActionStringData struct {
+	ActionVersionModifier `json:"actionVersionModifier" yaml:"actionVersionModifier"`
+	Content               string `json:"content" yaml:"content"`
+}
+
+func (a *ActionStringData) data() {}
+
+type ActionVersionModifier struct {
+	Placeholder string `json:"placeholder,omitempty" yaml:"placeholder"`
 }

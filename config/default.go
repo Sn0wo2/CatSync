@@ -15,7 +15,7 @@ func GetDefaultConfig() *Config {
 			{
 				Route: "/",
 				Type:  ActionString,
-				ActionString: &StringData{
+				ActionString: &ActionStringData{
 					Content: "Hello, CatSync!",
 				},
 			},

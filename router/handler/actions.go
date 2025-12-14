@@ -62,7 +62,7 @@ func Actions(c *params.Ctx, act config.Action) fiber.Handler {
 			return ctx.Next()
 		}
 
-		var actionData any
+		var actionData config.ActionData
 
 		switch act.Type {
 		case config.ActionFile:
@@ -71,6 +71,16 @@ func Actions(c *params.Ctx, act config.Action) fiber.Handler {
 			actionData = act.ActionString
 		}
 
-		return handler.Execute(c, ctx, actionData)
+		p := &action.ProcessData{
+			Ctx:     c,
+			C:       ctx,
+			PayLoad: actionData,
+		}
+
+		if hook := handler.HookProcessData(); hook != nil {
+			p = hook(p)
+		}
+
+		return handler.ProcessAction(p)
 	}
 }
