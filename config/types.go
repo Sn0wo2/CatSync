@@ -6,9 +6,8 @@ import (
 )
 
 var (
-	Path                 string
-	ErrConfigNotFound    = errors.New("no config file found in default search paths")
-	ErrInvalidActionData = errors.New("invalid action data")
+	Path              string
+	ErrConfigNotFound = errors.New("no config file found in default search paths")
 )
 
 type Config struct {
@@ -24,9 +23,9 @@ type Log struct {
 }
 
 type Server struct {
-	Address string    `json:"address" yaml:"address"`
-	Header  string    `json:"header"  optional:"true" yaml:"header"`
-	TLS     ServerTLS `json:"tls"     optional:"true" yaml:"tls"`
+	Address string     `json:"address" yaml:"address"`
+	Header  string     `json:"header"  optional:"true" yaml:"header"`
+	TLS     *ServerTLS `json:"tls"     optional:"true" yaml:"tls"`
 }
 
 type ServerTLS struct {
@@ -35,20 +34,20 @@ type ServerTLS struct {
 }
 
 type Action struct {
-	Route          string      `json:"route"          yaml:"route"`
-	ResponseHeader http.Header `json:"responseHeader" optional:"true" yaml:"responseHeader"`
-	Auth           ActionAuth  `json:"auth"           optional:"true" yaml:"auth"`
+	Route          string       `json:"route"          yaml:"route"`
+	ResponseHeader *http.Header `json:"responseHeader" optional:"true" yaml:"responseHeader"`
+	Auth           *ActionAuth  `json:"auth"           optional:"true" yaml:"auth"`
 
 	Type ActionType `json:"type" yaml:"type"`
 
 	// --- Action Data ---
-	ActionFile   *ActionFileData   `json:"file,omitempty"   optional:"true" yaml:"file,omitempty"`
-	ActionString *ActionStringData `json:"string,omitempty" optional:"true" yaml:"string,omitempty"`
+	ActionFile   *ActionFileData   `json:"file"   optional:"true" yaml:"file"`
+	ActionString *ActionStringData `json:"string" optional:"true" yaml:"string"`
 }
 
 type ActionAuth struct {
-	UA    string          `json:"ua"    optional:"true" yaml:"ua"`
-	Query ActionAuthQuery `json:"query" optional:"true" yaml:"query"`
+	UA    string           `json:"ua"    optional:"true" yaml:"ua"`
+	Query *ActionAuthQuery `json:"query" optional:"true" yaml:"query"`
 }
 
 type ActionAuthQuery struct {
@@ -68,19 +67,19 @@ type ActionData interface {
 }
 
 type ActionFileData struct {
-	ActionVersionModifier `json:"actionVersionModifier" yaml:"actionVersionModifier"`
+	ActionVersionModifier `json:"actionVersionModifier" optional:"true" yaml:"actionVersionModifier"`
 	Path                  string `json:"path"                  yaml:"path"`
 }
 
 func (a *ActionFileData) data() {}
 
 type ActionStringData struct {
-	ActionVersionModifier `json:"actionVersionModifier" yaml:"actionVersionModifier"`
+	ActionVersionModifier `json:"actionVersionModifier" optional:"true" yaml:"actionVersionModifier"`
 	Content               string `json:"content"               yaml:"content"`
 }
 
 func (a *ActionStringData) data() {}
 
 type ActionVersionModifier struct {
-	Placeholder string `json:"placeholder,omitempty" yaml:"placeholder"`
+	Placeholder string `json:"placeholder" yaml:"placeholder"`
 }
