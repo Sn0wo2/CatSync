@@ -47,7 +47,7 @@ type Action struct {
 
 type ActionAuth struct {
 	Header map[string][]string `json:"header" optional:"true" yaml:"header"`
-	Query  map[string]string   `json:"query" optional:"true" yaml:"query"`
+	Query  map[string]string   `json:"query"  optional:"true" yaml:"query"`
 }
 
 type ActionType string
