@@ -13,9 +13,9 @@ import (
 var DefaultConfigProvider func() (any, bool)
 
 func Merge[T any](dst, src *T) {
-	dstVal := reflect.ValueOf(dst).Elem()
 	srcVal := reflect.ValueOf(src).Elem()
 	srcType := srcVal.Type()
+	dstVal := reflect.ValueOf(dst).Elem()
 
 	for i := range srcVal.NumField() {
 		srcField := srcVal.Field(i)

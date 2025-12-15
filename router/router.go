@@ -25,9 +25,7 @@ func Init(c *params.Ctx) {
 	api := app.Group("/v1")
 	api.Get("/health", handler.Health(c))
 
-	for _, a := range c.GetConfig().Actions {
-		app.Get(a.Route, handler.Actions(c, a))
-	}
+	app.Get("*", handler.Actions(c))
 
 	notfound.Init(c.GetLogger(), app)
 }

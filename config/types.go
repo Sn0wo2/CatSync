@@ -46,13 +46,8 @@ type Action struct {
 }
 
 type ActionAuth struct {
-	UA    string           `json:"ua"    optional:"true" yaml:"ua"`
-	Query *ActionAuthQuery `json:"query" optional:"true" yaml:"query"`
-}
-
-type ActionAuthQuery struct {
-	Map            map[string]string `json:"map"            yaml:"map"`
-	IgnoreCaseCase bool              `json:"ignoreCaseCase" optional:"true" yaml:"ignoreCaseCase"`
+	Header map[string][]string `json:"header" optional:"true" yaml:"header"`
+	Query  map[string]string   `json:"query" optional:"true" yaml:"query"`
 }
 
 type ActionType string
