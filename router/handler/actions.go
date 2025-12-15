@@ -30,6 +30,7 @@ func Actions(c *params.Ctx) fiber.Handler {
 					return ctx.Next()
 				}
 			}
+
 			auth := act.Auth
 			for k, v := range auth.Header {
 				for k1, v1 := range ctx.GetReqHeaders() {
@@ -107,6 +108,7 @@ func Actions(c *params.Ctx) fiber.Handler {
 
 			return handler.ProcessAction(p)
 		}
+
 		return nil
 	}
 }

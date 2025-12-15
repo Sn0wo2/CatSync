@@ -33,7 +33,7 @@ func (h *StringHandler) ProcessAction(p *ProcessData) error {
 		return fmt.Errorf("invalid action data type for string action: expected *ActionStringData, got %T", p.PayLoad)
 	}
 
-	if stringData.ActionVersionModifier.Placeholder != "" {
+	if stringData.Placeholder != "" {
 		p = NewVersionModifier(version.GetFormatVersion()).ProcessModifier(h).HookProcessData()(p)
 	}
 
@@ -56,7 +56,7 @@ func (h *FileHandler) ProcessAction(p *ProcessData) error {
 		return fmt.Errorf("invalid action data type for file action: expected *config.ActionFileData, got %T", p.PayLoad)
 	}
 
-	if fileData.ActionVersionModifier.Placeholder != "" {
+	if fileData.Placeholder != "" {
 		p = NewVersionModifier(version.GetFormatVersion()).ProcessModifier(h).HookProcessData()(p)
 	}
 
