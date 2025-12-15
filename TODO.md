@@ -4,6 +4,8 @@
 
 ---
 
- - [X] 解耦`Action`, 使得一个`Action Types`负责大部分事务甚至可以进行两个一起的操作, 以及可以选择性增加设置选项(例如reload)所有而不是区分成不同Action
- - [ ] 和其他项目一样, 引入自己写的封装基础库, 不重复造轮子
- - [ ] 不再考虑YAML的Save注释保留和合并新增字段, 没有填写的数值将直接使用默认数值(Default config or empty value)
+- [X] 解耦`Action`, 使得一个`Action Types`负责大部分事务甚至可以进行两个一起的操作, 以及可以选择性增加设置选项(
+  例如reload)所有而不是区分成不同Action
+- [ ] 和其他项目一样, 引入自己写的封装基础库, 不重复造轮子
+- [ ] 不再考虑YAML的Save注释保留和合并新增字段, 没有填写的数值将直接使用默认数值(Default config or empty value)
+- [X] 使用正则表达式进行所有Action Auth架构匹配
