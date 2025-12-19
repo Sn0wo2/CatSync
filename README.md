@@ -25,7 +25,7 @@ CatSync 正在努力向`V2`版本过渡, 尽可能保证功能的向后兼容性
 或者从 https://github.com/Sn0wo2/CatSync/releases 下载最新的beta版本  
 这是我们最新的更新计划: [TODO](./TODO.md)
 
-> ### **⚠ BETA版本不是稳定版本 不推荐在任何生产环境中使用。**
+> ### **⚠ BETA版本不是稳定版本, 不推荐在任何生产环境中使用。**
 
 ---
 
@@ -111,10 +111,10 @@ type ActionVersionModifier struct {
 
 ```bash
 
-# Recommend
+# Recommend~
 make run_docker
 
-# OR: Replace 'latest' with local image to use your self-built images
+# Or Replace 'latest' with local image to use your self-built images
 
 docker run -d -p 3000:3000 -v ./data:/app/data:ro --name catsync ghcr.io/sn0wo2/catsync:latest
 ```
@@ -123,10 +123,10 @@ docker run -d -p 3000:3000 -v ./data:/app/data:ro --name catsync ghcr.io/sn0wo2/
 
 ```bash
 
-# Recommend
+# Recommend~
 make test_goreleaser
 
-# OR
+# Or
 
 go build -o CatSync ./cmd
 docker build -t catsync:local .
