@@ -58,7 +58,7 @@ const (
 )
 
 type ActionData interface {
-	data()
+	action()
 }
 
 type ActionFileData struct {
@@ -66,14 +66,14 @@ type ActionFileData struct {
 	Path                  string `json:"path"                  yaml:"path"`
 }
 
-func (a *ActionFileData) data() {}
+func (a *ActionFileData) action() {}
 
 type ActionStringData struct {
 	ActionVersionModifier `json:"actionVersionModifier" optional:"true" yaml:"actionVersionModifier"`
 	Content               string `json:"content"               yaml:"content"`
 }
 
-func (a *ActionStringData) data() {}
+func (a *ActionStringData) action() {}
 
 type ActionVersionModifier struct {
 	Placeholder string `json:"placeholder" yaml:"placeholder"`
