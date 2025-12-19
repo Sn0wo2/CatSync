@@ -34,7 +34,7 @@ builds:
 
 dockers:
   - image_templates:
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v1
+      - ghcr.io/sn0wo2/catsync:{{ .Tag }}-amd64v1
     use: buildx
     goos: linux
     goarch: amd64
@@ -54,7 +54,7 @@ dockers:
       - --label=org.opencontainers.image.created={{.Date}}
       - --platform=linux/amd64/v1
   - image_templates:
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v3
+      - ghcr.io/sn0wo2/catsync:{{ .Tag }}-amd64v3
     use: buildx
     goos: linux
     goarch: amd64
@@ -74,7 +74,7 @@ dockers:
       - --label=org.opencontainers.image.created={{.Date}}
       - --platform=linux/amd64/v3
   - image_templates:
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-arm64
+      - ghcr.io/sn0wo2/catsync:{{ .Tag }}-arm64
     use: buildx
     goos: linux
     goarch: arm64
@@ -94,16 +94,16 @@ dockers:
       - --platform=linux/arm64
 
 docker_manifests:
-  - name_template: ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}
+  - name_template: ghcr.io/sn0wo2/catsync:{{ .Tag }}
     image_templates:
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v1
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v3
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-arm64
-  - name_template: ghcr.io/sn0wo2/{{ .ProjectName }}:latest
+      - ghcr.io/sn0wo2/catsync:{{ .Tag }}-amd64v1
+      - ghcr.io/sn0wo2/catsync:{{ .Tag }}-amd64v3
+      - ghcr.io/sn0wo2/catsync:{{ .Tag }}-arm64
+  - name_template: ghcr.io/sn0wo2/catsync:latest
     image_templates:
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v1
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-amd64v3
-      - ghcr.io/sn0wo2/{{ .ProjectName }}:{{ .Tag }}-arm64
+      - ghcr.io/sn0wo2/catsync:{{ .Tag }}-amd64v1
+      - ghcr.io/sn0wo2/catsync:{{ .Tag }}-amd64v3
+      - ghcr.io/sn0wo2/catsync:{{ .Tag }}-arm64
 
 changelog:
   use: github
