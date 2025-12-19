@@ -5,8 +5,8 @@
 
 ---
 
-- [X] 解耦`Action`, 使得一个`Action Types`负责大部分事务甚至可以进行两个一起的操作, 以及可以选择性增加设置选项(
-  例如reload)所有而不是区分成不同`Action`
+- [X] 解耦`Action`, 使得一个`Action Type`负责大部分事务甚至可以多个同时执行的操作, 以及可以选择性增加设置选项(
+  例如`StringHandler`是可以同时进行热更新)所有而不是区分成不同`Action Type`
 - [ ] 使用可重复利用的封装基础库, 不重复造轮子
 - [ ] 不再考虑`Yaml loader`的`Save`注释保留和合并新增字段, 没有填写的数值将直接使用默认数值(Default config or empty
   value) ~~维护这个太麻烦了, 或者后续考虑写在基础库~~
