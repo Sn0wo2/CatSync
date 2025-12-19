@@ -3,6 +3,7 @@ module github.com/Sn0wo2/CatSync
 go 1.25.5
 
 require (
+	github.com/Sn0wo2/go-common v0.0.0-20251204153924-3a4985f7ff6e
 	github.com/gofiber/fiber/v2 v2.52.10
 	github.com/google/uuid v1.6.0
 	// github.com/joho/godotenv v1.5.1
@@ -14,7 +15,6 @@ require (
 )
 
 require (
-	github.com/Sn0wo2/go-common v0.0.0-20251204153924-3a4985f7ff6e // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
