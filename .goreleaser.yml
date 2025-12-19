@@ -1,13 +1,13 @@
 version: 2
-project_name: catsync
+project_name: CatSync
 
 release:
   prerelease: auto
 
 builds:
-  - id: CatSync
+  - id: "{{ .ProjectName }}"
     main: ./cmd
-    binary: CatSync
+    binary: "{{ .ProjectName }}"
     env:
       - CGO_ENABLED=0
       - TZ=Asia/Shanghai
@@ -26,11 +26,11 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
-      - -X github.com/Sn0wo2/CatSync/version.version={{.Version}}
-      - -X github.com/Sn0wo2/CatSync/version.commit={{.Commit}}
-      - -X github.com/Sn0wo2/CatSync/version.date={{.Date}}
-      - -X github.com/Sn0wo2/CatSync/version.os={{.Os}}
-      - -X github.com/Sn0wo2/CatSync/version.arch={{.Arch}}{{.Amd64}}{{.Arm}}
+      - -X github.com/Sn0wo2/{{ .ProjectName }}/version.version={{.Version}}
+      - -X github.com/Sn0wo2/{{ .ProjectName }}/version.commit={{.Commit}}
+      - -X github.com/Sn0wo2/{{ .ProjectName }}/version.date={{.Date}}
+      - -X github.com/Sn0wo2/{{ .ProjectName }}/version.os={{.Os}}
+      - -X github.com/Sn0wo2/{{ .ProjectName }}/version.arch={{.Arch}}{{.Amd64}}{{.Arm}}
 
 dockers:
   - image_templates:
@@ -41,8 +41,8 @@ dockers:
     goamd64: v1
     build_flag_templates:
       - --label=org.opencontainers.image.description=Sync the「cat」config.
-      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync
-      - --label=org.opencontainers.image.url=https://github.com/Sn0wo2/CatSync
+      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/{{ .ProjectName }}
+      - --label=org.opencontainers.image.url=https://github.com/Sn0wo2/{{ .ProjectName }}
       - --label=org.opencontainers.image.vendor=Sn0wo2
       - --label=org.opencontainers.image.authors=Sn0wo2
       - --label=org.opencontainers.image.licenses=MIT
@@ -61,8 +61,8 @@ dockers:
     goamd64: v3
     build_flag_templates:
       - --label=org.opencontainers.image.description=Sync the「cat」config.
-      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync
-      - --label=org.opencontainers.image.url=https://github.com/Sn0wo2/CatSync
+      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/{{ .ProjectName }}
+      - --label=org.opencontainers.image.url=https://github.com/Sn0wo2/{{ .ProjectName }}
       - --label=org.opencontainers.image.vendor=Sn0wo2
       - --label=org.opencontainers.image.authors=Sn0wo2
       - --label=org.opencontainers.image.licenses=MIT
@@ -80,8 +80,8 @@ dockers:
     goarch: arm64
     build_flag_templates:
       - --label=org.opencontainers.image.description=Sync the「cat」config.
-      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/CatSync
-      - --label=org.opencontainers.image.url=https://github.com/Sn0wo2/CatSync
+      - --label=org.opencontainers.image.source=https://github.com/Sn0wo2/{{ .ProjectName }}
+      - --label=org.opencontainers.image.url=https://github.com/Sn0wo2/{{ .ProjectName }}
       - --label=org.opencontainers.image.vendor=Sn0wo2
       - --label=org.opencontainers.image.authors=Sn0wo2
       - --label=org.opencontainers.image.licenses=MIT
