@@ -9,8 +9,9 @@ import (
 type ProcessData struct {
 	Ctx     *params.Ctx
 	C       *fiber.Ctx
-	PayLoad config.ActionData
-	Hooks []Modifier
+	Action  *config.Action
+	PayLoad *config.ActionData
+	Hooks   *[]Modifier
 }
 
 type Handler interface {

@@ -28,7 +28,13 @@ func NewString() Handler {
 }
 
 func (h *StringHandler) ProcessAction(p *ProcessData) error {
-	stringData, ok := p.PayLoad.(*config.ActionStringData)
+	if p.Action.Status >= 100 && p.Action.Status <= 599 {
+		p.C.Status(int(p.Action.Status))
+	} else if p.Action.Status != 0 {
+		return fmt.Errorf("invalid status code: %d", p.Action.Status)
+	}
+
+	stringData, ok := (*p.PayLoad).(*config.ActionStringData)
 	if !ok {
 		return fmt.Errorf("invalid action data type for string action: expected *ActionStringData, got %T", p.PayLoad)
 	}
@@ -51,7 +57,13 @@ func NewFile() Handler {
 }
 
 func (h *FileHandler) ProcessAction(p *ProcessData) error {
-	fileData, ok := p.PayLoad.(*config.ActionFileData)
+	if p.Action.Status >= 100 && p.Action.Status <= 599 {
+		p.C.Status(int(p.Action.Status))
+	} else if p.Action.Status != 0 {
+		return fmt.Errorf("invalid status code: %d", p.Action.Status)
+	}
+
+	fileData, ok := (*p.PayLoad).(*config.ActionFileData)
 	if !ok {
 		return fmt.Errorf("invalid action data type for file action: expected *config.ActionFileData, got %T", p.PayLoad)
 	}
@@ -91,7 +103,9 @@ func (h *FileHandler) ProcessAction(p *ProcessData) error {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
 
-	p.C.Set(fiber.HeaderContentType, http.DetectContentType(fileBytes))
+	if !fileData.DontDetectContentType {
+		p.C.Set(fiber.HeaderContentType, http.DetectContentType(fileBytes))
+	}
 
 	p.Ctx.GetLogger().Info("Action >> Serve File", zap.String("path", fileData.Path), zap.String("ctx", util.FiberContextString(p.C)))
 

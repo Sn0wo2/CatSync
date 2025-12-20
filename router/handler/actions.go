@@ -15,7 +15,6 @@ import (
 func Actions(c *params.Ctx) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		for _, act := range c.GetConfig().Actions {
-
 			// router matcher
 			if act.Route != "" {
 				re, err := regexp.Compile(act.Route)
@@ -104,7 +103,8 @@ func Actions(c *params.Ctx) fiber.Handler {
 			p := &action.ProcessData{
 				Ctx:     c,
 				C:       ctx,
-				PayLoad: actionData,
+				Action:  &act,
+				PayLoad: &actionData,
 			}
 
 			// "p" can change by hook!
