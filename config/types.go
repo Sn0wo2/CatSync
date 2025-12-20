@@ -35,7 +35,7 @@ type ServerTLS struct {
 
 type Action struct {
 	Route          string       `json:"route"          yaml:"route"`
-	Status uint `json:"status"         optional:"true" yaml:"status"`
+	Status uint16 `json:"status"         optional:"true" yaml:"status"`
 	ResponseHeader *http.Header `json:"responseHeader" optional:"true" yaml:"responseHeader"`
 	Auth           *ActionAuth  `json:"auth"           optional:"true" yaml:"auth"`
 
@@ -65,7 +65,7 @@ type ActionData interface {
 type ActionFileData struct {
 	ActionVersionModifier `json:"actionVersionModifier" optional:"true" yaml:"actionVersionModifier"`
 	Path                  string `json:"path"                  yaml:"path"`
-	DontDetectContentType bool `json:"dontDetectContentType"     optional:"true" yaml:"dontDetectContentType"`
+	DontDetectContentType bool `json:"dontDetectContentType" optional:"true" yaml:"dontDetectContentType"`
 }
 
 func (a *ActionFileData) action() {}

@@ -11,11 +11,13 @@ func NewVersionModifier() *VersionModifier {
 
 func (v *VersionModifier) WithVersion(version string) *VersionModifier {
 	v.version = version
+
 	return v
 }
 
 func (v *VersionModifier) WithHeader(header bool) *VersionModifier {
 	v.header = header
+
 	return v
 }
 
