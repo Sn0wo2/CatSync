@@ -50,3 +50,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TZ: "Asia/Shanghai"
+
+      - name: Add beta warning to release notes
+        if: contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha')
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const tag = context.ref.replace('refs/tags/', '');
+            const release = await github.rest.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag: tag
+            });
+            
+            const warningMessage = '\n\n---\n\n⚠ BETA版本不是稳定版本, 不推荐在任何生产环境中使用。';
+            
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              body: release.data.body + warningMessage
+            });
