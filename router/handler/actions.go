@@ -15,6 +15,8 @@ import (
 func Actions(c *params.Ctx) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		for _, act := range c.GetConfig().Actions {
+
+			// router matcher
 			if act.Route != "" {
 				re, err := regexp.Compile(act.Route)
 				if err != nil {
@@ -31,6 +33,7 @@ func Actions(c *params.Ctx) fiber.Handler {
 				}
 			}
 
+			// start verify auth
 			auth := act.Auth
 			for k, v := range auth.Header {
 				for k1, v1 := range ctx.GetReqHeaders() {
@@ -76,10 +79,12 @@ func Actions(c *params.Ctx) fiber.Handler {
 				}
 			}
 
+			// set cfg response header
 			for k, v := range *act.ResponseHeader {
 				ctx.Append(k, v...)
 			}
 
+			// get action handler from map
 			handler, ok := action.HandlerRegistry[act.Type]
 			if !ok {
 				c.GetLogger().Info("Router >> Unknown action", zap.String("type", string(act.Type)), zap.String("ctx", util.FiberContextString(ctx)))
@@ -102,6 +107,7 @@ func Actions(c *params.Ctx) fiber.Handler {
 				PayLoad: actionData,
 			}
 
+			// "p" can change by hook!
 			if hook := handler.HookProcessData(); hook != nil {
 				p = hook(p)
 			}

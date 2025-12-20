@@ -20,7 +20,7 @@ func init() {
 }
 
 type StringHandler struct {
-	BaseHandler
+	baseHandler
 }
 
 func NewString() Handler {
@@ -34,7 +34,7 @@ func (h *StringHandler) ProcessAction(p *ProcessData) error {
 	}
 
 	if stringData.Placeholder != "" {
-		p = NewVersionModifier(version.GetFormatVersion()).ProcessModifier(h).HookProcessData()(p)
+		p = NewVersionModifier().WithVersion(version.GetFormatVersion()).ProcessModifier(h).HookProcessData()(p)
 	}
 
 	p.Ctx.GetLogger().Info("Action >> Serve String", zap.String("data", stringData.Content), zap.String("ctx", util.FiberContextString(p.C)))
@@ -43,7 +43,7 @@ func (h *StringHandler) ProcessAction(p *ProcessData) error {
 }
 
 type FileHandler struct {
-	BaseHandler
+	baseHandler
 }
 
 func NewFile() Handler {
@@ -57,7 +57,7 @@ func (h *FileHandler) ProcessAction(p *ProcessData) error {
 	}
 
 	if fileData.Placeholder != "" {
-		p = NewVersionModifier(version.GetFormatVersion()).ProcessModifier(h).HookProcessData()(p)
+		p = NewVersionModifier().WithVersion(version.GetFormatVersion()).ProcessModifier(h).HookProcessData()(p)
 	}
 
 	safePath, err := filepath.Abs(filepath.Clean(fileData.Path))

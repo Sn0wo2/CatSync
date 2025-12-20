@@ -10,6 +10,7 @@ type ProcessData struct {
 	Ctx     *params.Ctx
 	C       *fiber.Ctx
 	PayLoad config.ActionData
+	Hooks []Modifier
 }
 
 type Handler interface {
@@ -17,8 +18,8 @@ type Handler interface {
 	HookProcessData() func(*ProcessData) *ProcessData
 }
 
-type BaseHandler struct{}
+type baseHandler struct{}
 
-func (h *BaseHandler) HookProcessData() func(*ProcessData) *ProcessData {
+func (h *baseHandler) HookProcessData() func(*ProcessData) *ProcessData {
 	return nil
 }
