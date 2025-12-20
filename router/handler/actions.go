@@ -79,7 +79,7 @@ func Actions(c *params.Ctx) fiber.Handler {
 			}
 
 			// set cfg response header
-			for k, v := range *act.ResponseHeader {
+			for k, v := range act.ResponseHeader {
 				ctx.Append(k, v...)
 			}
 
