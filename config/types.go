@@ -23,9 +23,9 @@ type Log struct {
 }
 
 type Server struct {
-	Address string     `json:"address" yaml:"address"`
-	Header  string     `json:"header"  optional:"true" yaml:"header"`
-	TLS ServerTLS `json:"tls"     optional:"true" yaml:"tls"`
+	Address string    `json:"address" yaml:"address"`
+	Header  string    `json:"header"  optional:"true" yaml:"header"`
+	TLS     ServerTLS `json:"tls"     optional:"true" yaml:"tls"`
 }
 
 type ServerTLS struct {
@@ -34,8 +34,8 @@ type ServerTLS struct {
 }
 
 type Action struct {
-	Route          string       `json:"route"          yaml:"route"`
-	Status         uint16       `json:"status"         optional:"true" yaml:"status"`
+	Route          string      `json:"route"          yaml:"route"`
+	Status         uint16      `json:"status"         optional:"true" yaml:"status"`
 	ResponseHeader http.Header `json:"responseHeader" optional:"true" yaml:"responseHeader"`
 	Auth           ActionAuth  `json:"auth"           optional:"true" yaml:"auth"`
 
