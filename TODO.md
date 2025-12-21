@@ -16,7 +16,7 @@
 - [ ] 增加`Action`的`File`缓存, 而不是每次请求都进行IO访问到磁盘读取数据(缓存策略可选内部LRU/Redis)
 - [ ] 考虑添加热更新支持
 - [ ] 删除`api_health`的支持, 作为向后兼容请使用action作为替代
-- [ ] `Action` 可配置的状态码
+- [X] `Action` 可配置的状态码
 - [ ] `Action` 可配置的限流
 - [ ] 考虑将`Action`的`Auth`鉴权改为用户(组)体系架构, 简化权限管理
 - [ ] `Fallback action`支持自定义`action`而不是`404 not found`
