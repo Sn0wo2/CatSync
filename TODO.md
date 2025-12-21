@@ -19,4 +19,5 @@
 - [ ] `Action` 可配置的状态码
 - [ ] `Action` 可配置的限流
 - [ ] 考虑将`Action`的`Auth`鉴权改为用户(组)体系架构, 简化权限管理
+- [ ] `Fallback action`支持自定义`action`而不是`404 not found`
 - [X] 把 _Me0wo_ 变成可爱猫娘
