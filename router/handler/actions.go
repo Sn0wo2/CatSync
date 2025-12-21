@@ -109,7 +109,11 @@ func Actions(c *params.Ctx) fiber.Handler {
 
 			// "p" can change by hook!
 			if hook := handler.HookProcessData(); hook != nil {
-				p = hook(p)
+				var err error
+				p, err = hook(p)
+				if err != nil {
+					return fmt.Errorf("hook process data error: %w", err)
+				}
 			}
 
 			return handler.ProcessAction(p)

@@ -6,9 +6,9 @@ type Modifier interface {
 
 type wrappedHandler struct {
 	Handler
-	hook func(*ProcessData) *ProcessData
+	hook func(*ProcessData) (*ProcessData, error)
 }
 
-func (h *wrappedHandler) HookProcessData() func(*ProcessData) *ProcessData {
+func (h *wrappedHandler) HookProcessData() func(*ProcessData) (*ProcessData, error) {
 	return h.hook
 }

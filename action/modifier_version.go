@@ -28,10 +28,10 @@ func (v *VersionModifier) Version() string {
 func (v *VersionModifier) ProcessModifier(handler Handler) Handler {
 	return &wrappedHandler{
 		Handler: handler,
-		hook: func(p *ProcessData) *ProcessData {
+		hook: func(p *ProcessData) (*ProcessData, error) {
 			p.C.Append("X-version", v.version)
 
-			return p
+			return p, nil
 		},
 	}
 }

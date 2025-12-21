@@ -16,11 +16,11 @@ type ProcessData struct {
 
 type Handler interface {
 	ProcessAction(data *ProcessData) error
-	HookProcessData() func(*ProcessData) *ProcessData
+	HookProcessData() func(*ProcessData) (*ProcessData, error)
 }
 
 type baseHandler struct{}
 
-func (h *baseHandler) HookProcessData() func(*ProcessData) *ProcessData {
+func (h *baseHandler) HookProcessData() func(*ProcessData) (*ProcessData, error) {
 	return nil
 }
