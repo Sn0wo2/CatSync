@@ -67,5 +67,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: release.data.id,
-              body: release.data.body + '\n\n---\n\n⚠ **WARNING: This is a BETA release and is not recommended for use in any production environment.**\n\n⚠ **BETA版本不是稳定版本, 不推荐在任何生产环境中使用。**'11
+              body: release.data.body + '\n\n---\n\n⚠ **WARNING: This is a BETA release and is not recommended for use in any production environment.**\n\n⚠ **BETA版本不是稳定版本, 不推荐在任何生产环境中使用。**'
             });
