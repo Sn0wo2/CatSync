@@ -19,8 +19,7 @@ func init() {
 	HandlerRegistry[config.ActionFile] = NewFile()
 }
 
-type StringHandler struct {
-}
+type StringHandler struct{}
 
 func (h *StringHandler) HookProcessData() func(*ProcessData) (*ProcessData, error) {
 	return nil
@@ -64,8 +63,7 @@ func (h *StringHandler) ProcessAction(p *ProcessData) error {
 	return p.C.SendString(stringData.Content)
 }
 
-type FileHandler struct {
-}
+type FileHandler struct{}
 
 func (h *FileHandler) HookProcessData() func(*ProcessData) (*ProcessData, error) {
 	return nil
