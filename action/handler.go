@@ -19,8 +19,3 @@ type Handler interface {
 	HookProcessData() func(*ProcessData) (*ProcessData, error)
 }
 
-type baseHandler struct{}
-
-func (h *baseHandler) HookProcessData() func(*ProcessData) (*ProcessData, error) {
-	return nil
-}

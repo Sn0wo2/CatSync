@@ -20,7 +20,10 @@ func init() {
 }
 
 type StringHandler struct {
-	baseHandler
+}
+
+func (h *StringHandler) HookProcessData() func(*ProcessData) (*ProcessData, error) {
+	return nil
 }
 
 func NewString() Handler {
@@ -62,7 +65,10 @@ func (h *StringHandler) ProcessAction(p *ProcessData) error {
 }
 
 type FileHandler struct {
-	baseHandler
+}
+
+func (h *FileHandler) HookProcessData() func(*ProcessData) (*ProcessData, error) {
+	return nil
 }
 
 func NewFile() Handler {
