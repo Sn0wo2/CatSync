@@ -18,3 +18,12 @@ type Handler interface {
 	ProcessAction(data *ProcessData) error
 	HookProcessData() func(*ProcessData) (*ProcessData, error)
 }
+
+type modifierHandler struct {
+	Handler
+	hook func(*ProcessData) (*ProcessData, error)
+}
+
+func (h *modifierHandler) HookProcessData() func(*ProcessData) (*ProcessData, error) {
+	return h.hook
+}
