@@ -12,6 +12,7 @@ func NewHelper() *Helper {
 
 func (h *Helper) WithProcessData(data *ProcessData) *Helper {
 	h.processData = data
+
 	return h
 }
 
@@ -25,5 +26,6 @@ func (h *Helper) ProcessStatus() error {
 	} else if h.processData.Action.Status != 0 {
 		return fmt.Errorf("invalid status code: %d", h.processData.Action.Status)
 	}
+
 	return nil
 }
