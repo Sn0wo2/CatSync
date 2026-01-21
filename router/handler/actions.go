@@ -16,20 +16,18 @@ func Actions(c *params.Ctx) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		for _, act := range c.GetConfig().Actions {
 			// router matcher
-			if act.Route != "" {
-				re, err := regexp.Compile(act.Route)
-				if err != nil {
-					return fmt.Errorf("invalid route regexp %q: %w", act.Route, err)
-				}
+			re, err := regexp.Compile(act.Route)
+			if err != nil {
+				return fmt.Errorf("invalid route regexp %q: %w", act.Route, err)
+			}
 
-				if !re.MatchString(act.Route) {
-					c.GetLogger().Info("Router >> Router not matched",
-						zap.String("route", act.Route),
-						zap.String("ctx", util.FiberContextString(ctx)),
-					)
+			if !re.MatchString(ctx.Path()) {
+				c.GetLogger().Info("Router >> Router not matched",
+					zap.String("route", act.Route),
+					zap.String("ctx", util.FiberContextString(ctx)),
+				)
 
-					return ctx.Next()
-				}
+				continue
 			}
 
 			// start verify auth
