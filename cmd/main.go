@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -10,12 +9,6 @@ import (
 	"syscall"
 
 	"github.com/Sn0wo2/CatSync/cli"
-	"github.com/Sn0wo2/CatSync/config"
-	"github.com/Sn0wo2/CatSync/config/loader"
-	"github.com/Sn0wo2/CatSync/framework"
-	"github.com/Sn0wo2/CatSync/log"
-	"github.com/Sn0wo2/CatSync/params"
-	"github.com/Sn0wo2/CatSync/router"
 	"github.com/Sn0wo2/CatSync/version"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
@@ -27,44 +20,22 @@ func init() {
 }
 
 func main() {
-	var cfgDefault bool
-
-	cfg, err := config.New(loader.NewYAMLLoader(), loader.NewJSONLoader())
+	appCtx, err := InitializeApp()
 	if err != nil {
-		if !errors.Is(err, config.ErrConfigNotFound) {
-			panic(err)
-		}
-
-		cfg = config.GetDefaultConfig()
-		if err := loader.NewYAMLLoader().Save(cfg, config.Path); err != nil {
-			panic(err)
-		}
-
-		cfgDefault = true
+		panic(err)
 	}
 
-	logger := log.NewLog(cfg.Log.Dir, cfg.Log.Level, cfg.Log.FileFormat)
+	cfg := appCtx.Cfg
+	logger := appCtx.Logger
+	app := appCtx.App
 
 	defer func() {
 		_ = logger.Sync()
 	}()
 
-	p := params.New()
-	p.SetConfig(cfg)
-	p.SetLogger(logger)
-
 	if !fiber.IsChild() {
 		logger.Info("Starting CatSync...", zap.String("version", version.GetFormatVersion()))
 	}
-
-	if cfgDefault {
-		logger.Warn("You have not set a configuration file, using the default!", zap.String("path", config.Path))
-	}
-
-	app := framework.NewFiber(p)
-	p.SetFramework(app)
-
-	router.Init(p)
 
 	shutdownChan := make(chan os.Signal, 1)
 	signal.Notify(shutdownChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
