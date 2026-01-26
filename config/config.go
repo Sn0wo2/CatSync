@@ -11,16 +11,14 @@ import (
 	"github.com/Sn0wo2/CatSync/internal/util"
 )
 
-var CurrentLoaders []Loader
-
 func init() {
 	util.DefaultConfigProvider = func() (any, bool) {
 		return GetDefaultConfig(), true
 	}
 }
 
-func (c *Config) Reload() error {
-	newCfg, err := New(CurrentLoaders...)
+func (c *Config) Reload(loaders ...Loader) error {
+	newCfg, err := New(loaders...)
 	if err != nil {
 		return err
 	}
@@ -35,8 +33,6 @@ func New(loaders ...Loader) (*Config, error) {
 		return nil, errors.New("no loaders provided")
 	}
 
-	CurrentLoaders = loaders
-
 	loaderByExt := make(map[string]Loader)
 
 	for _, l := range loaders {
@@ -46,7 +42,7 @@ func New(loaders ...Loader) (*Config, error) {
 	}
 
 	Path = os.Getenv("CONFIG_PATH")
-	if debug.IsDebugging() { // debug config high priority
+	if debug.IsDebugging() {
 		if p := os.Getenv("DEBUG_CONFIG_PATH"); p != "" {
 			Path = p
 		}
@@ -66,7 +62,6 @@ func New(loaders ...Loader) (*Config, error) {
 		}
 	}
 
-	// p1 fallback
 	if Path == "" {
 		searchPaths := []string{"./data/"}
 
@@ -85,7 +80,6 @@ func New(loaders ...Loader) (*Config, error) {
 
 	fileCfg := &Config{}
 
-	// p1 & p2 fallback
 	if Path == "" {
 		Path = "./data/config.yml"
 
@@ -138,5 +132,4 @@ func (c *Config) Merge(src *Config) {
 }
 
 func (c *Config) Check() {
-	// v2 empty now
 }
