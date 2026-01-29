@@ -27,6 +27,12 @@ CatSync 正在努力向`V2`版本过渡, 尽可能保证功能的向后兼容性
 
 > ### **⚠ BETA版本不是稳定版本, 不推荐在任何生产环境中使用。**
 
+## Docs
+
+- 快速开始：[`docs/quick-start.zh-CN.md`](docs/quick-start.zh-CN.md)
+- 详细配置指南：[`docs/config-guide.zh-CN.md`](docs/config-guide.zh-CN.md)
+- 文档索引：[`docs/README.md`](docs/README.md)
+
 ---
 
 ## Config & How 2 use
@@ -49,7 +55,6 @@ type Log struct {
 
 type Server struct {
 	Address string     `json:"address" yaml:"address"`
-	Header  string     `json:"header"  optional:"true" yaml:"header"`
 	TLS     *ServerTLS `json:"tls"     optional:"true" yaml:"tls"`
 }
 
@@ -59,20 +64,16 @@ type ServerTLS struct {
 }
 
 type Action struct {
-	Route          string       `json:"route"          yaml:"route"`
-	ResponseHeader *http.Header `json:"responseHeader" optional:"true" yaml:"responseHeader"`
-	Auth           *ActionAuth  `json:"auth"           optional:"true" yaml:"auth"`
+	Route string `json:"route"          yaml:"route"`
+
+	// --- Action Modifiers ---
+	GlobalModifier
 
 	Type ActionType `json:"type" yaml:"type"`
 
 	// --- Action Data ---
 	ActionFile   *ActionFileData   `json:"file"   optional:"true" yaml:"file"`
 	ActionString *ActionStringData `json:"string" optional:"true" yaml:"string"`
-}
-
-type ActionAuth struct {
-Header map[string][]string `json:"header" optional:"true" yaml:"header"`
-Query  map[string]string    `json:"query" optional:"true" yaml:"query"`
 }
 
 type ActionType string
@@ -87,20 +88,53 @@ type ActionData interface {
 }
 
 type ActionFileData struct {
-	ActionVersionModifier `json:"actionVersionModifier" optional:"true" yaml:"actionVersionModifier"`
+	GlobalModifier
 	Path                  string `json:"path"                  yaml:"path"`
 }
 
 func (a *ActionFileData) data() {}
 
 type ActionStringData struct {
-	ActionVersionModifier `json:"actionVersionModifier" optional:"true" yaml:"actionVersionModifier"`
+	GlobalModifier
 	Content               string `json:"content"               yaml:"content"`
 }
 
 func (a *ActionStringData) data() {}
 
-type ActionVersionModifier struct {
+type GlobalModifier struct {
+	*ActionModifierResponseHeader `json:"actionModifierResponseHeader" optional:"true" yaml:"actionModifierResponseHeader"`
+	*ActionModifierStatus         `json:"actionModifierStatus" optional:"true" yaml:"actionModifierStatus"`
+	*ActionModifierAuth           `json:"actionModifierAuth" optional:"true" yaml:"actionModifierAuth"`
+	*ActionModifierVersion        `json:"actionVersionModifier" optional:"true" yaml:"actionVersionModifier"`
+}
+
+type ActionModifierResponseHeader struct {
+	Header http.Header `json:"header" yaml:"header"`
+}
+
+type ActionModifierStatus struct {
+	Status uint16 `json:"status" yaml:"status"`
+}
+
+type ActionModifierAuth struct {
+	Header   map[string][]string `json:"header" optional:"true" yaml:"header"`
+	Query    map[string]string   `json:"query"  optional:"true" yaml:"query"`
+	Fallback *ActionModifierAuthFallback `json:"fallback" optional:"true" yaml:"fallback"`
+}
+
+type ActionModifierAuthFallback struct {
+	Type   ActionModifierAuthFallbackType `json:"type" yaml:"type"`
+	JumpTo uint                           `json:"jumpTo" optional:"true" yaml:"jumpTo"`
+}
+
+type ActionModifierAuthFallbackType string
+
+const (
+	AuthFallbackJump ActionModifierAuthFallbackType = "jump"
+	AuthFallbackNext ActionModifierAuthFallbackType = "next"
+)
+
+type ActionModifierVersion struct {
 	Placeholder string `json:"placeholder" yaml:"placeholder"`
 }
 ```
