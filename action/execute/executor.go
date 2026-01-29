@@ -47,32 +47,38 @@ func New() *Executor {
 
 func (e *Executor) WithConfig(cfg *config.Config) *Executor {
 	e.cfg = cfg
+
 	return e
 }
 
 func (e *Executor) WithBuilders(builders Builders) *Executor {
 	e.builders = builders
+
 	return e
 }
 
 func (e *Executor) WithGlobalBuilder(fn func(*config.Config) []action.Modifier) *Executor {
 	e.builders.Global = fn
+
 	return e
 }
 
 func (e *Executor) WithActionBuilder(fn func(*config.Action) []action.Modifier) *Executor {
 	e.builders.Action = fn
+
 	return e
 }
 
 func (e *Executor) WithPayloadBuilder(fn func(config.ActionData) []action.Modifier) *Executor {
 	e.builders.Payload = fn
+
 	return e
 }
 
 func (e *Executor) WithContext(ctx *params.Ctx, fiberCtx *fiber.Ctx) *Executor {
 	e.ctx = ctx
 	e.fiberCtx = fiberCtx
+
 	return e
 }
 
@@ -81,6 +87,7 @@ func (e *Executor) WithContext(ctx *params.Ctx, fiberCtx *fiber.Ctx) *Executor {
 // This is used for jump-only actions (route is empty) and auth fallback jumps.
 func (e *Executor) WithSkipRouteCheck(skip bool) *Executor {
 	e.skipRouteCheck = skip
+
 	return e
 }
 
@@ -88,15 +95,19 @@ func (e *Executor) ExecuteAt(index int) (Result, error) {
 	if e == nil {
 		return Result{}, errors.New("nil executor")
 	}
+
 	if e.cfg == nil {
 		return Result{}, errors.New("nil config")
 	}
+
 	if e.ctx == nil {
 		return Result{}, errors.New("nil params ctx")
 	}
+
 	if e.fiberCtx == nil {
 		return Result{}, errors.New("nil fiber ctx")
 	}
+
 	if index < 0 || index >= len(e.cfg.Actions) {
 		return Result{}, fmt.Errorf("invalid action index: %d", index)
 	}
@@ -107,10 +118,12 @@ func (e *Executor) ExecuteAt(index int) (Result, error) {
 		if act.Route == "" {
 			return Result{NotMatched: true}, nil
 		}
+
 		re, err := util.GetCompiledRegexp(act.Route)
 		if err != nil {
 			return Result{}, fmt.Errorf("invalid route regexp %q: %w", act.Route, err)
 		}
+
 		if !re.MatchString(e.fiberCtx.Path()) {
 			return Result{NotMatched: true}, nil
 		}
@@ -144,33 +157,37 @@ func (e *Executor) ExecuteAt(index int) (Result, error) {
 	if e.builders.Global != nil {
 		add(e.builders.Global(e.cfg))
 	}
+
 	if e.builders.Action != nil {
 		add(e.builders.Action(&act))
 	}
 
 	var payload config.ActionData
+
 	switch act.Type {
 	case config.ActionFile:
 		payload = act.ActionFile
 	case config.ActionString:
 		payload = act.ActionString
 	}
+
 	if e.builders.Payload != nil {
 		add(e.builders.Payload(payload))
 	}
 
 	switch act.Type {
 	case config.ActionString:
-		if act.ActionString != nil && act.ActionString.ActionModifierVersion != nil && act.ActionString.ActionModifierVersion.Placeholder != "" {
+		if act.ActionString != nil && act.ActionString.ActionModifierVersion != nil && act.ActionString.Placeholder != "" {
 			h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(act.ActionString.ActionModifierVersion.Placeholder).WithValue(version.GetFormatVersion()))
 		}
 	case config.ActionFile:
-		if act.ActionFile != nil && act.ActionFile.ActionModifierVersion != nil && act.ActionFile.ActionModifierVersion.Placeholder != "" {
+		if act.ActionFile != nil && act.ActionFile.ActionModifierVersion != nil && act.ActionFile.Placeholder != "" {
 			h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(act.ActionFile.ActionModifierVersion.Placeholder).WithValue(version.GetFormatVersion()))
 		}
 	}
 
 	var actionData config.ActionData
+
 	switch act.Type {
 	case config.ActionFile:
 		actionData = act.ActionFile
@@ -183,12 +200,12 @@ func (e *Executor) ExecuteAt(index int) (Result, error) {
 		return Result{Matched: true}, nil
 	}
 
-	var jumpErr *action.ErrAuthFallbackJump
+	var jumpErr *action.AuthFallbackJumpError
 	if errors.As(err, &jumpErr) {
 		return Result{Matched: true, JumpTo: &jumpErr.JumpTo}, nil
 	}
 
-	var nextErr *action.ErrAuthFallbackNext
+	var nextErr *action.AuthFallbackNextError
 	if errors.As(err, &nextErr) {
 		return Result{NotMatched: true}, nil
 	}

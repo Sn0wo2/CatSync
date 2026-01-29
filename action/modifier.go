@@ -18,6 +18,7 @@ func WrapHandler(h Handler) *ModifiableHandler {
 
 func (h *ModifiableHandler) WithModifier(m Modifier) *ModifiableHandler {
 	h.modifiers = append(h.modifiers, m)
+
 	return h
 }
 
@@ -26,5 +27,6 @@ func (h *ModifiableHandler) Build() Handler {
 	for _, m := range h.modifiers {
 		result = m.ProcessModifier(result)
 	}
+
 	return result
 }

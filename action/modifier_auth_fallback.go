@@ -2,16 +2,16 @@ package action
 
 import "fmt"
 
-type ErrAuthFallbackJump struct {
+type AuthFallbackJumpError struct {
 	JumpTo int
 }
 
-func (e *ErrAuthFallbackJump) Error() string {
+func (e *AuthFallbackJumpError) Error() string {
 	return fmt.Sprintf("auth fallback: jump to %d", e.JumpTo)
 }
 
-type ErrAuthFallbackNext struct{}
+type AuthFallbackNextError struct{}
 
-func (e *ErrAuthFallbackNext) Error() string {
+func (e *AuthFallbackNextError) Error() string {
 	return "auth fallback: next"
 }

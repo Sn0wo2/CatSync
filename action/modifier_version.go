@@ -42,12 +42,15 @@ func (p *PlaceholderModifier) ProcessModifier(handler Handler) Handler {
 			keyHas := p.header && strings.Contains(k, p.placeholder)
 			if !keyHas {
 				found := false
+
 				for _, vv := range vals {
 					if strings.Contains(vv, p.placeholder) {
 						found = true
+
 						break
 					}
 				}
+
 				if !found {
 					continue
 				}
@@ -73,6 +76,7 @@ func (p *PlaceholderModifier) ProcessModifier(handler Handler) Handler {
 				pd.C.Append(newKey, out...)
 			}
 		}
+
 		return pd, nil
 	})
 }

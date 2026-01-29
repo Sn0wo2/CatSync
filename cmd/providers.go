@@ -31,6 +31,7 @@ func NewConfig() (*config.Config, error) {
 			default:
 				err = loader.NewYAMLLoader().Save(cfg, savePath)
 			}
+
 			if err != nil {
 				return nil, err
 			}

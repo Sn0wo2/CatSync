@@ -12,6 +12,7 @@ func NewResponseHeaderModifier(key string, values ...string) *ResponseHeaderModi
 func (m *ResponseHeaderModifier) ProcessModifier(handler Handler) Handler {
 	return WrapHandlerWithHooks(handler).Before(func(p *ProcessData) (*ProcessData, error) {
 		p.C.Append(m.key, m.values...)
+
 		return p, nil
 	})
 }

@@ -35,11 +35,13 @@ func WrapHandlerWithHooks(h Handler) *HandlerWithHooks {
 
 func (h *HandlerWithHooks) Before(hook HookFunc) *HandlerWithHooks {
 	h.beforeHooks = append(h.beforeHooks, hook)
+
 	return h
 }
 
 func (h *HandlerWithHooks) After(hook HookFunc) *HandlerWithHooks {
 	h.afterHooks = append(h.afterHooks, hook)
+
 	return h
 }
 

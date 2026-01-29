@@ -72,9 +72,11 @@ func (h *FileHandler) ProcessAction(p *ProcessData) error {
 			if err := os.MkdirAll(filepath.Dir(safePath), 0o750); err != nil {
 				return fmt.Errorf("failed to create data directory: %w", err)
 			}
+
 			if err := os.WriteFile(filepath.Clean(safePath), helper.StringToBytes("CatSync!\n"), 0o600); err != nil {
 				return fmt.Errorf("failed to create default file: %w", err)
 			}
+
 			fileInfo, err = os.Stat(safePath)
 			if err != nil {
 				return fmt.Errorf("failed to access file after create: %w", err)

@@ -1,10 +1,11 @@
 package action
 
 import (
-	"github.com/Sn0wo2/CatSync/config"
-	util "github.com/Sn0wo2/CatSync/internal/util"
-	"go.uber.org/zap"
 	"strings"
+
+	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/internal/util"
+	"go.uber.org/zap"
 )
 
 type AuthModifier struct {
@@ -21,11 +22,14 @@ func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 
 		// Header checks
 		reqHeaders := p.C.GetReqHeaders()
+
 		for k, patterns := range m.auth.Header {
 			var values []string
+
 			for hk, hv := range reqHeaders {
 				if strings.EqualFold(hk, k) {
 					values = hv
+
 					break
 				}
 			}
@@ -36,11 +40,13 @@ func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 					zap.String("header", k),
 					zap.String("ctx", util.FiberContextString(p.C)),
 				)
-				return m.handleFallback(p)
+
+				return m.handleFallback()
 			}
 
 			// Any (pattern, value) match passes the header check.
 			matched := false
+
 			for _, v := range values {
 				for _, pattern := range patterns {
 					re, err := util.GetCompiledRegexp(pattern)
@@ -49,13 +55,17 @@ func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 							zap.String("pattern", pattern),
 							zap.Error(err),
 						)
+
 						continue
 					}
+
 					if re.MatchString(v) {
 						matched = true
+
 						break
 					}
 				}
+
 				if matched {
 					break
 				}
@@ -68,7 +78,8 @@ func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 					zap.Any("actual", values),
 					zap.String("ctx", util.FiberContextString(p.C)),
 				)
-				return m.handleFallback(p)
+
+				return m.handleFallback()
 			}
 		}
 
@@ -80,6 +91,7 @@ func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 					zap.String("pattern", v),
 					zap.Error(err),
 				)
+
 				continue
 			}
 
@@ -91,7 +103,7 @@ func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 					zap.String("ctx", util.FiberContextString(p.C)),
 				)
 
-				return m.handleFallback(p)
+				return m.handleFallback()
 			}
 		}
 
@@ -99,17 +111,17 @@ func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 	})
 }
 
-func (m *AuthModifier) handleFallback(p *ProcessData) (*ProcessData, error) {
+func (m *AuthModifier) handleFallback() (*ProcessData, error) {
 	if m.auth.Fallback == nil || m.auth.Fallback.Type == "" {
-		return nil, &ErrAuthFallbackNext{}
+		return nil, &AuthFallbackNextError{}
 	}
 
 	switch m.auth.Fallback.Type {
 	case config.AuthFallbackNext:
-		return nil, &ErrAuthFallbackNext{}
+		return nil, &AuthFallbackNextError{}
 	case config.AuthFallbackJump:
-		return nil, &ErrAuthFallbackJump{JumpTo: int(m.auth.Fallback.JumpTo)}
+		return nil, &AuthFallbackJumpError{JumpTo: m.auth.Fallback.JumpTo}
 	default:
-		return nil, &ErrAuthFallbackNext{}
+		return nil, &AuthFallbackNextError{}
 	}
 }

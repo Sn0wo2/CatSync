@@ -10,6 +10,7 @@ func NewHelper() *Helper {
 
 func (h *Helper) WithProcessData(data *ProcessData) *Helper {
 	h.processData = data
+
 	return h
 }
 

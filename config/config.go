@@ -134,6 +134,7 @@ func (c *Config) Check(logger *zap.Logger) error {
 	if c == nil {
 		return errors.New("nil config")
 	}
+
 	if logger == nil {
 		return errors.New("nil logger")
 	}
@@ -149,6 +150,7 @@ func (c *Config) Check(logger *zap.Logger) error {
 			zap.Int("index", actionCount-1),
 			zap.String("type", string(last.Type)),
 		)
+
 		if last.Type == ActionFile {
 			logger.Warn("Config >> notfound handler is file action; may leak file contents",
 				zap.Int("index", actionCount-1),
@@ -162,9 +164,11 @@ func (c *Config) Check(logger *zap.Logger) error {
 		if status == 0 {
 			return nil
 		}
+
 		if status < 100 || status > 599 {
 			return fmt.Errorf("invalid status code at %s: %d", where, status)
 		}
+
 		return nil
 	}
 
@@ -172,9 +176,11 @@ func (c *Config) Check(logger *zap.Logger) error {
 		if auth == nil {
 			return nil
 		}
+
 		if auth.Fallback == nil || auth.Fallback.Type == "" {
 			return fmt.Errorf("auth fallback is required at %s", where)
 		}
+
 		switch auth.Fallback.Type {
 		case AuthFallbackNext:
 			// ok
@@ -182,7 +188,8 @@ func (c *Config) Check(logger *zap.Logger) error {
 			if actionCount == 0 {
 				return fmt.Errorf("auth fallback jumpTo out of range at %s: no actions", where)
 			}
-			if int(auth.Fallback.JumpTo) < 0 || int(auth.Fallback.JumpTo) >= actionCount {
+
+			if auth.Fallback.JumpTo < 0 || auth.Fallback.JumpTo >= actionCount {
 				return fmt.Errorf("auth fallback jumpTo out of range at %s: %d", where, auth.Fallback.JumpTo)
 			}
 		default:
@@ -196,21 +203,24 @@ func (c *Config) Check(logger *zap.Logger) error {
 				}
 			}
 		}
+
 		for k, pat := range auth.Query {
 			if _, err := util.GetCompiledRegexp(pat); err != nil {
 				return fmt.Errorf("invalid auth query regexp at %s (key=%q, pattern=%q): %w", where, k, pat, err)
 			}
 		}
+
 		return nil
 	}
 
 	// Global modifiers checks.
 	for i, gm := range c.Modifiers {
 		if gm.ActionModifierStatus != nil {
-			if err := checkStatus(fmt.Sprintf("modifiers[%d].actionModifierStatus", i), gm.ActionModifierStatus.Status); err != nil {
+			if err := checkStatus(fmt.Sprintf("modifiers[%d].actionModifierStatus", i), gm.Status); err != nil {
 				return err
 			}
 		}
+
 		if err := checkAuth(fmt.Sprintf("modifiers[%d].actionModifierAuth", i), gm.ActionModifierAuth); err != nil {
 			return err
 		}
@@ -230,10 +240,11 @@ func (c *Config) Check(logger *zap.Logger) error {
 		}
 
 		if act.ActionModifierStatus != nil {
-			if err := checkStatus(fmt.Sprintf("actions[%d].actionModifierStatus", i), act.ActionModifierStatus.Status); err != nil {
+			if err := checkStatus(fmt.Sprintf("actions[%d].actionModifierStatus", i), act.Status); err != nil {
 				return err
 			}
 		}
+
 		if err := checkAuth(fmt.Sprintf("actions[%d].actionModifierAuth", i), act.ActionModifierAuth); err != nil {
 			return err
 		}
@@ -244,11 +255,13 @@ func (c *Config) Check(logger *zap.Logger) error {
 			if act.ActionString == nil {
 				return fmt.Errorf("actions[%d] type=string but string is nil", i)
 			}
+
 			if act.ActionString.ActionModifierStatus != nil {
-				if err := checkStatus(fmt.Sprintf("actions[%d].string.actionModifierStatus", i), act.ActionString.ActionModifierStatus.Status); err != nil {
+				if err := checkStatus(fmt.Sprintf("actions[%d].string.actionModifierStatus", i), act.ActionString.Status); err != nil {
 					return err
 				}
 			}
+
 			if err := checkAuth(fmt.Sprintf("actions[%d].string.actionModifierAuth", i), act.ActionString.ActionModifierAuth); err != nil {
 				return err
 			}
@@ -256,11 +269,13 @@ func (c *Config) Check(logger *zap.Logger) error {
 			if act.ActionFile == nil {
 				return fmt.Errorf("actions[%d] type=file but file is nil", i)
 			}
+
 			if act.ActionFile.ActionModifierStatus != nil {
-				if err := checkStatus(fmt.Sprintf("actions[%d].file.actionModifierStatus", i), act.ActionFile.ActionModifierStatus.Status); err != nil {
+				if err := checkStatus(fmt.Sprintf("actions[%d].file.actionModifierStatus", i), act.ActionFile.Status); err != nil {
 					return err
 				}
 			}
+
 			if err := checkAuth(fmt.Sprintf("actions[%d].file.actionModifierAuth", i), act.ActionFile.ActionModifierAuth); err != nil {
 				return err
 			}
