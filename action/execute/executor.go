@@ -154,8 +154,10 @@ func (e *Executor) ExecuteAt(index int) (Result, error) {
 		}
 	}
 
-	if e.builders.Global != nil {
-		add(e.builders.Global(e.cfg))
+	if !act.SkipGlobalModifiers {
+		if e.builders.Global != nil {
+			add(e.builders.Global(e.cfg))
+		}
 	}
 
 	if e.builders.Action != nil {

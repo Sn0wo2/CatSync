@@ -46,6 +46,12 @@ type ServerTLS struct {
 type Action struct {
 	Route string `json:"route" optional:"true" yaml:"route"`
 
+	// SkipGlobalModifiers disables config-level modifiers for this action.
+	//
+	// Some endpoints need to be isolated from defaults like global auth/headers,
+	// while still benefiting from the per-action modifier pipeline.
+	SkipGlobalModifiers bool `json:"skipGlobalModifiers,omitempty" optional:"true" yaml:"skipGlobalModifiers,omitempty"`
+
 	Type ActionType `json:"type" yaml:"type"`
 
 	// --- Action Modifiers ---
