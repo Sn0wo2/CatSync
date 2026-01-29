@@ -11,9 +11,10 @@ var (
 )
 
 type Config struct {
-	Log     Log      `json:"log"     yaml:"log"`
-	Server  Server   `json:"server"  yaml:"server"`
-	Actions []Action `json:"actions" yaml:"actions"`
+	Log       Log              `json:"log"       yaml:"log"`
+	Server    Server           `json:"server"    yaml:"server"`
+	Modifiers []GlobalModifier `json:"modifiers,omitempty" optional:"true" yaml:"modifiers,omitempty"`
+	Actions   []Action         `json:"actions"   yaml:"actions"`
 }
 
 type Log struct {
@@ -24,8 +25,17 @@ type Log struct {
 
 type Server struct {
 	Address string    `json:"address" yaml:"address"`
-	Header  string    `json:"header"  optional:"true" yaml:"header"`
 	TLS     ServerTLS `json:"tls"     optional:"true" yaml:"tls"`
+}
+
+// GlobalModifier
+//
+// Action 特有的Modifier会覆盖掉 GlobalModifier
+type GlobalModifier struct {
+	*ActionModifierResponseHeader `json:"actionModifierResponseHeader,omitempty" optional:"true" yaml:"actionModifierResponseHeader,omitempty"`
+	*ActionModifierStatus         `json:"actionModifierStatus,omitempty" optional:"true" yaml:"actionModifierStatus,omitempty"`
+	*ActionModifierAuth           `json:"actionModifierAuth,omitempty" optional:"true" yaml:"actionModifierAuth,omitempty"`
+	*ActionModifierVersion        `json:"actionVersionModifier,omitempty" optional:"true" yaml:"actionVersionModifier,omitempty"`
 }
 
 type ServerTLS struct {
@@ -34,21 +44,16 @@ type ServerTLS struct {
 }
 
 type Action struct {
-	Route          string      `json:"route"          yaml:"route"`
-	Status         uint16      `json:"status"         optional:"true" yaml:"status"`
-	ResponseHeader http.Header `json:"responseHeader" optional:"true" yaml:"responseHeader"`
-	Auth           ActionAuth  `json:"auth"           optional:"true" yaml:"auth"`
+	Route string `json:"route"   optional:"true"       yaml:"route"`
 
 	Type ActionType `json:"type" yaml:"type"`
 
-	// --- Action Data ---
-	ActionFile   *ActionFileData   `json:"file"   optional:"true" yaml:"file"`
-	ActionString *ActionStringData `json:"string" optional:"true" yaml:"string"`
-}
+	// --- Action Modifiers ---
+	GlobalModifier `yaml:",inline"`
 
-type ActionAuth struct {
-	Header map[string][]string `json:"header" optional:"true" yaml:"header"`
-	Query  map[string]string   `json:"query"  optional:"true" yaml:"query"`
+	// --- Action Datas ---
+	ActionFile   *ActionFileData   `json:"file,omitempty"     optional:"true" yaml:"file,omitempty"`
+	ActionString *ActionStringData `json:"string,omitempty"   optional:"true" yaml:"string,omitempty"`
 }
 
 type ActionType string
@@ -63,20 +68,50 @@ type ActionData interface {
 }
 
 type ActionFileData struct {
-	ActionVersionModifier `json:"actionVersionModifier" optional:"true" yaml:"actionVersionModifier"`
-	Path                  string `json:"path"                  yaml:"path"`
-	DontDetectContentType bool   `json:"dontDetectContentType" optional:"true" yaml:"dontDetectContentType"`
+	GlobalModifier `yaml:",inline"`
+
+	Path               string `json:"path"                  yaml:"path"`
+	DontSetContentType bool   `json:"dontSetContentType" optional:"true" yaml:"dontSetContentType"`
 }
 
 func (a *ActionFileData) action() {}
 
 type ActionStringData struct {
-	ActionVersionModifier `json:"actionVersionModifier" optional:"true" yaml:"actionVersionModifier"`
-	Content               string `json:"content"               yaml:"content"`
+	GlobalModifier `yaml:",inline"`
+
+	Content string `json:"content"               yaml:"content"`
 }
 
 func (a *ActionStringData) action() {}
 
-type ActionVersionModifier struct {
+// Modifier middleware
+
+type ActionModifierResponseHeader struct {
+	Header http.Header `json:"header" yaml:"header"`
+}
+
+type ActionModifierStatus struct {
+	Status uint16 `json:"status" yaml:"status"`
+}
+
+type ActionModifierAuth struct {
+	Header   map[string][]string         `json:"header,omitempty" optional:"true" yaml:"header,omitempty"`
+	Query    map[string]string           `json:"query,omitempty"  optional:"true" yaml:"query,omitempty"`
+	Fallback *ActionModifierAuthFallback `json:"fallback,omitempty" optional:"true" yaml:"fallback,omitempty"`
+}
+
+type ActionModifierAuthFallback struct {
+	Type   ActionModifierAuthFallbackType `json:"type" yaml:"type"`
+	JumpTo uint                           `json:"jumpTo,omitempty" optional:"true" yaml:"jumpTo,omitempty"`
+}
+
+type ActionModifierAuthFallbackType string
+
+const (
+	AuthFallbackJump ActionModifierAuthFallbackType = "jump"
+	AuthFallbackNext ActionModifierAuthFallbackType = "next"
+)
+
+type ActionModifierVersion struct {
 	Placeholder string `json:"placeholder" yaml:"placeholder"`
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/Sn0wo2/CatSync/debug"
 	"github.com/Sn0wo2/CatSync/internal/util"
+	"go.uber.org/zap"
 )
 
 func init() {
@@ -118,8 +119,6 @@ retryLoaders:
 
 	fileCfg.Merge(GetDefaultConfig())
 
-	fileCfg.Check()
-
 	return fileCfg, nil
 }
 
@@ -131,5 +130,142 @@ func (c *Config) Merge(src *Config) {
 	util.Merge(src, c)
 }
 
-func (c *Config) Check() {
+func (c *Config) Check(logger *zap.Logger) error {
+	if c == nil {
+		return errors.New("nil config")
+	}
+	if logger == nil {
+		return errors.New("nil logger")
+	}
+
+	actionCount := len(c.Actions)
+
+	// 1) Notfound behavior: always the last action.
+	if actionCount == 0 {
+		logger.Warn("Config >> no actions configured; router will fall through to fiber (ctx.Next())")
+	} else {
+		last := c.Actions[actionCount-1]
+		logger.Info("Config >> notfound handler is the last action",
+			zap.Int("index", actionCount-1),
+			zap.String("type", string(last.Type)),
+		)
+		if last.Type == ActionFile {
+			logger.Warn("Config >> notfound handler is file action; may leak file contents",
+				zap.Int("index", actionCount-1),
+				zap.String("type", string(last.Type)),
+			)
+		}
+	}
+
+	// 2) Validate and precompile patterns, enforce auth fallback requirements.
+	checkStatus := func(where string, status uint16) error {
+		if status == 0 {
+			return nil
+		}
+		if status < 100 || status > 599 {
+			return fmt.Errorf("invalid status code at %s: %d", where, status)
+		}
+		return nil
+	}
+
+	checkAuth := func(where string, auth *ActionModifierAuth) error {
+		if auth == nil {
+			return nil
+		}
+		if auth.Fallback == nil || auth.Fallback.Type == "" {
+			return fmt.Errorf("auth fallback is required at %s", where)
+		}
+		switch auth.Fallback.Type {
+		case AuthFallbackNext:
+			// ok
+		case AuthFallbackJump:
+			if actionCount == 0 {
+				return fmt.Errorf("auth fallback jumpTo out of range at %s: no actions", where)
+			}
+			if int(auth.Fallback.JumpTo) < 0 || int(auth.Fallback.JumpTo) >= actionCount {
+				return fmt.Errorf("auth fallback jumpTo out of range at %s: %d", where, auth.Fallback.JumpTo)
+			}
+		default:
+			return fmt.Errorf("invalid auth fallback type at %s: %q", where, auth.Fallback.Type)
+		}
+
+		for k, patterns := range auth.Header {
+			for _, pat := range patterns {
+				if _, err := util.GetCompiledRegexp(pat); err != nil {
+					return fmt.Errorf("invalid auth header regexp at %s (header=%q, pattern=%q): %w", where, k, pat, err)
+				}
+			}
+		}
+		for k, pat := range auth.Query {
+			if _, err := util.GetCompiledRegexp(pat); err != nil {
+				return fmt.Errorf("invalid auth query regexp at %s (key=%q, pattern=%q): %w", where, k, pat, err)
+			}
+		}
+		return nil
+	}
+
+	// Global modifiers checks.
+	for i, gm := range c.Modifiers {
+		if gm.ActionModifierStatus != nil {
+			if err := checkStatus(fmt.Sprintf("modifiers[%d].actionModifierStatus", i), gm.ActionModifierStatus.Status); err != nil {
+				return err
+			}
+		}
+		if err := checkAuth(fmt.Sprintf("modifiers[%d].actionModifierAuth", i), gm.ActionModifierAuth); err != nil {
+			return err
+		}
+	}
+
+	// Actions checks.
+	for i, act := range c.Actions {
+		if act.Route == "" {
+			logger.Warn("Config >> action route is empty; action is jump-only",
+				zap.Int("index", i),
+				zap.String("type", string(act.Type)),
+			)
+		} else {
+			if _, err := util.GetCompiledRegexp(act.Route); err != nil {
+				return fmt.Errorf("invalid action route regexp at actions[%d].route (%q): %w", i, act.Route, err)
+			}
+		}
+
+		if act.ActionModifierStatus != nil {
+			if err := checkStatus(fmt.Sprintf("actions[%d].actionModifierStatus", i), act.ActionModifierStatus.Status); err != nil {
+				return err
+			}
+		}
+		if err := checkAuth(fmt.Sprintf("actions[%d].actionModifierAuth", i), act.ActionModifierAuth); err != nil {
+			return err
+		}
+
+		// Validate payload presence and payload-level modifiers.
+		switch act.Type {
+		case ActionString:
+			if act.ActionString == nil {
+				return fmt.Errorf("actions[%d] type=string but string is nil", i)
+			}
+			if act.ActionString.ActionModifierStatus != nil {
+				if err := checkStatus(fmt.Sprintf("actions[%d].string.actionModifierStatus", i), act.ActionString.ActionModifierStatus.Status); err != nil {
+					return err
+				}
+			}
+			if err := checkAuth(fmt.Sprintf("actions[%d].string.actionModifierAuth", i), act.ActionString.ActionModifierAuth); err != nil {
+				return err
+			}
+		case ActionFile:
+			if act.ActionFile == nil {
+				return fmt.Errorf("actions[%d] type=file but file is nil", i)
+			}
+			if act.ActionFile.ActionModifierStatus != nil {
+				if err := checkStatus(fmt.Sprintf("actions[%d].file.actionModifierStatus", i), act.ActionFile.ActionModifierStatus.Status); err != nil {
+					return err
+				}
+			}
+			if err := checkAuth(fmt.Sprintf("actions[%d].file.actionModifierAuth", i), act.ActionFile.ActionModifierAuth); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

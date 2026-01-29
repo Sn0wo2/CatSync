@@ -37,7 +37,6 @@ func NewFiber(p Provider) *Framework {
 			ReduceMemoryUsage: true,
 			StrictRouting:     true,
 			WriteTimeout:      10 * time.Second,
-			ServerHeader:      p.GetConfig().Server.Header,
 		}),
 	}
 
