@@ -1,37 +1,78 @@
 package action
 
-type VersionModifier struct {
-	version string
-	header  bool
+import "strings"
+
+type PlaceholderModifier struct {
+	placeholder string
+	value       string
+	header      bool
 }
 
-func NewVersionModifier() *VersionModifier {
-	return &VersionModifier{}
+func NewPlaceholderModifier() *PlaceholderModifier {
+	return &PlaceholderModifier{}
 }
 
-func (v *VersionModifier) WithVersion(version string) *VersionModifier {
-	v.version = version
+func (p *PlaceholderModifier) WithPlaceholder(placeholder string) *PlaceholderModifier {
+	p.placeholder = placeholder
 
-	return v
+	return p
 }
 
-func (v *VersionModifier) WithHeader(header bool) *VersionModifier {
-	v.header = header
+func (p *PlaceholderModifier) WithValue(value string) *PlaceholderModifier {
+	p.value = value
 
-	return v
+	return p
 }
 
-func (v *VersionModifier) Version() string {
-	return v.version
+func (p *PlaceholderModifier) WithHeader(header bool) *PlaceholderModifier {
+	p.header = header
+
+	return p
 }
 
-func (v *VersionModifier) ProcessModifier(handler Handler) Handler {
-	return &wrappedHandler{
-		Handler: handler,
-		hook: func(p *ProcessData) (*ProcessData, error) {
-			p.C.Append("X-version", v.version)
+func (p *PlaceholderModifier) Value() string {
+	return p.value
+}
 
-			return p, nil
-		},
-	}
+func (p *PlaceholderModifier) ProcessModifier(handler Handler) Handler {
+	// Run in After hook so response headers are already populated
+	// by other modifiers and the action handler.
+	return WrapHandlerWithHooks(handler).After(func(pd *ProcessData) (*ProcessData, error) {
+		for k, vals := range pd.C.GetRespHeaders() {
+			keyHas := p.header && strings.Contains(k, p.placeholder)
+			if !keyHas {
+				found := false
+				for _, vv := range vals {
+					if strings.Contains(vv, p.placeholder) {
+						found = true
+						break
+					}
+				}
+				if !found {
+					continue
+				}
+			}
+
+			pd.C.Response().Header.Del(k)
+
+			newKey := k
+			if p.header && strings.Contains(k, p.placeholder) {
+				newKey = strings.ReplaceAll(k, p.placeholder, p.value)
+			}
+
+			out := vals[:0]
+			for _, vv := range vals {
+				if strings.Contains(vv, p.placeholder) {
+					out = append(out, strings.ReplaceAll(vv, p.placeholder, p.value))
+				} else {
+					out = append(out, vv)
+				}
+			}
+
+			if len(out) > 0 {
+				pd.C.Append(newKey, out...)
+			}
+		}
+		return pd, nil
+	})
 }
