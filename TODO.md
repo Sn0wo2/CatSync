@@ -21,8 +21,6 @@
 - [ ] 考虑将`Action`的`Auth`鉴权改为用户(组)体系架构, 简化权限管理
 - [X] `Fallback action`支持自定义`action`而不是`404 not found`(最后一个 action 作为 notfound handler)
 - [X] 把 _Me0wo_ 变成可爱猫娘
-
----
-
 - [ ] 添加 `Action Type`: page
 - [ ] 添加 `Action Type` proxy: 反向代理Action(Rewrite: header、body, 健康检查)
+- [ ] 可选的`CORS`配置
