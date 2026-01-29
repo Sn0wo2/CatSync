@@ -2,122 +2,123 @@ package handler
 
 import (
 	"fmt"
-	"regexp"
 
 	"github.com/Sn0wo2/CatSync/action"
+	"github.com/Sn0wo2/CatSync/action/execute"
 	"github.com/Sn0wo2/CatSync/config"
-	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/Sn0wo2/CatSync/params"
 	"github.com/gofiber/fiber/v2"
-	"go.uber.org/zap"
 )
+
+func buildGlobalModifiers(cfg *config.Config) []action.Modifier {
+	var modifiers []action.Modifier
+
+	if cfg == nil {
+		return modifiers
+	}
+	for i := range cfg.Modifiers {
+		modifiers = append(modifiers, buildModifiersFromGlobalModifier(&cfg.Modifiers[i])...)
+	}
+
+	return modifiers
+}
+
+func buildModifiersFromGlobalModifier(gm *config.GlobalModifier) []action.Modifier {
+	var modifiers []action.Modifier
+	if gm == nil {
+		return modifiers
+	}
+
+	if gm.ActionModifierStatus != nil {
+		modifiers = append(modifiers, action.NewStatusModifier().WithStatus(gm.ActionModifierStatus.Status))
+	}
+
+	if gm.ActionModifierAuth != nil {
+		modifiers = append(modifiers, action.NewAuthModifier(*gm.ActionModifierAuth))
+	}
+
+	if gm.ActionModifierResponseHeader != nil {
+		for k, v := range gm.ActionModifierResponseHeader.Header {
+			modifiers = append(modifiers, action.NewResponseHeaderModifier(k, v...))
+		}
+	}
+
+	return modifiers
+}
+
+func buildActionModifiers(act *config.Action) []action.Modifier {
+	if act == nil {
+		return nil
+	}
+	return buildModifiersFromGlobalModifier(&act.GlobalModifier)
+}
+
+func buildPayloadModifiers(data config.ActionData) []action.Modifier {
+	switch v := data.(type) {
+	case *config.ActionStringData:
+		if v == nil {
+			return nil
+		}
+		return buildModifiersFromGlobalModifier(&v.GlobalModifier)
+	case *config.ActionFileData:
+		if v == nil {
+			return nil
+		}
+		return buildModifiersFromGlobalModifier(&v.GlobalModifier)
+	}
+	return nil
+}
 
 func Actions(c *params.Ctx) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		for _, act := range c.GetConfig().Actions {
-			// router matcher
-			re, err := regexp.Compile(act.Route)
+		exec := execute.New().
+			WithConfig(c.GetConfig()).
+			WithBuilders(execute.Builders{Global: buildGlobalModifiers, Action: buildActionModifiers, Payload: buildPayloadModifiers}).
+			WithContext(c, ctx)
+
+		jumpVisited := map[int]bool{}
+		forceIndex := -1
+		end := len(c.GetConfig().Actions)
+		for i := 0; i < end; i++ {
+			exec.WithSkipRouteCheck(i == forceIndex)
+			res, err := exec.ExecuteAt(i)
+			forceIndex = -1
 			if err != nil {
-				return fmt.Errorf("invalid route regexp %q: %w", act.Route, err)
+				return err
 			}
-
-			if !re.MatchString(ctx.Path()) {
-				c.GetLogger().Info("Router >> Router not matched",
-					zap.String("route", act.Route),
-					zap.String("ctx", util.FiberContextString(ctx)),
-				)
-
+			if res.NotMatched {
 				continue
 			}
-
-			// start verify auth
-			auth := act.Auth
-			for k, v := range auth.Header {
-				for k1, v1 := range ctx.GetReqHeaders() {
-					if k != k1 {
-						continue
-					}
-
-					for _, vv := range v {
-						for _, vv1 := range v1 {
-							re, err := regexp.Compile(vv)
-							if err != nil {
-								return fmt.Errorf("invalid header value regexp %q: %w", auth.Header, err)
-							}
-
-							if !re.MatchString(vv1) {
-								c.GetLogger().Info("Router >> Header value not matched",
-									zap.String("header", k1),
-									zap.String("ctx", util.FiberContextString(ctx)),
-								)
-
-								return ctx.Next()
-							}
-						}
-					}
+			if res.JumpTo != nil {
+				if *res.JumpTo < 0 || *res.JumpTo >= len(c.GetConfig().Actions) {
+					return fmt.Errorf("invalid auth fallback jumpTo index: %d", *res.JumpTo)
 				}
-			}
-
-			for k, v := range auth.Query {
-				re, err := regexp.Compile(v)
-				if err != nil {
-					return fmt.Errorf("invalid query value regexp %q: %w", v, err)
+				if jumpVisited[*res.JumpTo] {
+					return fmt.Errorf("auth fallback jump loop detected: %d", *res.JumpTo)
 				}
-
-				if !re.MatchString(ctx.Query(k)) {
-					c.GetLogger().Info("Router >> Query value not matched",
-						zap.String("key", k),
-						zap.String("expected_regex", v),
-						zap.String("actual", ctx.Query(k)),
-						zap.String("ctx", util.FiberContextString(ctx)),
-					)
-
-					return ctx.Next()
-				}
+				jumpVisited[*res.JumpTo] = true
+				forceIndex = *res.JumpTo
+				i = *res.JumpTo - 1
+				continue
 			}
-
-			// set cfg response header
-			for k, v := range act.ResponseHeader {
-				ctx.Append(k, v...)
+			if res.Matched {
+				return nil
 			}
-
-			// get action handler from map
-			handler, ok := action.HandlerRegistry[act.Type]
-			if !ok {
-				c.GetLogger().Info("Router >> Unknown action", zap.String("type", string(act.Type)), zap.String("ctx", util.FiberContextString(ctx)))
-
-				return ctx.Next()
-			}
-
-			var actionData config.ActionData
-
-			switch act.Type {
-			case config.ActionFile:
-				actionData = act.ActionFile
-			case config.ActionString:
-				actionData = act.ActionString
-			}
-
-			p := &action.ProcessData{
-				Ctx:     c,
-				C:       ctx,
-				Action:  &act,
-				PayLoad: &actionData,
-			}
-
-			// "p" can change by hook!
-			if hook := handler.HookProcessData(); hook != nil {
-				var err error
-
-				p, err = hook(p)
-				if err != nil {
-					return fmt.Errorf("hook process data error: %w", err)
-				}
-			}
-
-			return handler.ProcessAction(p)
 		}
 
-		return nil
+		// Notfound convention: always execute the last action.
+		if len(c.GetConfig().Actions) == 0 {
+			return ctx.Next()
+		}
+		lastIndex := len(c.GetConfig().Actions) - 1
+		exec.WithSkipRouteCheck(true)
+		res, err := exec.ExecuteAt(lastIndex)
+		if err != nil {
+			return err
+		}
+		if res.Matched {
+			return nil
+		}
+		return ctx.Next()
 	}
 }
