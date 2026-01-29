@@ -13,10 +13,13 @@ var (
 
 func GetCompiledRegexp(pattern string) (*regexp.Regexp, error) {
 	cacheMutex.RLock()
+
 	if re, ok := regexpCache[pattern]; ok {
 		cacheMutex.RUnlock()
+
 		return re, nil
 	}
+
 	cacheMutex.RUnlock()
 
 	re, err := regexp.Compile(pattern)
@@ -25,7 +28,9 @@ func GetCompiledRegexp(pattern string) (*regexp.Regexp, error) {
 	}
 
 	cacheMutex.Lock()
+
 	regexpCache[pattern] = re
+
 	cacheMutex.Unlock()
 
 	return re, nil

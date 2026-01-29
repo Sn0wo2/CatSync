@@ -20,10 +20,13 @@ func NewConfig() (*config.Config, error) {
 			if err := loader.NewYAMLLoader().Save(cfg, config.Path); err != nil {
 				return nil, err
 			}
+
 			return cfg, nil
 		}
+
 		return nil, err
 	}
+
 	return cfg, nil
 }
 
@@ -35,6 +38,7 @@ func NewParams(cfg *config.Config, logger *zap.Logger) *params.Ctx {
 	p := params.New()
 	p.SetConfig(cfg)
 	p.SetLogger(logger)
+
 	return p
 }
 
@@ -42,5 +46,6 @@ func NewFramework(p *params.Ctx) *framework.Framework {
 	fw := framework.NewFiber(p)
 	p.SetFramework(fw)
 	router.Init(p)
+
 	return fw
 }
