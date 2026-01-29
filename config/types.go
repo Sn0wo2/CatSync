@@ -11,10 +11,10 @@ var (
 )
 
 type Config struct {
-	Log     Log      `json:"log"                 yaml:"log"`
-	Server  Server   `json:"server"              yaml:"server"`
+	Log       Log              `json:"log"                 yaml:"log"`
+	Server    Server           `json:"server"              yaml:"server"`
 	Modifiers []GlobalModifier `json:"modifiers,omitempty" optional:"true" yaml:"modifiers,omitempty"`
-	Actions []Action `json:"actions"             yaml:"actions"`
+	Actions   []Action         `json:"actions"             yaml:"actions"`
 }
 
 type Log struct {
@@ -33,9 +33,9 @@ type Server struct {
 // Action 特有的Modifier会覆盖掉 GlobalModifier
 type GlobalModifier struct {
 	*ActionModifierResponseHeader `json:"actionModifierResponseHeader,omitempty" optional:"true" yaml:"actionModifierResponseHeader,omitempty"`
-	*ActionModifierStatus  `json:"actionModifierStatus,omitempty"         optional:"true" yaml:"actionModifierStatus,omitempty"`
-	*ActionModifierAuth    `json:"actionModifierAuth,omitempty"           optional:"true" yaml:"actionModifierAuth,omitempty"`
-	*ActionModifierVersion `json:"actionVersionModifier,omitempty"        optional:"true" yaml:"actionVersionModifier,omitempty"`
+	*ActionModifierStatus         `json:"actionModifierStatus,omitempty"         optional:"true" yaml:"actionModifierStatus,omitempty"`
+	*ActionModifierAuth           `json:"actionModifierAuth,omitempty"           optional:"true" yaml:"actionModifierAuth,omitempty"`
+	*ActionModifierVersion        `json:"actionVersionModifier,omitempty"        optional:"true" yaml:"actionVersionModifier,omitempty"`
 }
 
 type ServerTLS struct {
@@ -70,7 +70,7 @@ type ActionData interface {
 type ActionFileData struct {
 	GlobalModifier `yaml:",inline"`
 
-	Path string `json:"path"               yaml:"path"`
+	Path               string `json:"path"               yaml:"path"`
 	DontSetContentType bool   `json:"dontSetContentType" optional:"true" yaml:"dontSetContentType"`
 }
 
@@ -95,8 +95,8 @@ type ActionModifierStatus struct {
 }
 
 type ActionModifierAuth struct {
-	Header map[string][]string `json:"header,omitempty"   optional:"true" yaml:"header,omitempty"`
-	Query  map[string]string   `json:"query,omitempty"    optional:"true" yaml:"query,omitempty"`
+	Header   map[string][]string         `json:"header,omitempty"   optional:"true" yaml:"header,omitempty"`
+	Query    map[string]string           `json:"query,omitempty"    optional:"true" yaml:"query,omitempty"`
 	Fallback *ActionModifierAuthFallback `json:"fallback,omitempty" optional:"true" yaml:"fallback,omitempty"`
 }
 
