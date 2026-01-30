@@ -6,55 +6,43 @@ import (
 	"go.uber.org/zap"
 )
 
-type Value[T any] struct{ v T }
-
-func (v Value[T]) Get() T { return v.v }
-
 type Ctx struct {
 	vals map[any]any
 }
 
 func New() *Ctx {
-	return &Ctx{vals: make(map[any]any)}
+	return &Ctx{vals: map[any]any{}}
 }
 
-func Set[F any, T any](c *Ctx, field F, val T) *Ctx {
-	if c.vals == nil {
-		c.vals = make(map[any]any)
+func Set[K comparable, V any](c *Ctx, key K, value V) *Ctx {
+	if c == nil {
+		c = &Ctx{}
 	}
-
-	c.vals[field] = Value[T]{v: val}
-
+	if c.vals == nil {
+		c.vals = map[any]any{}
+	}
+	c.vals[key] = value
 	return c
 }
 
-func Get[F any, T any](c *Ctx, field F) (T, bool) {
-	if c.vals == nil {
-		var zero T
-
+func Get[K comparable, V any](c *Ctx, key K) (V, bool) {
+	var zero V
+	if c == nil {
 		return zero, false
 	}
-
-	raw, ok := c.vals[field]
+	v, ok := c.vals[key]
 	if !ok {
-		var zero T
-
 		return zero, false
 	}
-
-	v, ok := raw.(Value[T])
+	vv, ok := v.(V)
 	if !ok {
-		var zero T
-
 		return zero, false
 	}
-
-	return v.Get(), true
+	return vv, true
 }
 
 func (c *Ctx) GetConfig() *config.Config {
 	cfg, _ := Get[Config, *config.Config](c, Config{})
-
 	return cfg
 }
 
@@ -64,7 +52,6 @@ func (c *Ctx) SetConfig(cfg *config.Config) *Ctx {
 
 func (c *Ctx) GetLogger() *zap.Logger {
 	logger, _ := Get[Logger, *zap.Logger](c, Logger{})
-
 	return logger
 }
 
@@ -74,7 +61,6 @@ func (c *Ctx) SetLogger(logger *zap.Logger) *Ctx {
 
 func (c *Ctx) GetFramework() *framework.Framework {
 	fw, _ := Get[Framework, *framework.Framework](c, Framework{})
-
 	return fw
 }
 
