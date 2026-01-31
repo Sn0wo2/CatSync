@@ -4,7 +4,7 @@ go 1.25.6
 
 require (
 	github.com/Sn0wo2/go-common v0.0.0-20251204153924-3a4985f7ff6e
-	github.com/gofiber/fiber/v2 v2.52.10
+	github.com/gofiber/fiber/v2 v2.52.11
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.7.0
 	// github.com/joho/godotenv v1.5.1
