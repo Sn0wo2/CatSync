@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/Sn0wo2/CatSync/config"
@@ -72,17 +73,34 @@ func startACMEHTTP01(server *http.Server, cfg *config.Config, acmeCfg *config.Se
 			return
 		}
 
-		host := r.Host
-		// If request host has a port, strip it.
-		if h, _, err := net.SplitHostPort(host); err == nil {
-			host = h
-		}
-		if tlsPort != "443" {
-			host = fmt.Sprintf("%s:%s", host, tlsPort)
+		// Redirect only to known hosts to avoid host-header injection / open redirects.
+		// Note: server.acme.hosts is required when ACME is enabled.
+		requestHost := r.Host
+		if h, _, err := net.SplitHostPort(requestHost); err == nil {
+			requestHost = h
 		}
 
-		target := "https://" + host + r.URL.RequestURI()
-		http.Redirect(w, r, target, http.StatusMovedPermanently)
+		redirectHost := ""
+		for _, allowed := range acmeCfg.Hosts {
+			if strings.EqualFold(strings.TrimSpace(allowed), strings.TrimSpace(requestHost)) {
+				redirectHost = allowed
+				break
+			}
+		}
+		if redirectHost == "" {
+			http.Error(w, "invalid host", http.StatusBadRequest)
+			return
+		}
+		if tlsPort != "443" {
+			redirectHost = fmt.Sprintf("%s:%s", redirectHost, tlsPort)
+		}
+
+		p := r.URL.EscapedPath()
+		if p == "" {
+			p = "/"
+		}
+		u := url.URL{Scheme: "https", Host: redirectHost, Path: p, RawQuery: r.URL.RawQuery}
+		http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
 	})
 
 	// Start HTTP-01 challenge handler.
