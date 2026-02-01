@@ -63,7 +63,7 @@ type execDNSProvider struct {
 	pollInterval time.Duration
 }
 
-func newExecDNSProvider(cfg *config.ServerACMEDNS) (*execDNSProvider, error) {
+func newExecDNSProvider(cfg *config.ServerACMEDNS01) (*execDNSProvider, error) {
 	if cfg == nil {
 		return nil, errors.New("nil dns config")
 	}
@@ -152,8 +152,8 @@ func startACMEDNS01(server *http.Server, acmeCfg *config.ServerACME, logger *zap
 	if len(acmeCfg.Hosts) == 0 {
 		return errors.New("acme.hosts is empty")
 	}
-	if acmeCfg.DNS == nil {
-		return errors.New("acme.dns is required for dns-01")
+	if acmeCfg.DNS01 == nil {
+		return errors.New("acme.dns01 is required")
 	}
 
 	cacheDir := strings.TrimSpace(acmeCfg.CacheDir)
@@ -186,14 +186,14 @@ func startACMEDNS01(server *http.Server, acmeCfg *config.ServerACME, logger *zap
 		return err
 	}
 
-	providerName := strings.ToLower(strings.TrimSpace(acmeCfg.DNS.Provider))
+	providerName := strings.ToLower(strings.TrimSpace(acmeCfg.DNS01.Provider))
 	if providerName == "" {
 		providerName = "exec"
 	}
 
 	var provider challenge.Provider
 	if providerName == "exec" {
-		execProvider, err := newExecDNSProvider(acmeCfg.DNS)
+		execProvider, err := newExecDNSProvider(acmeCfg.DNS01)
 		if err != nil {
 			return err
 		}
@@ -207,11 +207,11 @@ func startACMEDNS01(server *http.Server, acmeCfg *config.ServerACME, logger *zap
 	}
 
 	// Propagation settings.
-	propTimeout := time.Duration(acmeCfg.DNS.PropagationTimeoutSeconds) * time.Second
+	propTimeout := time.Duration(acmeCfg.DNS01.PropagationTimeoutSeconds) * time.Second
 	if propTimeout <= 0 {
 		propTimeout = dns01.DefaultPropagationTimeout
 	}
-	pollInterval := time.Duration(acmeCfg.DNS.PollingIntervalSeconds) * time.Second
+	pollInterval := time.Duration(acmeCfg.DNS01.PollingIntervalSeconds) * time.Second
 	if pollInterval <= 0 {
 		pollInterval = dns01.DefaultPollingInterval
 	}

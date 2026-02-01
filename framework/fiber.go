@@ -2,7 +2,6 @@ package framework
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/Sn0wo2/CatSync/config"
@@ -59,16 +58,8 @@ func (ctx *Framework) StartFiber() error {
 
 	if cfg.Server.ACME != nil && cfg.Server.ACME.Enable {
 		acmeCfg := cfg.Server.ACME
-		challenge := strings.ToLower(strings.TrimSpace(acmeCfg.Challenge))
-		if challenge == "" {
-			if acmeCfg.DNS != nil {
-				challenge = "dns-01"
-			} else {
-				challenge = "http-01"
-			}
-		}
 
-		if challenge == "dns-01" {
+		if acmeCfg.DNS01 != nil {
 			return startACMEDNS01(server, acmeCfg, logger)
 		}
 

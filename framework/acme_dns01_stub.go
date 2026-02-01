@@ -3,7 +3,7 @@
 package framework
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 
 	"github.com/Sn0wo2/CatSync/config"
@@ -11,5 +11,5 @@ import (
 )
 
 func startACMEDNS01(_ *http.Server, _ *config.ServerACME, _ *zap.Logger) error {
-	return fmt.Errorf("ACME dns-01 is not enabled in this build; rebuild with -tags catsync_all or -tags feature_acme_dns01")
+	return errors.New("ACME dns-01 is not enabled in this build; rebuild with -tags catsync_all or -tags feature_acme_dns01")
 }

@@ -155,30 +155,18 @@ func checkACME(c *Config, add func(error)) {
 		add(errors.New("server.acme.hosts is required when server.acme.enable=true"))
 	}
 
-	challenge := strings.ToLower(strings.TrimSpace(c.Server.ACME.Challenge))
-	if challenge == "" {
-		if c.Server.ACME.DNS != nil {
-			challenge = defaultACMEDNS01
-		} else {
-			challenge = defaultACMEHTTP01
-		}
-	}
-
-	if challenge != "" && challenge != defaultACMEHTTP01 && challenge != defaultACMEDNS01 {
-		add(fmt.Errorf("invalid server.acme.challenge: %q (expected http-01 or dns-01)", c.Server.ACME.Challenge))
-	}
-
-	if challenge != defaultACMEDNS01 {
-		return
-	}
-
-	if c.Server.ACME.DNS == nil {
-		add(errors.New("server.acme.dns is required when server.acme.challenge=dns-01"))
+	if c.Server.ACME.HTTP01 != nil && c.Server.ACME.DNS01 != nil {
+		add(errors.New("server.acme.http01 and server.acme.dns01 are mutually exclusive"))
 
 		return
 	}
 
-	provider := strings.ToLower(strings.TrimSpace(c.Server.ACME.DNS.Provider))
+	// Only validate dns01 when it is configured.
+	if c.Server.ACME.DNS01 == nil {
+		return
+	}
+
+	provider := strings.ToLower(strings.TrimSpace(c.Server.ACME.DNS01.Provider))
 	if provider == "" {
 		provider = defaultDNSExec
 	}
@@ -187,19 +175,19 @@ func checkACME(c *Config, add func(error)) {
 	case defaultDNSExec, "cloudflare", "dnspod", "alidns", "route53":
 		// ok
 	default:
-		add(fmt.Errorf("invalid server.acme.dns.provider: %q", c.Server.ACME.DNS.Provider))
+		add(fmt.Errorf("invalid server.acme.dns01.provider: %q", c.Server.ACME.DNS01.Provider))
 	}
 
 	if provider != defaultDNSExec {
 		return
 	}
 
-	if len(c.Server.ACME.DNS.PresentCmd) == 0 {
-		add(errors.New("server.acme.dns.presentCmd is required for exec provider"))
+	if len(c.Server.ACME.DNS01.PresentCmd) == 0 {
+		add(errors.New("server.acme.dns01.presentCmd is required for exec provider"))
 	}
 
-	if len(c.Server.ACME.DNS.CleanUpCmd) == 0 {
-		add(errors.New("server.acme.dns.cleanupCmd is required for exec provider"))
+	if len(c.Server.ACME.DNS01.CleanUpCmd) == 0 {
+		add(errors.New("server.acme.dns01.cleanupCmd is required for exec provider"))
 	}
 }
 

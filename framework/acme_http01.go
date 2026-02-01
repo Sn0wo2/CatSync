@@ -48,7 +48,10 @@ func startACMEHTTP01(server *http.Server, cfg *config.Config, acmeCfg *config.Se
 
 	server.TLSConfig = m.TLSConfig()
 
-	httpAddr := strings.TrimSpace(acmeCfg.HTTPAddress)
+	httpAddr := ""
+	if acmeCfg.HTTP01 != nil {
+		httpAddr = strings.TrimSpace(acmeCfg.HTTP01.HTTPAddress)
+	}
 	if httpAddr == "" {
 		httpAddr = ":80"
 	}

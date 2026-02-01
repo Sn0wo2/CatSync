@@ -24,8 +24,8 @@ type Log struct {
 }
 
 type Server struct {
-	Address string      `json:"address" yaml:"address"`
-	TLS     ServerTLS   `json:"tls"     optional:"true" yaml:"tls"`
+	Address string      `json:"address"        yaml:"address"`
+	TLS     ServerTLS   `json:"tls"            optional:"true" yaml:"tls"`
 	ACME    *ServerACME `json:"acme,omitempty" optional:"true" yaml:"acme,omitempty"`
 }
 
@@ -59,20 +59,25 @@ type ServerACME struct {
 	CacheDir     string   `json:"cacheDir,omitempty"     optional:"true" yaml:"cacheDir,omitempty"`
 	Hosts        []string `json:"hosts,omitempty"        optional:"true" yaml:"hosts,omitempty"`
 	DirectoryURL string   `json:"directoryURL,omitempty" optional:"true" yaml:"directoryURL,omitempty"`
-	HTTPAddress  string   `json:"httpAddress,omitempty"  optional:"true" yaml:"httpAddress,omitempty"`
 
-	// challenge: http-01|dns-01 (default http-01)
-	Challenge string         `json:"challenge,omitempty" optional:"true" yaml:"challenge,omitempty"`
-	DNS       *ServerACMEDNS `json:"dns,omitempty" optional:"true" yaml:"dns,omitempty"`
+	// HTTP01 and DNS01 are mutually exclusive.
+	// If both are nil, HTTP-01 is used with defaults.
+	HTTP01 *ServerACMEHTTP01 `json:"http01,omitempty" optional:"true" yaml:"http01,omitempty"`
+	DNS01  *ServerACMEDNS01  `json:"dns01,omitempty"  optional:"true" yaml:"dns01,omitempty"`
 }
 
-// ServerACMEDNS configures DNS-01 challenge.
+// ServerACMEHTTP01 configures HTTP-01 challenge.
+type ServerACMEHTTP01 struct {
+	HTTPAddress string `json:"httpAddress,omitempty" optional:"true" yaml:"httpAddress,omitempty"`
+}
+
+// ServerACMEDNS01 configures DNS-01 challenge.
 //
 // This project uses lego under the hood for DNS-01.
 // Provider options:
 // - exec: run external commands to create/remove TXT records.
 // - cloudflare/dnspod/alidns/route53: use lego built-in providers (may require build tags).
-type ServerACMEDNS struct {
+type ServerACMEDNS01 struct {
 	Provider string `json:"provider,omitempty" optional:"true" yaml:"provider,omitempty"`
 
 	// exec provider: command array (argv style). Supported placeholders:

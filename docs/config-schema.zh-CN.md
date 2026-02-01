@@ -21,9 +21,9 @@
         - `email`: 可选，用于 Let's Encrypt 通知
         - `cacheDir`: 证书缓存目录（默认 `./data/acme`）
         - `directoryURL`: 可选，ACME Directory URL（可用于 staging）
-        - `httpAddress`: HTTP-01 challenge 监听地址（默认 `:80`；仅 challenge=http-01 时使用）
-        - `challenge`: `http-01` 或 `dns-01`（默认：配置了 `dns` 时为 `dns-01`，否则为 `http-01`）
-        - `dns`（challenge=dns-01 时使用）
+        - `http01`（可选）：HTTP-01 验证配置（与 dns01 互斥；两者都不配则默认使用 http01）
+            - `httpAddress`: HTTP-01 challenge 监听地址（默认 `:80`）
+        - `dns01`（可选）：DNS-01 验证配置（与 http01 互斥）
             - `provider`: `exec`（默认）或 `cloudflare`/`dnspod`/`alidns`/`route53`（需要编译 tag 才会内置）
             - `presentCmd`: 添加 TXT 记录的命令（argv 数组）
             - `cleanupCmd`: 删除 TXT 记录的命令（argv 数组）
