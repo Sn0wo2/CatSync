@@ -15,7 +15,6 @@ import (
 )
 
 func init() {
-	// _ = godotenv.Load()
 	cli.Execute()
 }
 
@@ -44,10 +43,10 @@ func main() {
 		addr, cert, key := cfg.Server.Address, cfg.Server.TLS.Cert, cfg.Server.TLS.Key
 
 		protocol := "http"
-		if cert != "" && key != "" {
+		if (cert != "" && key != "") || (cfg.Server.ACME != nil && cfg.Server.ACME.Enable) {
 			protocol = "https"
 		} else {
-			logger.Warn("TLS is not enabled, because cert or key is empty!")
+			logger.Warn("TLS is not enabled (no cert/key and acme disabled)")
 		}
 
 		host, port, err := net.SplitHostPort(addr)
