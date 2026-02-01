@@ -24,6 +24,7 @@ builds:
     flags:
       - -mod=readonly
       - -trimpath
+      - -tags=catsync_all
     ldflags:
       - -s -w
       - -X github.com/Sn0wo2/{{ .ProjectName }}/version.version={{.Version}}
