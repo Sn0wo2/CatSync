@@ -1,7 +1,6 @@
 package execute
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -13,16 +12,6 @@ import (
 	"github.com/Sn0wo2/CatSync/version"
 	"github.com/gofiber/fiber/v2"
 )
-
-func sval(r *reader.String) string {
-	if r == nil {
-		return ""
-	}
-
-	s, _ := r.ReadString(context.Background())
-
-	return s
-}
 
 // Result indicates how the caller should continue processing.
 //
@@ -127,7 +116,7 @@ func (e *Executor) ExecuteAt(index int) (Result, error) {
 	act := e.cfg.Actions[index]
 
 	if !e.skipRouteCheck {
-		route := sval(act.Route)
+		route := reader.Must(act.Route)
 		if route == "" {
 			return Result{NotMatched: true}, nil
 		}
@@ -193,30 +182,21 @@ func (e *Executor) ExecuteAt(index int) (Result, error) {
 	switch act.Type {
 	case config.ActionString:
 		if act.ActionString != nil && act.ActionString.ActionModifierVersion != nil {
-			ph := sval(act.ActionString.Placeholder)
+			ph := reader.Must(act.ActionString.Placeholder)
 			if ph != "" {
 				h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(ph).WithValue(version.GetFormatVersion()))
 			}
 		}
 	case config.ActionFile:
 		if act.ActionFile != nil && act.ActionFile.ActionModifierVersion != nil {
-			ph := sval(act.ActionFile.Placeholder)
+			ph := reader.Must(act.ActionFile.Placeholder)
 			if ph != "" {
 				h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(ph).WithValue(version.GetFormatVersion()))
 			}
 		}
 	}
 
-	var actionData config.ActionData
-
-	switch act.Type {
-	case config.ActionFile:
-		actionData = act.ActionFile
-	case config.ActionString:
-		actionData = act.ActionString
-	}
-
-	err := h.Build().ProcessAction(&action.ProcessData{Ctx: e.ctx, C: e.fiberCtx, Action: &act, PayLoad: &actionData})
+	err := h.Build().ProcessAction(&action.ProcessData{Ctx: e.ctx, C: e.fiberCtx, Action: &act, PayLoad: payload})
 	if err == nil {
 		return Result{Matched: true}, nil
 	}

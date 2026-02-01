@@ -75,11 +75,13 @@ func buildPayloadModifiers(data config.ActionData) []action.Modifier {
 }
 
 func Actions(c *params.Ctx) fiber.Handler {
+	pl, err := execute.Compile(c.GetConfig(), execute.Builders{Global: buildGlobalModifiers, Action: buildActionModifiers, Payload: buildPayloadModifiers})
+	if err != nil {
+		panic(err)
+	}
+
 	return func(ctx *fiber.Ctx) error {
-		exec := execute.New().
-			WithConfig(c.GetConfig()).
-			WithBuilders(execute.Builders{Global: buildGlobalModifiers, Action: buildActionModifiers, Payload: buildPayloadModifiers}).
-			WithContext(c, ctx)
+		exec := pl.Runner(c, ctx)
 
 		jumpVisited := map[int]bool{}
 		forceIndex := -1

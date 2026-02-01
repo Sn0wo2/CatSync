@@ -1,7 +1,6 @@
 package action
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -29,15 +28,12 @@ func NewString() Handler {
 }
 
 func (h *StringHandler) ProcessAction(p *ProcessData) error {
-	stringData, ok := (*p.PayLoad).(*config.ActionStringData)
+	stringData, ok := p.PayLoad.(*config.ActionStringData)
 	if !ok {
 		return fmt.Errorf("invalid action data type for string action: expected *ActionStringData, got %T", p.PayLoad)
 	}
 
-	body, err := sval(stringData.Content)
-	if err != nil {
-		return err
-	}
+	body := reader.Must(stringData.Content)
 
 	p.Ctx.GetLogger().Info("Action >> Serve String", zap.String("ctx", util.FiberContextString(p.C)))
 
@@ -50,24 +46,13 @@ func NewFile() Handler {
 	return &FileHandler{}
 }
 
-func sval(r *reader.String) (string, error) {
-	if r == nil {
-		return "", nil
-	}
-
-	return r.ReadString(context.Background())
-}
-
 func (h *FileHandler) ProcessAction(p *ProcessData) error {
-	fileData, ok := (*p.PayLoad).(*config.ActionFileData)
+	fileData, ok := p.PayLoad.(*config.ActionFileData)
 	if !ok {
 		return fmt.Errorf("invalid action data type for file action: expected *config.ActionFileData, got %T", p.PayLoad)
 	}
 
-	pathStr, err := sval(fileData.Path)
-	if err != nil {
-		return err
-	}
+	pathStr := reader.Must(fileData.Path)
 
 	safePath, err := filepath.Abs(filepath.Clean(pathStr))
 	if err != nil {

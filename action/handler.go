@@ -10,7 +10,7 @@ type ProcessData struct {
 	Ctx     *params.Ctx
 	C       *fiber.Ctx
 	Action  *config.Action
-	PayLoad *config.ActionData
+	PayLoad config.ActionData
 }
 
 type Handler interface {
