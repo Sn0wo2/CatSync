@@ -1,8 +1,8 @@
 package framework
 
 import (
-	"context"
-	"net/http"
+	"crypto/tls"
+	"net"
 	"time"
 
 	"github.com/Sn0wo2/CatSync/config"
@@ -10,7 +10,6 @@ import (
 	"github.com/Sn0wo2/CatSync/debug"
 	"github.com/Sn0wo2/CatSync/router/errorhandler"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"go.uber.org/zap"
 )
 
@@ -22,16 +21,6 @@ type Provider interface {
 type Framework struct {
 	Provider
 	*fiber.App
-}
-
-func sval(r *reader.String) string {
-	if r == nil {
-		return ""
-	}
-
-	s, _ := r.ReadString(context.Background())
-
-	return s
 }
 
 func NewFiber(p Provider) *Framework {
@@ -59,41 +48,55 @@ func (ctx *Framework) StartFiber() error {
 	cfg := ctx.GetConfig()
 	logger := ctx.GetLogger()
 
-	addr, _ := cfg.Server.Address.ReadString(context.Background())
-
-	server := &http.Server{
-		Addr:         addr,
-		Handler:      adaptor.FiberApp(ctx.App),
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  120 * time.Second,
-		ErrorLog:     zap.NewStdLog(logger),
-	}
+	addr := reader.Must(cfg.Server.Address)
 
 	if cfg.Server.ACME != nil && cfg.Server.ACME.Enable {
-		acmeCfg := cfg.Server.ACME
-
-		if acmeCfg.DNS01 != nil {
-			return startACMEDNS01(server, acmeCfg, logger)
+		ln, err := net.Listen("tcp", addr)
+		if err != nil {
+			return err
 		}
 
-		return startACMEHTTP01(server, cfg, acmeCfg, logger)
+		tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12}
+		httpServer := &httpServerToStd{TLSConfig: tlsCfg}
+
+		acmeCfg := cfg.Server.ACME
+		if acmeCfg.DNS01 != nil {
+			if err := startACMEDNS01(httpServer, acmeCfg, logger); err != nil {
+				return err
+			}
+		} else {
+			if err := startACMEHTTP01(httpServer, cfg, acmeCfg, logger); err != nil {
+				return err
+			}
+		}
+
+		tlsLn := tls.NewListener(ln, tlsCfg)
+
+		logger.Info("TLS listening", zap.String("addr", addr))
+
+		return ctx.Listener(tlsLn)
 	}
 
-	cert := ""
-	key := ""
+	cert := reader.Must(cfg.Server.TLS.Cert)
 
-	if cfg.Server.TLS.Cert != nil {
-		cert = sval(cfg.Server.TLS.Cert)
-	}
-
-	if cfg.Server.TLS.Key != nil {
-		key = sval(cfg.Server.TLS.Key)
-	}
-
+	key := reader.Must(cfg.Server.TLS.Key)
 	if cert != "" && key != "" {
-		return server.ListenAndServeTLS(cert, key)
+		logger.Info("TLS listening", zap.String("addr", addr))
+
+		return ctx.ListenTLS(addr, cert, key)
 	}
 
-	return server.ListenAndServe()
+	logger.Info("HTTP listening", zap.String("addr", addr))
+
+	return ctx.Listen(addr)
+}
+
+// httpServerToStd is a minimal adapter to satisfy existing ACME functions.
+// It only exposes TLSConfig.
+type httpServerToStd struct {
+	TLSConfig *tls.Config
+}
+
+func (s *httpServerToStd) SetTLSConfig(cfg *tls.Config) {
+	s.TLSConfig = cfg
 }

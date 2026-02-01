@@ -3,7 +3,6 @@
 package framework
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -17,15 +16,7 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 )
 
-func sval(r *reader.String) string {
-	if r == nil {
-		return ""
-	}
-	s, _ := r.ReadString(context.Background())
-	return strings.TrimSpace(s)
-}
-
-func startACMEHTTP01(server *http.Server, cfg *config.Config, acmeCfg *config.ServerACME, logger *zap.Logger) error {
+func startACMEHTTP01(server tlsConfigSetter, cfg *config.Config, acmeCfg *config.ServerACME, logger *zap.Logger) error {
 	if server == nil {
 		return fmt.Errorf("nil http server")
 	}
@@ -39,7 +30,7 @@ func startACMEHTTP01(server *http.Server, cfg *config.Config, acmeCfg *config.Se
 		return fmt.Errorf("nil logger")
 	}
 
-	cacheDir := sval(acmeCfg.CacheDir)
+	cacheDir := reader.Trim(acmeCfg.CacheDir)
 	if cacheDir == "" {
 		cacheDir = "./data/acme"
 	}
@@ -47,22 +38,22 @@ func startACMEHTTP01(server *http.Server, cfg *config.Config, acmeCfg *config.Se
 	m := &autocert.Manager{
 		Prompt: autocert.AcceptTOS,
 		Cache:  autocert.DirCache(cacheDir),
-		Email:  sval(acmeCfg.Email),
+		Email:  reader.Trim(acmeCfg.Email),
 	}
 
 	if len(acmeCfg.Hosts) > 0 {
 		m.HostPolicy = autocert.HostWhitelist(acmeCfg.Hosts...)
 	}
-	dirURL := sval(acmeCfg.DirectoryURL)
+	dirURL := reader.Trim(acmeCfg.DirectoryURL)
 	if dirURL != "" {
 		m.Client = &acme.Client{DirectoryURL: dirURL}
 	}
 
-	server.TLSConfig = m.TLSConfig()
+	server.SetTLSConfig(m.TLSConfig())
 
 	httpAddr := ""
 	if acmeCfg.HTTP01 != nil {
-		httpAddr = sval(acmeCfg.HTTP01.HTTPAddress)
+		httpAddr = reader.Trim(acmeCfg.HTTP01.HTTPAddress)
 	}
 	if httpAddr == "" {
 		httpAddr = ":80"
@@ -74,7 +65,7 @@ func startACMEHTTP01(server *http.Server, cfg *config.Config, acmeCfg *config.Se
 	}
 
 	tlsPort := "443"
-	if _, port, err := net.SplitHostPort(sval(cfg.Server.Address)); err == nil && port != "" {
+	if _, port, err := net.SplitHostPort(reader.Trim(cfg.Server.Address)); err == nil && port != "" {
 		tlsPort = port
 	}
 
@@ -124,5 +115,5 @@ func startACMEHTTP01(server *http.Server, cfg *config.Config, acmeCfg *config.Se
 	}()
 
 	logger.Info("ACME enabled (http-01)", zap.Strings("hosts", acmeCfg.Hosts), zap.String("cacheDir", cacheDir))
-	return server.ListenAndServeTLS("", "")
+	return nil
 }

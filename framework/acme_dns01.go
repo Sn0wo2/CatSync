@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,14 +26,6 @@ import (
 	"github.com/go-acme/lego/v4/registration"
 	"go.uber.org/zap"
 )
-
-func sval(r *reader.String) string {
-	if r == nil {
-		return ""
-	}
-	s, _ := r.ReadString(context.Background())
-	return strings.TrimSpace(s)
-}
 
 type providerTimeoutWrapper struct {
 	challenge.Provider
@@ -151,7 +142,7 @@ func runDNSCmd(cmd []string, domain, fqdn, value, token, keyAuth string) error {
 	return nil
 }
 
-func startACMEDNS01(server *http.Server, acmeCfg *config.ServerACME, logger *zap.Logger) error {
+func startACMEDNS01(server tlsConfigSetter, acmeCfg *config.ServerACME, logger *zap.Logger) error {
 	if acmeCfg == nil {
 		return errors.New("nil acme config")
 	}
@@ -165,7 +156,7 @@ func startACMEDNS01(server *http.Server, acmeCfg *config.ServerACME, logger *zap
 		return errors.New("acme.dns01 is required")
 	}
 
-	cacheDir := sval(acmeCfg.CacheDir)
+	cacheDir := reader.Trim(acmeCfg.CacheDir)
 	if cacheDir == "" {
 		cacheDir = "./data/acme"
 	}
@@ -181,10 +172,10 @@ func startACMEDNS01(server *http.Server, acmeCfg *config.ServerACME, logger *zap
 		return err
 	}
 
-	user := &legoUser{email: sval(acmeCfg.Email), key: accountKey}
+	user := &legoUser{email: reader.Trim(acmeCfg.Email), key: accountKey}
 	legoCfg := lego.NewConfig(user)
 	legoCfg.CADirURL = lego.LEDirectoryProduction
-	dirURL := sval(acmeCfg.DirectoryURL)
+	dirURL := reader.Trim(acmeCfg.DirectoryURL)
 	if dirURL != "" {
 		legoCfg.CADirURL = dirURL
 	}
@@ -196,7 +187,7 @@ func startACMEDNS01(server *http.Server, acmeCfg *config.ServerACME, logger *zap
 		return err
 	}
 
-	providerName := strings.ToLower(sval(acmeCfg.DNS01.Provider))
+	providerName := strings.ToLower(reader.Trim(acmeCfg.DNS01.Provider))
 	if providerName == "" {
 		providerName = "exec"
 	}
@@ -311,7 +302,7 @@ func startACMEDNS01(server *http.Server, acmeCfg *config.ServerACME, logger *zap
 	}
 	setCurrent(cert)
 
-	server.TLSConfig = &tls.Config{
+	server.SetTLSConfig(&tls.Config{
 		MinVersion: tls.VersionTLS12,
 		GetCertificate: func(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {
 			c := current.Load().(*tls.Certificate)
@@ -320,7 +311,7 @@ func startACMEDNS01(server *http.Server, acmeCfg *config.ServerACME, logger *zap
 			}
 			return c, nil
 		},
-	}
+	})
 
 	// Renew loop: re-obtain when expiring soon.
 	go func() {
@@ -359,7 +350,7 @@ func startACMEDNS01(server *http.Server, acmeCfg *config.ServerACME, logger *zap
 	}()
 
 	logger.Info("ACME DNS-01 enabled", zap.Strings("hosts", acmeCfg.Hosts), zap.String("cacheDir", certDir))
-	return server.ListenAndServeTLS("", "")
+	return nil
 }
 
 func sanitizeFilename(s string) string {
