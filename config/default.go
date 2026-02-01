@@ -1,14 +1,16 @@
 package config
 
+import "github.com/Sn0wo2/CatSync/config/reader"
+
 func GetDefaultConfig() *Config {
 	return &Config{
 		Log: Log{
-			Level:      "debug",
-			Dir:        "./logs",
-			FileFormat: "2006-01-02.log",
+			Level:      reader.Str("debug"),
+			Dir:        reader.Str("./logs"),
+			FileFormat: reader.Str("2006-01-02.log"),
 		},
 		Server: Server{
-			Address: ":3000",
+			Address: reader.Str(":3000"),
 		},
 		Modifiers: []GlobalModifier{
 			{
@@ -22,7 +24,7 @@ func GetDefaultConfig() *Config {
 		},
 		Actions: []Action{
 			{
-				Route: "^/$",
+				Route: reader.Str("^/$"),
 				Type:  ActionString,
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 200},
@@ -32,13 +34,13 @@ func GetDefaultConfig() *Config {
 				},
 				ActionString: &ActionStringData{
 					GlobalModifier: GlobalModifier{
-						ActionModifierVersion: &ActionModifierVersion{Placeholder: "${VERSION}"},
+						ActionModifierVersion: &ActionModifierVersion{Placeholder: reader.Str("${VERSION}")},
 					},
-					Content: "Hello, CatSync!\n\nThis is the default v2 demo config.\n\nTry:\n- /public/hello.txt\n- /demo/headers\n- /demo/status/204\n- /secure (need X-Token: dev)\n- /secure/jump (missing token will jump to a jump-only action)\n\nHint: check response header X-CatSync-Version\n",
+					Content: reader.Str("Hello, CatSync!\n\nThis is the default v2 demo config.\n\nTry:\n- /public/hello.txt\n- /demo/headers\n- /demo/status/204\n- /secure (need X-Token: dev)\n- /secure/jump (missing token will jump to a jump-only action)\n\nHint: check response header X-CatSync-Version\n"),
 				},
 			},
 			{
-				Route: "^/public/hello\\.txt$",
+				Route: reader.Str("^/public/hello\\.txt$"),
 				Type:  ActionFile,
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 200},
@@ -47,11 +49,11 @@ func GetDefaultConfig() *Config {
 					},
 				},
 				ActionFile: &ActionFileData{
-					Path: "./data/hello.txt",
+					Path: reader.Str("./data/hello.txt"),
 				},
 			},
 			{
-				Route: "^/demo/headers$",
+				Route: reader.Str("^/demo/headers$"),
 				Type:  ActionString,
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 200},
@@ -68,11 +70,11 @@ func GetDefaultConfig() *Config {
 							Header: map[string][]string{"X-Demo": {"payload"}},
 						},
 					},
-					Content: "header demo\n\nCheck response headers:\n- global: Server, X-CatSync-Version\n- action: X-Demo=action\n- payload: X-Demo=payload\n\nNote: responseHeader uses Append, so X-Demo will appear multiple times.\n",
+					Content: reader.Str("header demo\n\nCheck response headers:\n- global: Server, X-CatSync-Version\n- action: X-Demo=action\n- payload: X-Demo=payload\n\nNote: responseHeader uses Append, so X-Demo will appear multiple times.\n"),
 				},
 			},
 			{
-				Route: "^/demo/status/204$",
+				Route: reader.Str("^/demo/status/204$"),
 				Type:  ActionString,
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 204},
@@ -80,15 +82,15 @@ func GetDefaultConfig() *Config {
 						Header: map[string][]string{"Content-Type": {"text/plain; charset=utf-8"}},
 					},
 				},
-				ActionString: &ActionStringData{Content: "(status is set to 204 by modifier)\n"},
+				ActionString: &ActionStringData{Content: reader.Str("(status is set to 204 by modifier)\n")},
 			},
 			{
-				Route: "^/secure$",
+				Route: reader.Str("^/secure$"),
 				Type:  ActionString,
 				GlobalModifier: GlobalModifier{
 					ActionModifierAuth: &ActionModifierAuth{
-						Header: map[string][]string{
-							"X-Token": {"^dev$"},
+						Header: map[string][]*reader.String{
+							"X-Token": {reader.Str("^dev$")},
 						},
 						Fallback: &ActionModifierAuthFallback{Type: AuthFallbackNext},
 					},
@@ -96,16 +98,16 @@ func GetDefaultConfig() *Config {
 						Header: map[string][]string{"Content-Type": {"text/plain; charset=utf-8"}},
 					},
 				},
-				ActionString: &ActionStringData{Content: "secret ok (X-Token: dev)\n"},
+				ActionString: &ActionStringData{Content: reader.Str("secret ok (X-Token: dev)\n")},
 			},
 			{
 				// Demonstrate AuthFallbackJump: failed auth jumps to a jump-only action.
-				Route: "^/secure/jump$",
+				Route: reader.Str("^/secure/jump$"),
 				Type:  ActionString,
 				GlobalModifier: GlobalModifier{
 					ActionModifierAuth: &ActionModifierAuth{
-						Header: map[string][]string{
-							"X-Token": {"^dev$"},
+						Header: map[string][]*reader.String{
+							"X-Token": {reader.Str("^dev$")},
 						},
 						Fallback: &ActionModifierAuthFallback{Type: AuthFallbackJump, JumpTo: 7},
 					},
@@ -113,10 +115,10 @@ func GetDefaultConfig() *Config {
 						Header: map[string][]string{"Content-Type": {"text/plain; charset=utf-8"}},
 					},
 				},
-				ActionString: &ActionStringData{Content: "reachable only if auth passes\n"},
+				ActionString: &ActionStringData{Content: reader.Str("reachable only if auth passes\n")},
 			},
 			{
-				Route: "^/secure/jump/fallback$",
+				Route: reader.Str("^/secure/jump/fallback$"),
 				Type:  ActionString,
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 401},
@@ -124,11 +126,11 @@ func GetDefaultConfig() *Config {
 						Header: map[string][]string{"Content-Type": {"text/plain; charset=utf-8"}},
 					},
 				},
-				ActionString: &ActionStringData{Content: "auth failed -> jumped here (route-based fallback action)\n"},
+				ActionString: &ActionStringData{Content: reader.Str("auth failed -> jumped here (route-based fallback action)\n")},
 			},
 			{
 				// The last action is always used as the notfound handler.
-				Route: "",
+				Route: reader.Str(""),
 				Type:  ActionString,
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 404},
@@ -136,7 +138,7 @@ func GetDefaultConfig() *Config {
 						Header: map[string][]string{"Content-Type": {"text/plain; charset=utf-8"}},
 					},
 				},
-				ActionString: &ActionStringData{Content: "page not found\n"},
+				ActionString: &ActionStringData{Content: reader.Str("page not found\n")},
 			},
 		},
 	}

@@ -1,6 +1,7 @@
 package action
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/config/reader"
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/Sn0wo2/go-common/helper"
 	"github.com/gofiber/fiber/v2"
@@ -32,9 +34,14 @@ func (h *StringHandler) ProcessAction(p *ProcessData) error {
 		return fmt.Errorf("invalid action data type for string action: expected *ActionStringData, got %T", p.PayLoad)
 	}
 
-	p.Ctx.GetLogger().Info("Action >> Serve String", zap.String("data", stringData.Content), zap.String("ctx", util.FiberContextString(p.C)))
+	body, err := sval(stringData.Content)
+	if err != nil {
+		return err
+	}
 
-	return p.C.SendString(stringData.Content)
+	p.Ctx.GetLogger().Info("Action >> Serve String", zap.String("ctx", util.FiberContextString(p.C)))
+
+	return p.C.SendString(body)
 }
 
 type FileHandler struct{}
@@ -43,13 +50,26 @@ func NewFile() Handler {
 	return &FileHandler{}
 }
 
+func sval(r *reader.String) (string, error) {
+	if r == nil {
+		return "", nil
+	}
+
+	return r.ReadString(context.Background())
+}
+
 func (h *FileHandler) ProcessAction(p *ProcessData) error {
 	fileData, ok := (*p.PayLoad).(*config.ActionFileData)
 	if !ok {
 		return fmt.Errorf("invalid action data type for file action: expected *config.ActionFileData, got %T", p.PayLoad)
 	}
 
-	safePath, err := filepath.Abs(filepath.Clean(fileData.Path))
+	pathStr, err := sval(fileData.Path)
+	if err != nil {
+		return err
+	}
+
+	safePath, err := filepath.Abs(filepath.Clean(pathStr))
 	if err != nil {
 		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
@@ -105,7 +125,7 @@ func (h *FileHandler) ProcessAction(p *ProcessData) error {
 		p.C.Set(fiber.HeaderContentType, http.DetectContentType(fileBytes))
 	}
 
-	p.Ctx.GetLogger().Info("Action >> Serve File", zap.String("path", fileData.Path), zap.String("ctx", util.FiberContextString(p.C)))
+	p.Ctx.GetLogger().Info("Action >> Serve File", zap.String("path", pathStr), zap.String("ctx", util.FiberContextString(p.C)))
 
 	return p.C.Send(fileBytes)
 }

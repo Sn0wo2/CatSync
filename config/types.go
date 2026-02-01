@@ -3,6 +3,8 @@ package config
 import (
 	"errors"
 	"net/http"
+
+	"github.com/Sn0wo2/CatSync/config/reader"
 )
 
 var (
@@ -18,15 +20,15 @@ type Config struct {
 }
 
 type Log struct {
-	Dir        string `json:"dir"        optional:"true"   yaml:"dir"`
-	Level      string `json:"level"      optional:"true"   yaml:"level"`
-	FileFormat string `json:"fileFormat" yaml:"fileFormat"`
+	Dir        *reader.String `json:"dir"        optional:"true"   yaml:"dir"`
+	Level      *reader.String `json:"level"      optional:"true"   yaml:"level"`
+	FileFormat *reader.String `json:"fileFormat" yaml:"fileFormat"`
 }
 
 type Server struct {
-	Address string      `json:"address"        yaml:"address"`
-	TLS     ServerTLS   `json:"tls"            optional:"true" yaml:"tls"`
-	ACME    *ServerACME `json:"acme,omitempty" optional:"true" yaml:"acme,omitempty"`
+	Address *reader.String `json:"address"        yaml:"address"`
+	TLS     ServerTLS      `json:"tls"            optional:"true" yaml:"tls"`
+	ACME    *ServerACME    `json:"acme,omitempty" optional:"true" yaml:"acme,omitempty"`
 }
 
 // GlobalModifier
@@ -40,8 +42,8 @@ type GlobalModifier struct {
 }
 
 type ServerTLS struct {
-	Cert string `json:"cert" yaml:"cert"`
-	Key  string `json:"key"  yaml:"key"`
+	Cert *reader.String `json:"cert" yaml:"cert"`
+	Key  *reader.String `json:"key"  yaml:"key"`
 
 	// RedirectHTTP controls whether non-challenge HTTP requests are redirected to https.
 	// When omitted, the default is true (only meaningful for ACME http-01).
@@ -54,11 +56,11 @@ type ServerTLS struct {
 // If you run behind a reverse proxy, you can disable httpAddress and terminate
 // the challenge upstream.
 type ServerACME struct {
-	Enable       bool     `json:"enable,omitempty"       optional:"true" yaml:"enable,omitempty"`
-	Email        string   `json:"email,omitempty"        optional:"true" yaml:"email,omitempty"`
-	CacheDir     string   `json:"cacheDir,omitempty"     optional:"true" yaml:"cacheDir,omitempty"`
-	Hosts        []string `json:"hosts,omitempty"        optional:"true" yaml:"hosts,omitempty"`
-	DirectoryURL string   `json:"directoryURL,omitempty" optional:"true" yaml:"directoryURL,omitempty"`
+	Enable       bool           `json:"enable,omitempty"       optional:"true" yaml:"enable,omitempty"`
+	Email        *reader.String `json:"email,omitempty"        optional:"true" yaml:"email,omitempty"`
+	CacheDir     *reader.String `json:"cacheDir,omitempty"     optional:"true" yaml:"cacheDir,omitempty"`
+	Hosts        []string       `json:"hosts,omitempty"        optional:"true" yaml:"hosts,omitempty"`
+	DirectoryURL *reader.String `json:"directoryURL,omitempty" optional:"true" yaml:"directoryURL,omitempty"`
 
 	// HTTP01 and DNS01 are mutually exclusive.
 	// If both are nil, HTTP-01 is used with defaults.
@@ -68,7 +70,7 @@ type ServerACME struct {
 
 // ServerACMEHTTP01 configures HTTP-01 challenge.
 type ServerACMEHTTP01 struct {
-	HTTPAddress string `json:"httpAddress,omitempty" optional:"true" yaml:"httpAddress,omitempty"`
+	HTTPAddress *reader.String `json:"httpAddress,omitempty" optional:"true" yaml:"httpAddress,omitempty"`
 }
 
 // ServerACMEDNS01 configures DNS-01 challenge.
@@ -78,7 +80,7 @@ type ServerACMEHTTP01 struct {
 // - exec: run external commands to create/remove TXT records.
 // - cloudflare/dnspod/alidns/route53: use lego built-in providers (may require build tags).
 type ServerACMEDNS01 struct {
-	Provider string `json:"provider,omitempty" optional:"true" yaml:"provider,omitempty"`
+	Provider *reader.String `json:"provider,omitempty" optional:"true" yaml:"provider,omitempty"`
 
 	// exec provider: command array (argv style). Supported placeholders:
 	// {DOMAIN} {FQDN} {VALUE} {TOKEN} {KEYAUTH}
@@ -90,7 +92,7 @@ type ServerACMEDNS01 struct {
 }
 
 type Action struct {
-	Route string `json:"route" optional:"true" yaml:"route"`
+	Route *reader.String `json:"route" optional:"true" yaml:"route"`
 
 	// SkipGlobalModifiers disables config-level modifiers for this action.
 	//
@@ -122,8 +124,8 @@ type ActionData interface {
 type ActionFileData struct {
 	GlobalModifier `yaml:",inline"`
 
-	Path               string `json:"path"               yaml:"path"`
-	DontSetContentType bool   `json:"dontSetContentType" optional:"true" yaml:"dontSetContentType"`
+	Path               *reader.String `json:"path"               yaml:"path"`
+	DontSetContentType bool           `json:"dontSetContentType" optional:"true" yaml:"dontSetContentType"`
 }
 
 func (a *ActionFileData) action() {}
@@ -131,7 +133,7 @@ func (a *ActionFileData) action() {}
 type ActionStringData struct {
 	GlobalModifier `yaml:",inline"`
 
-	Content string `json:"content" yaml:"content"`
+	Content *reader.String `json:"content" yaml:"content"`
 }
 
 func (a *ActionStringData) action() {}
@@ -147,9 +149,11 @@ type ActionModifierStatus struct {
 }
 
 type ActionModifierAuth struct {
-	Header   map[string][]string         `json:"header,omitempty"   optional:"true" yaml:"header,omitempty"`
-	Query    map[string]string           `json:"query,omitempty"    optional:"true" yaml:"query,omitempty"`
-	Fallback *ActionModifierAuthFallback `json:"fallback,omitempty" optional:"true" yaml:"fallback,omitempty"`
+	Header   map[string][]*reader.String `json:"header,omitempty"          optional:"true" yaml:"header,omitempty"`
+	Query    map[string]*reader.String   `json:"query,omitempty"           optional:"true" yaml:"query,omitempty"`
+	IPAllow  []string                    `json:"ipAllowlist,omitempty"     optional:"true" yaml:"ipAllowlist,omitempty"`
+	IPFile   *reader.String              `json:"ipAllowlistFile,omitempty" optional:"true" yaml:"ipAllowlistFile,omitempty"`
+	Fallback *ActionModifierAuthFallback `json:"fallback,omitempty"        optional:"true" yaml:"fallback,omitempty"`
 }
 
 type ActionModifierAuthFallback struct {
@@ -165,5 +169,5 @@ const (
 )
 
 type ActionModifierVersion struct {
-	Placeholder string `json:"placeholder" yaml:"placeholder"`
+	Placeholder *reader.String `json:"placeholder" yaml:"placeholder"`
 }

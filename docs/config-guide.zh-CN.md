@@ -17,6 +17,41 @@
 
 配置类型定义在 `config/types.go`，本文以 YAML 为例。
 
+## reader.String（通用字符串输入）
+
+v2 beta 中，多数原本为 `string` 的字段统一改为 `reader.String`，目的是让配置可以“直接写字符串”，也可以“从文件/HTTP 拉取字符串”。
+
+最常用写法（短写，默认字面量）：
+
+```yaml
+server:
+  address: :3000
+```
+
+从文件读取（对象写法）：
+
+```yaml
+log:
+  dir:
+    type: path
+    content: ./logs
+```
+
+从 HTTP(S) 读取（对象写法）：
+
+```yaml
+server:
+  tls:
+    cert:
+      type: http
+      content: https://example.com/tls/cert.pem
+    key:
+      type: http
+      content: https://example.com/tls/key.pem
+```
+
+注意：短写字符串不会自动识别为 path/http；需要读取文件或 URL 时必须显式写 `type`。
+
 <a id="cg-top"></a>
 
 ## 顶层字段
@@ -44,8 +79,8 @@ server:
     key: ""
 ```
 
-- `address`: 监听地址
-- `tls.cert`/`tls.key`: 同时提供时启用 TLS
+- `address`: 监听地址（reader.String）
+- `tls.cert`/`tls.key`: 证书路径（reader.String），同时提供时启用 TLS
 
 备注：`server.header` 在 v2 已移除。
 如需设置 `Server` 响应头，请使用 `actionModifierResponseHeader`。
@@ -81,6 +116,7 @@ actions 按顺序扫描（index 是可观察行为，`jumpTo` 也是基于 index
 每个 action 必需字段：
 
 - `route`: regexp
+- `route`: reader.String（通常短写即可）
 - `type`: `string` 或 `file`
 - 对应的 payload 块：
     - `type: string` -> 必须有 `string:`
@@ -136,6 +172,7 @@ actions:
 ```
 
 - `content`: 返回的字符串
+- `content`: reader.String
 
 string payload 也可以携带 modifiers（payload scope）：
 
@@ -159,7 +196,7 @@ actions:
       dontSetContentType: false
 ```
 
-- `path`: 文件路径（必须在 `./data` 目录下）
+- `path`: reader.String 文件路径（必须在 `./data` 目录下）
 - `dontSetContentType`: 为 true 时不自动设置 Content-Type
 
 运行时行为（当前实现）：
@@ -237,8 +274,10 @@ actionModifierAuth:
     type: next
 ```
 
-- `header`: map[string][]string，每个值是 regexp
-- `query`: map[string]string，值是 regexp
+- `header`: map[string][]reader.String，每个值是 regexp
+- `query`: map[string]reader.String，值是 regexp
+- `ipAllowlist`: 可选，IP/CIDR 白名单（匹配任意一个则通过）
+- `ipAllowlistFile`: reader.String，可选，从 file/http/string 读取 IP/CIDR 白名单（每行一个；支持 # 注释）
 - `fallback`:
     - `type: next`: 校验失败时 `ctx.Next()`
     - `type: jump`: 校验失败时跳到 `jumpTo` 指定的 action index

@@ -40,7 +40,9 @@ func main() {
 	signal.Notify(shutdownChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
 	go func() {
-		addr, cert, key := cfg.Server.Address, cfg.Server.TLS.Cert, cfg.Server.TLS.Key
+		addr := sval(cfg.Server.Address)
+		cert := sval(cfg.Server.TLS.Cert)
+		key := sval(cfg.Server.TLS.Key)
 
 		protocol := "http"
 		if (cert != "" && key != "") || (cfg.Server.ACME != nil && cfg.Server.ACME.Enable) {

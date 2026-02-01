@@ -1,16 +1,28 @@
 package execute
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/Sn0wo2/CatSync/action"
 	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/config/reader"
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/Sn0wo2/CatSync/params"
 	"github.com/Sn0wo2/CatSync/version"
 	"github.com/gofiber/fiber/v2"
 )
+
+func sval(r *reader.String) string {
+	if r == nil {
+		return ""
+	}
+
+	s, _ := r.ReadString(context.Background())
+
+	return s
+}
 
 // Result indicates how the caller should continue processing.
 //
@@ -115,13 +127,14 @@ func (e *Executor) ExecuteAt(index int) (Result, error) {
 	act := e.cfg.Actions[index]
 
 	if !e.skipRouteCheck {
-		if act.Route == "" {
+		route := sval(act.Route)
+		if route == "" {
 			return Result{NotMatched: true}, nil
 		}
 
-		re, err := util.GetCompiledRegexp(act.Route)
+		re, err := util.GetCompiledRegexp(route)
 		if err != nil {
-			return Result{}, fmt.Errorf("invalid route regexp %q: %w", act.Route, err)
+			return Result{}, fmt.Errorf("invalid route regexp %q: %w", route, err)
 		}
 
 		if !re.MatchString(e.fiberCtx.Path()) {
@@ -179,12 +192,18 @@ func (e *Executor) ExecuteAt(index int) (Result, error) {
 
 	switch act.Type {
 	case config.ActionString:
-		if act.ActionString != nil && act.ActionString.ActionModifierVersion != nil && act.ActionString.Placeholder != "" {
-			h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(act.ActionString.ActionModifierVersion.Placeholder).WithValue(version.GetFormatVersion()))
+		if act.ActionString != nil && act.ActionString.ActionModifierVersion != nil {
+			ph := sval(act.ActionString.Placeholder)
+			if ph != "" {
+				h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(ph).WithValue(version.GetFormatVersion()))
+			}
 		}
 	case config.ActionFile:
-		if act.ActionFile != nil && act.ActionFile.ActionModifierVersion != nil && act.ActionFile.Placeholder != "" {
-			h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(act.ActionFile.ActionModifierVersion.Placeholder).WithValue(version.GetFormatVersion()))
+		if act.ActionFile != nil && act.ActionFile.ActionModifierVersion != nil {
+			ph := sval(act.ActionFile.Placeholder)
+			if ph != "" {
+				h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(ph).WithValue(version.GetFormatVersion()))
+			}
 		}
 	}
 

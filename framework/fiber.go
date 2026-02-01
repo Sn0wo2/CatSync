@@ -1,10 +1,12 @@
 package framework
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/config/reader"
 	"github.com/Sn0wo2/CatSync/debug"
 	"github.com/Sn0wo2/CatSync/router/errorhandler"
 	"github.com/gofiber/fiber/v2"
@@ -20,6 +22,16 @@ type Provider interface {
 type Framework struct {
 	Provider
 	*fiber.App
+}
+
+func sval(r *reader.String) string {
+	if r == nil {
+		return ""
+	}
+
+	s, _ := r.ReadString(context.Background())
+
+	return s
 }
 
 func NewFiber(p Provider) *Framework {
@@ -47,8 +59,10 @@ func (ctx *Framework) StartFiber() error {
 	cfg := ctx.GetConfig()
 	logger := ctx.GetLogger()
 
+	addr, _ := cfg.Server.Address.ReadString(context.Background())
+
 	server := &http.Server{
-		Addr:         cfg.Server.Address,
+		Addr:         addr,
 		Handler:      adaptor.FiberApp(ctx.App),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
@@ -66,8 +80,19 @@ func (ctx *Framework) StartFiber() error {
 		return startACMEHTTP01(server, cfg, acmeCfg, logger)
 	}
 
-	if cfg.Server.TLS.Cert != "" && cfg.Server.TLS.Key != "" {
-		return server.ListenAndServeTLS(cfg.Server.TLS.Cert, cfg.Server.TLS.Key)
+	cert := ""
+	key := ""
+
+	if cfg.Server.TLS.Cert != nil {
+		cert = sval(cfg.Server.TLS.Cert)
+	}
+
+	if cfg.Server.TLS.Key != nil {
+		key = sval(cfg.Server.TLS.Key)
+	}
+
+	if cert != "" && key != "" {
+		return server.ListenAndServeTLS(cert, key)
 	}
 
 	return server.ListenAndServe()

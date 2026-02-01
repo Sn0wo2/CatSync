@@ -1,16 +1,29 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/Sn0wo2/CatSync/config/reader"
 	"github.com/Sn0wo2/CatSync/debug"
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"go.uber.org/zap"
 )
+
+func rstr(r *reader.String) string {
+	if r == nil {
+		return ""
+	}
+
+	s, _ := r.ReadString(context.Background())
+
+	return strings.TrimSpace(s)
+}
 
 func init() {
 	util.DefaultConfigProvider = func() (any, bool) {
@@ -166,7 +179,7 @@ func checkACME(c *Config, add func(error)) {
 		return
 	}
 
-	provider := strings.ToLower(strings.TrimSpace(c.Server.ACME.DNS01.Provider))
+	provider := strings.ToLower(rstr(c.Server.ACME.DNS01.Provider))
 	if provider == "" {
 		provider = defaultDNSExec
 	}
@@ -175,7 +188,7 @@ func checkACME(c *Config, add func(error)) {
 	case defaultDNSExec, "cloudflare", "dnspod", "alidns", "route53":
 		// ok
 	default:
-		add(fmt.Errorf("invalid server.acme.dns01.provider: %q", c.Server.ACME.DNS01.Provider))
+		add(fmt.Errorf("invalid server.acme.dns01.provider: %q", rstr(c.Server.ACME.DNS01.Provider)))
 	}
 
 	if provider != defaultDNSExec {
@@ -240,16 +253,47 @@ func checkAuth(where string, auth *ActionModifierAuth, actionCount int) error {
 	}
 
 	for k, patterns := range auth.Header {
-		for _, pat := range patterns {
+		for _, pr := range patterns {
+			pat := rstr(pr)
 			if _, err := util.GetCompiledRegexp(pat); err != nil {
 				addAuthErr(fmt.Errorf("invalid auth header regexp at %s (header=%q, pattern=%q): %w", where, k, pat, err))
 			}
 		}
 	}
 
-	for k, pat := range auth.Query {
+	for k, pr := range auth.Query {
+		pat := rstr(pr)
 		if _, err := util.GetCompiledRegexp(pat); err != nil {
 			addAuthErr(fmt.Errorf("invalid auth query regexp at %s (key=%q, pattern=%q): %w", where, k, pat, err))
+		}
+	}
+
+	if len(auth.IPAllow) > 0 {
+		for _, raw := range auth.IPAllow {
+			s := strings.TrimSpace(raw)
+			if s == "" {
+				continue
+			}
+
+			if strings.Contains(s, "/") {
+				if _, _, err := net.ParseCIDR(s); err != nil {
+					addAuthErr(fmt.Errorf("invalid auth ipAllowlist CIDR at %s (value=%q): %w", where, raw, err))
+				}
+
+				continue
+			}
+
+			if ip := net.ParseIP(s); ip == nil {
+				addAuthErr(fmt.Errorf("invalid auth ipAllowlist ip at %s (value=%q)", where, raw))
+			}
+		}
+	}
+
+	if auth.IPFile != nil {
+		if err := auth.IPFile.Validate(); err != nil {
+			addAuthErr(fmt.Errorf("invalid auth ipAllowlistFile at %s: %w", where, err))
+
+			return errors.Join(authErrs...)
 		}
 	}
 
@@ -270,14 +314,15 @@ func checkGlobalModifiers(c *Config, add func(error)) {
 func checkActions(c *Config, logger *zap.Logger, add func(error)) {
 	actionCount := len(c.Actions)
 	for i, act := range c.Actions {
-		if act.Route == "" {
+		route := rstr(act.Route)
+		if route == "" {
 			logger.Warn("Config >> action route is empty; action is jump-only",
 				zap.Int("index", i),
 				zap.String("type", string(act.Type)),
 			)
 		} else {
-			if _, err := util.GetCompiledRegexp(act.Route); err != nil {
-				add(fmt.Errorf("invalid action route regexp at actions[%d].route (%q): %w", i, act.Route, err))
+			if _, err := util.GetCompiledRegexp(route); err != nil {
+				add(fmt.Errorf("invalid action route regexp at actions[%d].route (%q): %w", i, route, err))
 			}
 		}
 

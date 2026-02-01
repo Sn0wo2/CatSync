@@ -3,6 +3,7 @@
 package framework
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -10,10 +11,19 @@ import (
 	"strings"
 
 	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/config/reader"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 )
+
+func sval(r *reader.String) string {
+	if r == nil {
+		return ""
+	}
+	s, _ := r.ReadString(context.Background())
+	return strings.TrimSpace(s)
+}
 
 func startACMEHTTP01(server *http.Server, cfg *config.Config, acmeCfg *config.ServerACME, logger *zap.Logger) error {
 	if server == nil {
@@ -29,7 +39,7 @@ func startACMEHTTP01(server *http.Server, cfg *config.Config, acmeCfg *config.Se
 		return fmt.Errorf("nil logger")
 	}
 
-	cacheDir := strings.TrimSpace(acmeCfg.CacheDir)
+	cacheDir := sval(acmeCfg.CacheDir)
 	if cacheDir == "" {
 		cacheDir = "./data/acme"
 	}
@@ -37,21 +47,22 @@ func startACMEHTTP01(server *http.Server, cfg *config.Config, acmeCfg *config.Se
 	m := &autocert.Manager{
 		Prompt: autocert.AcceptTOS,
 		Cache:  autocert.DirCache(cacheDir),
-		Email:  strings.TrimSpace(acmeCfg.Email),
+		Email:  sval(acmeCfg.Email),
 	}
 
 	if len(acmeCfg.Hosts) > 0 {
 		m.HostPolicy = autocert.HostWhitelist(acmeCfg.Hosts...)
 	}
-	if strings.TrimSpace(acmeCfg.DirectoryURL) != "" {
-		m.Client = &acme.Client{DirectoryURL: strings.TrimSpace(acmeCfg.DirectoryURL)}
+	dirURL := sval(acmeCfg.DirectoryURL)
+	if dirURL != "" {
+		m.Client = &acme.Client{DirectoryURL: dirURL}
 	}
 
 	server.TLSConfig = m.TLSConfig()
 
 	httpAddr := ""
 	if acmeCfg.HTTP01 != nil {
-		httpAddr = strings.TrimSpace(acmeCfg.HTTP01.HTTPAddress)
+		httpAddr = sval(acmeCfg.HTTP01.HTTPAddress)
 	}
 	if httpAddr == "" {
 		httpAddr = ":80"
@@ -63,7 +74,7 @@ func startACMEHTTP01(server *http.Server, cfg *config.Config, acmeCfg *config.Se
 	}
 
 	tlsPort := "443"
-	if _, port, err := net.SplitHostPort(cfg.Server.Address); err == nil && port != "" {
+	if _, port, err := net.SplitHostPort(sval(cfg.Server.Address)); err == nil && port != "" {
 		tlsPort = port
 	}
 

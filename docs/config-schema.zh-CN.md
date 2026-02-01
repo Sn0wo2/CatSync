@@ -4,27 +4,42 @@
 
 配置类型定义在 `config/types.go`。
 
+## reader.String（通用字符串输入）
+
+多数原本是 `string` 的字段在 v2 beta 里统一升级为 `reader.String`，以支持：
+
+- 直接写字符串（默认）：`foo`
+- 从文件读取：
+  - `type: path`
+  - `content: ./path/to/file`
+- 从 HTTP(S) 读取：
+  - `type: http`
+  - `content: https://example.com/data`
+
+短写形式（YAML/JSON 直接写一个字符串）默认按字面量处理，不会自动当作文件路径或 URL。
+如需从文件/HTTP 读取，必须使用对象形式显式指定 `type`。
+
 ## 顶层结构
 
 - `log`
-    - `dir`: 日志目录
-    - `level`: 日志级别
-    - `fileFormat`: 日志文件名格式
+    - `dir`: reader.String，日志目录
+    - `level`: reader.String，日志级别
+    - `fileFormat`: reader.String，日志文件名格式
 
 - `server`
-    - `address`: 监听地址，例如 `:3000`
-    - `tls.cert`/`tls.key`: TLS 证书（可选）
+    - `address`: reader.String，监听地址，例如 `:3000`
+    - `tls.cert`/`tls.key`: reader.String，TLS 证书路径（可选）
     - `tls.redirectHttp`: 非 challenge 请求是否 301 重定向到 https（可选；默认 true，设为 false 关闭；仅 ACME http-01 有意义）
     - `acme`（可选）：自动签发证书（ACME / Let's Encrypt）
         - `enable`: 是否启用
         - `hosts`: 允许签发的域名列表（启用时必填）
         - `email`: 可选，用于 Let's Encrypt 通知
         - `cacheDir`: 证书缓存目录（默认 `./data/acme`）
-        - `directoryURL`: 可选，ACME Directory URL（可用于 staging）
+        - `directoryURL`: reader.String，可选，ACME Directory URL（可用于 staging）
         - `http01`（可选）：HTTP-01 验证配置（与 dns01 互斥；两者都不配则默认使用 http01）
-            - `httpAddress`: HTTP-01 challenge 监听地址（默认 `:80`）
+            - `httpAddress`: reader.String，HTTP-01 challenge 监听地址（默认 `:80`）
         - `dns01`（可选）：DNS-01 验证配置（与 http01 互斥）
-            - `provider`: `exec`（默认）或 `cloudflare`/`dnspod`/`alidns`/`route53`（需要编译 tag 才会内置）
+            - `provider`: reader.String，`exec`（默认）或 `cloudflare`/`dnspod`/`alidns`/`route53`（需要编译 tag 才会内置）
             - `presentCmd`: 添加 TXT 记录的命令（argv 数组）
             - `cleanupCmd`: 删除 TXT 记录的命令（argv 数组）
             - `propagationTimeoutSeconds`: 传播超时（秒）
@@ -47,12 +62,12 @@
 
 每个 action 结构：
 
-- `route`: regexp（字符串），用于匹配 `ctx.Path()`
+- `route`: reader.String，regexp，用于匹配 `ctx.Path()`
 - `type`: `string` 或 `file`
 - modifiers（action scope，直接写在 action 下，不再有 `globalmodifier:` 包裹）
 - payload：
-    - `string`: string payload
-    - `file`: file payload
+    - `string.content`: reader.String payload
+    - `file.path`: reader.String 文件路径
 
 ## Modifiers（schema）
 
@@ -94,8 +109,10 @@ actionModifierStatus:
 
 对 request 做鉴权校验。
 
-- `header`: map[string][]string，每个 header 允许多个 regexp
-- `query`: map[string]string
+- `header`: map[string][]reader.String，每个 header 允许多个 regexp
+- `query`: map[string]reader.String
+- `ipAllowlist`: 可选，IP/CIDR 白名单（匹配任意一个则通过）
+- `ipAllowlistFile`: reader.String，可选，从 file/http/string 读取 IP/CIDR 白名单（每行一个；支持 # 注释）
 - `fallback`:
     - `type: next|jump`
     - `jumpTo`: action index（仅 `jump` 需要）
@@ -133,6 +150,7 @@ actionVersionModifier:
 
 语义：
 
+- placeholder: reader.String
 - placeholder 替换发生在响应头阶段（当前实现针对 response headers）
 
 ## Not found（约定）

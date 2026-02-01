@@ -46,7 +46,7 @@ func NewConfig() (*config.Config, error) {
 }
 
 func NewLogger(cfg *config.Config) *zap.Logger {
-	return log.NewLog(cfg.Log.Dir, cfg.Log.Level, cfg.Log.FileFormat)
+	return log.NewLog(sval(cfg.Log.Dir), sval(cfg.Log.Level), sval(cfg.Log.FileFormat))
 }
 
 func NewParams(cfg *config.Config, logger *zap.Logger) *params.Ctx {

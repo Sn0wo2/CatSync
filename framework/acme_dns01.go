@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/config/reader"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/challenge"
@@ -26,6 +27,14 @@ import (
 	"github.com/go-acme/lego/v4/registration"
 	"go.uber.org/zap"
 )
+
+func sval(r *reader.String) string {
+	if r == nil {
+		return ""
+	}
+	s, _ := r.ReadString(context.Background())
+	return strings.TrimSpace(s)
+}
 
 type providerTimeoutWrapper struct {
 	challenge.Provider
@@ -156,7 +165,7 @@ func startACMEDNS01(server *http.Server, acmeCfg *config.ServerACME, logger *zap
 		return errors.New("acme.dns01 is required")
 	}
 
-	cacheDir := strings.TrimSpace(acmeCfg.CacheDir)
+	cacheDir := sval(acmeCfg.CacheDir)
 	if cacheDir == "" {
 		cacheDir = "./data/acme"
 	}
@@ -172,11 +181,12 @@ func startACMEDNS01(server *http.Server, acmeCfg *config.ServerACME, logger *zap
 		return err
 	}
 
-	user := &legoUser{email: strings.TrimSpace(acmeCfg.Email), key: accountKey}
+	user := &legoUser{email: sval(acmeCfg.Email), key: accountKey}
 	legoCfg := lego.NewConfig(user)
 	legoCfg.CADirURL = lego.LEDirectoryProduction
-	if strings.TrimSpace(acmeCfg.DirectoryURL) != "" {
-		legoCfg.CADirURL = strings.TrimSpace(acmeCfg.DirectoryURL)
+	dirURL := sval(acmeCfg.DirectoryURL)
+	if dirURL != "" {
+		legoCfg.CADirURL = dirURL
 	}
 	legoCfg.UserAgent = "CatSync"
 	legoCfg.Certificate.KeyType = certcrypto.RSA2048
@@ -186,7 +196,7 @@ func startACMEDNS01(server *http.Server, acmeCfg *config.ServerACME, logger *zap
 		return err
 	}
 
-	providerName := strings.ToLower(strings.TrimSpace(acmeCfg.DNS01.Provider))
+	providerName := strings.ToLower(sval(acmeCfg.DNS01.Provider))
 	if providerName == "" {
 		providerName = "exec"
 	}
