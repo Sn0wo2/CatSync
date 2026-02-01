@@ -61,7 +61,11 @@ func (ctx *Framework) StartFiber() error {
 		acmeCfg := cfg.Server.ACME
 		challenge := strings.ToLower(strings.TrimSpace(acmeCfg.Challenge))
 		if challenge == "" {
-			challenge = "http-01"
+			if acmeCfg.DNS != nil {
+				challenge = "dns-01"
+			} else {
+				challenge = "http-01"
+			}
 		}
 
 		if challenge == "dns-01" {

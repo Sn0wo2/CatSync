@@ -141,42 +141,53 @@ func (c *Config) Check(logger *zap.Logger) error {
 
 	actionCount := len(c.Actions)
 
+	var errs []error
+	addErr := func(err error) {
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
 	// 0) ACME config check.
 	if c.Server.ACME != nil && c.Server.ACME.Enable {
 		if len(c.Server.ACME.Hosts) == 0 {
-			return errors.New("server.acme.hosts is required when server.acme.enable=true")
+			addErr(errors.New("server.acme.hosts is required when server.acme.enable=true"))
 		}
 
 		challenge := strings.ToLower(strings.TrimSpace(c.Server.ACME.Challenge))
 		if challenge == "" {
-			challenge = "http-01"
+			if c.Server.ACME.DNS != nil {
+				challenge = "dns-01"
+			} else {
+				challenge = "http-01"
+			}
 		}
 		if challenge != "" && challenge != "http-01" && challenge != "dns-01" {
-			return fmt.Errorf("invalid server.acme.challenge: %q (expected http-01 or dns-01)", c.Server.ACME.Challenge)
+			addErr(fmt.Errorf("invalid server.acme.challenge: %q (expected http-01 or dns-01)", c.Server.ACME.Challenge))
 		}
 		if challenge == "dns-01" {
 			if c.Server.ACME.DNS == nil {
-				return errors.New("server.acme.dns is required when server.acme.challenge=dns-01")
-			}
-
-			provider := strings.ToLower(strings.TrimSpace(c.Server.ACME.DNS.Provider))
-			if provider == "" {
-				provider = "exec"
-			}
-
-			switch provider {
-			case "exec", "cloudflare", "dnspod", "alidns", "route53":
-				// ok
-			default:
-				return fmt.Errorf("invalid server.acme.dns.provider: %q", c.Server.ACME.DNS.Provider)
-			}
-
-			if provider == "exec" {
-				if len(c.Server.ACME.DNS.PresentCmd) == 0 {
-					return errors.New("server.acme.dns.presentCmd is required for exec provider")
+				addErr(errors.New("server.acme.dns is required when server.acme.challenge=dns-01"))
+			} else {
+				provider := strings.ToLower(strings.TrimSpace(c.Server.ACME.DNS.Provider))
+				if provider == "" {
+					provider = "exec"
 				}
-				if len(c.Server.ACME.DNS.CleanUpCmd) == 0 {
-					return errors.New("server.acme.dns.cleanupCmd is required for exec provider")
+
+				switch provider {
+				case "exec", "cloudflare", "dnspod", "alidns", "route53":
+					// ok
+				default:
+					addErr(fmt.Errorf("invalid server.acme.dns.provider: %q", c.Server.ACME.DNS.Provider))
+				}
+
+				if provider == "exec" {
+					if len(c.Server.ACME.DNS.PresentCmd) == 0 {
+						addErr(errors.New("server.acme.dns.presentCmd is required for exec provider"))
+					}
+					if len(c.Server.ACME.DNS.CleanUpCmd) == 0 {
+						addErr(errors.New("server.acme.dns.cleanupCmd is required for exec provider"))
+					}
 				}
 			}
 		}
@@ -218,8 +229,16 @@ func (c *Config) Check(logger *zap.Logger) error {
 			return nil
 		}
 
+		var authErrs []error
+		addAuthErr := func(err error) {
+			if err != nil {
+				authErrs = append(authErrs, err)
+			}
+		}
+
 		if auth.Fallback == nil || auth.Fallback.Type == "" {
-			return fmt.Errorf("auth fallback is required at %s", where)
+			addAuthErr(fmt.Errorf("auth fallback is required at %s", where))
+			return errors.Join(authErrs...)
 		}
 
 		switch auth.Fallback.Type {
@@ -227,44 +246,41 @@ func (c *Config) Check(logger *zap.Logger) error {
 			// ok
 		case AuthFallbackJump:
 			if actionCount == 0 {
-				return fmt.Errorf("auth fallback jumpTo out of range at %s: no actions", where)
+				addAuthErr(fmt.Errorf("auth fallback jumpTo out of range at %s: no actions", where))
+				return errors.Join(authErrs...)
 			}
 
 			if auth.Fallback.JumpTo < 0 || auth.Fallback.JumpTo >= actionCount {
-				return fmt.Errorf("auth fallback jumpTo out of range at %s: %d", where, auth.Fallback.JumpTo)
+				addAuthErr(fmt.Errorf("auth fallback jumpTo out of range at %s: %d", where, auth.Fallback.JumpTo))
 			}
 		default:
-			return fmt.Errorf("invalid auth fallback type at %s: %q", where, auth.Fallback.Type)
+			addAuthErr(fmt.Errorf("invalid auth fallback type at %s: %q", where, auth.Fallback.Type))
 		}
 
 		for k, patterns := range auth.Header {
 			for _, pat := range patterns {
 				if _, err := util.GetCompiledRegexp(pat); err != nil {
-					return fmt.Errorf("invalid auth header regexp at %s (header=%q, pattern=%q): %w", where, k, pat, err)
+					addAuthErr(fmt.Errorf("invalid auth header regexp at %s (header=%q, pattern=%q): %w", where, k, pat, err))
 				}
 			}
 		}
 
 		for k, pat := range auth.Query {
 			if _, err := util.GetCompiledRegexp(pat); err != nil {
-				return fmt.Errorf("invalid auth query regexp at %s (key=%q, pattern=%q): %w", where, k, pat, err)
+				addAuthErr(fmt.Errorf("invalid auth query regexp at %s (key=%q, pattern=%q): %w", where, k, pat, err))
 			}
 		}
 
-		return nil
+		return errors.Join(authErrs...)
 	}
 
 	// Global modifiers checks.
 	for i, gm := range c.Modifiers {
 		if gm.ActionModifierStatus != nil {
-			if err := checkStatus(fmt.Sprintf("modifiers[%d].actionModifierStatus", i), gm.Status); err != nil {
-				return err
-			}
+			addErr(checkStatus(fmt.Sprintf("modifiers[%d].actionModifierStatus", i), gm.Status))
 		}
 
-		if err := checkAuth(fmt.Sprintf("modifiers[%d].actionModifierAuth", i), gm.ActionModifierAuth); err != nil {
-			return err
-		}
+		addErr(checkAuth(fmt.Sprintf("modifiers[%d].actionModifierAuth", i), gm.ActionModifierAuth))
 	}
 
 	// Actions checks.
@@ -276,52 +292,42 @@ func (c *Config) Check(logger *zap.Logger) error {
 			)
 		} else {
 			if _, err := util.GetCompiledRegexp(act.Route); err != nil {
-				return fmt.Errorf("invalid action route regexp at actions[%d].route (%q): %w", i, act.Route, err)
+				addErr(fmt.Errorf("invalid action route regexp at actions[%d].route (%q): %w", i, act.Route, err))
 			}
 		}
 
 		if act.ActionModifierStatus != nil {
-			if err := checkStatus(fmt.Sprintf("actions[%d].actionModifierStatus", i), act.Status); err != nil {
-				return err
-			}
+			addErr(checkStatus(fmt.Sprintf("actions[%d].actionModifierStatus", i), act.Status))
 		}
 
-		if err := checkAuth(fmt.Sprintf("actions[%d].actionModifierAuth", i), act.ActionModifierAuth); err != nil {
-			return err
-		}
+		addErr(checkAuth(fmt.Sprintf("actions[%d].actionModifierAuth", i), act.ActionModifierAuth))
 
 		// Validate payload presence and payload-level modifiers.
 		switch act.Type {
 		case ActionString:
 			if act.ActionString == nil {
-				return fmt.Errorf("actions[%d] type=string but string is nil", i)
+				addErr(fmt.Errorf("actions[%d] type=string but string is nil", i))
+				break
 			}
 
 			if act.ActionString.ActionModifierStatus != nil {
-				if err := checkStatus(fmt.Sprintf("actions[%d].string.actionModifierStatus", i), act.ActionString.Status); err != nil {
-					return err
-				}
+				addErr(checkStatus(fmt.Sprintf("actions[%d].string.actionModifierStatus", i), act.ActionString.Status))
 			}
 
-			if err := checkAuth(fmt.Sprintf("actions[%d].string.actionModifierAuth", i), act.ActionString.ActionModifierAuth); err != nil {
-				return err
-			}
+			addErr(checkAuth(fmt.Sprintf("actions[%d].string.actionModifierAuth", i), act.ActionString.ActionModifierAuth))
 		case ActionFile:
 			if act.ActionFile == nil {
-				return fmt.Errorf("actions[%d] type=file but file is nil", i)
+				addErr(fmt.Errorf("actions[%d] type=file but file is nil", i))
+				break
 			}
 
 			if act.ActionFile.ActionModifierStatus != nil {
-				if err := checkStatus(fmt.Sprintf("actions[%d].file.actionModifierStatus", i), act.ActionFile.Status); err != nil {
-					return err
-				}
+				addErr(checkStatus(fmt.Sprintf("actions[%d].file.actionModifierStatus", i), act.ActionFile.Status))
 			}
 
-			if err := checkAuth(fmt.Sprintf("actions[%d].file.actionModifierAuth", i), act.ActionFile.ActionModifierAuth); err != nil {
-				return err
-			}
+			addErr(checkAuth(fmt.Sprintf("actions[%d].file.actionModifierAuth", i), act.ActionFile.ActionModifierAuth))
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }

@@ -22,7 +22,7 @@
         - `cacheDir`: 证书缓存目录（默认 `./data/acme`）
         - `directoryURL`: 可选，ACME Directory URL（可用于 staging）
         - `httpAddress`: HTTP-01 challenge 监听地址（默认 `:80`；仅 challenge=http-01 时使用）
-        - `challenge`: `http-01` 或 `dns-01`（默认 `http-01`）
+        - `challenge`: `http-01` 或 `dns-01`（默认：配置了 `dns` 时为 `dns-01`，否则为 `http-01`）
         - `dns`（challenge=dns-01 时使用）
             - `provider`: `exec`（默认）或 `cloudflare`/`dnspod`/`alidns`/`route53`（需要编译 tag 才会内置）
             - `presentCmd`: 添加 TXT 记录的命令（argv 数组）
