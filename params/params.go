@@ -7,78 +7,75 @@ import (
 )
 
 type Ctx struct {
-	vals map[any]any
+	cfg    *config.Config
+	logger *zap.Logger
+	fw     *framework.Framework
+
+	extra ExtraStore
 }
 
 func New() *Ctx {
-	return &Ctx{vals: map[any]any{}}
+	return &Ctx{}
 }
 
-func Set[K comparable, V any](c *Ctx, key K, value V) *Ctx {
+func (c *Ctx) GetConfig() *config.Config {
+	if c == nil {
+		return nil
+	}
+
+	return c.cfg
+}
+
+func (c *Ctx) SetConfig(cfg *config.Config) *Ctx {
 	if c == nil {
 		c = &Ctx{}
 	}
 
-	if c.vals == nil {
-		c.vals = map[any]any{}
-	}
-
-	c.vals[key] = value
+	c.cfg = cfg
 
 	return c
 }
 
-func Get[K comparable, V any](c *Ctx, key K) (V, bool) {
-	var zero V
-	if c == nil {
-		return zero, false
-	}
-
-	v, ok := c.vals[key]
-	if !ok {
-		return zero, false
-	}
-
-	vv, ok := v.(V)
-	if !ok {
-		return zero, false
-	}
-
-	return vv, true
-}
-
-func (c *Ctx) GetConfig() *config.Config {
-	cfg, _ := Get[Config, *config.Config](c, Config{})
-
-	return cfg
-}
-
-func (c *Ctx) SetConfig(cfg *config.Config) *Ctx {
-	return Set[Config, *config.Config](c, Config{}, cfg)
-}
-
 func (c *Ctx) GetLogger() *zap.Logger {
-	logger, _ := Get[Logger, *zap.Logger](c, Logger{})
+	if c == nil {
+		return nil
+	}
 
-	return logger
+	return c.logger
 }
 
 func (c *Ctx) SetLogger(logger *zap.Logger) *Ctx {
-	return Set[Logger, *zap.Logger](c, Logger{}, logger)
+	if c == nil {
+		c = &Ctx{}
+	}
+
+	c.logger = logger
+
+	return c
 }
 
 func (c *Ctx) GetFramework() *framework.Framework {
-	fw, _ := Get[Framework, *framework.Framework](c, Framework{})
+	if c == nil {
+		return nil
+	}
 
-	return fw
+	return c.fw
 }
 
 func (c *Ctx) SetFramework(fw *framework.Framework) *Ctx {
-	return Set[Framework, *framework.Framework](c, Framework{}, fw)
+	if c == nil {
+		c = &Ctx{}
+	}
+
+	c.fw = fw
+
+	return c
 }
 
-type (
-	Config    struct{}
-	Logger    struct{}
-	Framework struct{}
-)
+func (c *Ctx) Extra() *ExtraStore {
+	if c == nil {
+		return nil
+	}
+
+	return &c.extra
+}
