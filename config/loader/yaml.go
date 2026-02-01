@@ -1,3 +1,5 @@
+//go:build catsync_all || feature_config_yaml
+
 package loader
 
 import (
