@@ -41,6 +41,16 @@
 - msg: `page not found\n`
 - Content-Type: text/plain; charset=utf-8
 
+## TLS / ACME
+
+默认配置不启用 TLS。
+
+如果想启用自动签发证书（ACME / Let's Encrypt），可以在配置里增加 `server.acme`（需要可用域名，并且通常需要占用 `:80` 做 HTTP-01 challenge）。
+
+`http-01` 场景下，HTTP -> HTTPS 的 301 跳转可通过 `server.tls.redirectHttp` 控制（默认 true）。
+
+如果你的服务无法对外开放 `:80`（例如只在内网/反代后面），可以使用 `challenge: dns-01`，通过 DNS TXT 记录完成验证。
+
 ## 调试建议
 
 ### 验证 auth

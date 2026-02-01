@@ -141,6 +141,47 @@ func (c *Config) Check(logger *zap.Logger) error {
 
 	actionCount := len(c.Actions)
 
+	// 0) ACME config check.
+	if c.Server.ACME != nil && c.Server.ACME.Enable {
+		if len(c.Server.ACME.Hosts) == 0 {
+			return errors.New("server.acme.hosts is required when server.acme.enable=true")
+		}
+
+		challenge := strings.ToLower(strings.TrimSpace(c.Server.ACME.Challenge))
+		if challenge == "" {
+			challenge = "http-01"
+		}
+		if challenge != "" && challenge != "http-01" && challenge != "dns-01" {
+			return fmt.Errorf("invalid server.acme.challenge: %q (expected http-01 or dns-01)", c.Server.ACME.Challenge)
+		}
+		if challenge == "dns-01" {
+			if c.Server.ACME.DNS == nil {
+				return errors.New("server.acme.dns is required when server.acme.challenge=dns-01")
+			}
+
+			provider := strings.ToLower(strings.TrimSpace(c.Server.ACME.DNS.Provider))
+			if provider == "" {
+				provider = "exec"
+			}
+
+			switch provider {
+			case "exec", "cloudflare", "dnspod", "alidns", "route53":
+				// ok
+			default:
+				return fmt.Errorf("invalid server.acme.dns.provider: %q", c.Server.ACME.DNS.Provider)
+			}
+
+			if provider == "exec" {
+				if len(c.Server.ACME.DNS.PresentCmd) == 0 {
+					return errors.New("server.acme.dns.presentCmd is required for exec provider")
+				}
+				if len(c.Server.ACME.DNS.CleanUpCmd) == 0 {
+					return errors.New("server.acme.dns.cleanupCmd is required for exec provider")
+				}
+			}
+		}
+	}
+
 	// 1) Notfound behavior: always the last action.
 	if actionCount == 0 {
 		logger.Warn("Config >> no actions configured; router will fall through to fiber (ctx.Next())")

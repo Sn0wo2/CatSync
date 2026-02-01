@@ -2,6 +2,7 @@ package framework
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Sn0wo2/CatSync/config"
@@ -44,17 +45,34 @@ func NewFiber(p Provider) *Framework {
 }
 
 func (ctx *Framework) StartFiber() error {
+	cfg := ctx.GetConfig()
+	logger := ctx.GetLogger()
+
 	server := &http.Server{
-		Addr:         ctx.GetConfig().Server.Address,
+		Addr:         cfg.Server.Address,
 		Handler:      adaptor.FiberApp(ctx.App),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
-		ErrorLog:     zap.NewStdLog(ctx.GetLogger()),
+		ErrorLog:     zap.NewStdLog(logger),
 	}
 
-	if ctx.GetConfig().Server.TLS.Cert != "" && ctx.GetConfig().Server.TLS.Key != "" {
-		return server.ListenAndServeTLS(ctx.GetConfig().Server.TLS.Cert, ctx.GetConfig().Server.TLS.Key)
+	if cfg.Server.ACME != nil && cfg.Server.ACME.Enable {
+		acmeCfg := cfg.Server.ACME
+		challenge := strings.ToLower(strings.TrimSpace(acmeCfg.Challenge))
+		if challenge == "" {
+			challenge = "http-01"
+		}
+
+		if challenge == "dns-01" {
+			return startACMEDNS01(server, acmeCfg, logger)
+		}
+
+		return startACMEHTTP01(server, cfg, acmeCfg, logger)
+	}
+
+	if cfg.Server.TLS.Cert != "" && cfg.Server.TLS.Key != "" {
+		return server.ListenAndServeTLS(cfg.Server.TLS.Cert, cfg.Server.TLS.Key)
 	}
 
 	return server.ListenAndServe()

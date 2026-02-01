@@ -24,8 +24,9 @@ type Log struct {
 }
 
 type Server struct {
-	Address string    `json:"address" yaml:"address"`
-	TLS     ServerTLS `json:"tls"     optional:"true" yaml:"tls"`
+	Address string      `json:"address" yaml:"address"`
+	TLS     ServerTLS   `json:"tls"     optional:"true" yaml:"tls"`
+	ACME    *ServerACME `json:"acme,omitempty" optional:"true" yaml:"acme,omitempty"`
 }
 
 // GlobalModifier
@@ -41,6 +42,46 @@ type GlobalModifier struct {
 type ServerTLS struct {
 	Cert string `json:"cert" yaml:"cert"`
 	Key  string `json:"key"  yaml:"key"`
+
+	// RedirectHTTP controls whether non-challenge HTTP requests are redirected to https.
+	// When omitted, the default is true (only meaningful for ACME http-01).
+	RedirectHTTP *bool `json:"redirectHttp,omitempty" optional:"true" yaml:"redirectHttp,omitempty"`
+}
+
+// ServerACME enables automatic TLS certificates via ACME (e.g. Let's Encrypt).
+//
+// Note: HTTP-01 challenge usually requires binding an HTTP address (default :80).
+// If you run behind a reverse proxy, you can disable httpAddress and terminate
+// the challenge upstream.
+type ServerACME struct {
+	Enable       bool     `json:"enable,omitempty"       optional:"true" yaml:"enable,omitempty"`
+	Email        string   `json:"email,omitempty"        optional:"true" yaml:"email,omitempty"`
+	CacheDir     string   `json:"cacheDir,omitempty"     optional:"true" yaml:"cacheDir,omitempty"`
+	Hosts        []string `json:"hosts,omitempty"        optional:"true" yaml:"hosts,omitempty"`
+	DirectoryURL string   `json:"directoryURL,omitempty" optional:"true" yaml:"directoryURL,omitempty"`
+	HTTPAddress  string   `json:"httpAddress,omitempty"  optional:"true" yaml:"httpAddress,omitempty"`
+
+	// challenge: http-01|dns-01 (default http-01)
+	Challenge string         `json:"challenge,omitempty" optional:"true" yaml:"challenge,omitempty"`
+	DNS       *ServerACMEDNS `json:"dns,omitempty" optional:"true" yaml:"dns,omitempty"`
+}
+
+// ServerACMEDNS configures DNS-01 challenge.
+//
+// This project uses lego under the hood for DNS-01.
+// Provider options:
+// - exec: run external commands to create/remove TXT records.
+// - cloudflare/dnspod/alidns/route53: use lego built-in providers (may require build tags).
+type ServerACMEDNS struct {
+	Provider string `json:"provider,omitempty" optional:"true" yaml:"provider,omitempty"`
+
+	// exec provider: command array (argv style). Supported placeholders:
+	// {DOMAIN} {FQDN} {VALUE} {TOKEN} {KEYAUTH}
+	PresentCmd []string `json:"presentCmd,omitempty" optional:"true" yaml:"presentCmd,omitempty"`
+	CleanUpCmd []string `json:"cleanupCmd,omitempty" optional:"true" yaml:"cleanupCmd,omitempty"`
+
+	PropagationTimeoutSeconds int `json:"propagationTimeoutSeconds,omitempty" optional:"true" yaml:"propagationTimeoutSeconds,omitempty"`
+	PollingIntervalSeconds    int `json:"pollingIntervalSeconds,omitempty"    optional:"true" yaml:"pollingIntervalSeconds,omitempty"`
 }
 
 type Action struct {
