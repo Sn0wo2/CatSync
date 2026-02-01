@@ -38,6 +38,42 @@ func Str(s string) *String {
 	return &String{Type: StringTypeString, Content: s}
 }
 
+func Get(r *String) (string, error) {
+	if r == nil {
+		return "", nil
+	}
+
+	return r.ReadString(context.Background())
+}
+
+func Must(r *String) string {
+	s, _ := Get(r)
+
+	return s
+}
+
+func Trim(r *String) string {
+	return strings.TrimSpace(Must(r))
+}
+
+func Literal(r *String) (string, bool) {
+	if r == nil {
+		return "", true
+	}
+
+	if r.Type == "" || r.Type == StringTypeString {
+		return r.Content, true
+	}
+
+	return "", false
+}
+
+func LiteralTrim(r *String) (string, bool) {
+	s, ok := Literal(r)
+
+	return strings.TrimSpace(s), ok
+}
+
 func (r *String) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err == nil {
@@ -107,6 +143,33 @@ func (r *String) Validate() error {
 		return nil
 	case StringTypePath:
 		return validatePath(r.Content)
+	case StringTypeHTTP:
+		_, err := parseHTTPURL(r.Content)
+
+		return err
+	default:
+		return fmt.Errorf("invalid type: %q", r.Type)
+	}
+}
+
+// ValidateNoIO validates basic structure without performing I/O.
+//
+// - type=path: does NOT stat the file
+// - type=http: validates URL format only
+func (r *String) ValidateNoIO() error {
+	if r == nil {
+		return nil
+	}
+
+	if strings.TrimSpace(r.Content) == "" {
+		return errors.New("content is empty")
+	}
+
+	switch r.Type {
+	case "", StringTypeString, StringTypeAuto:
+		return nil
+	case StringTypePath:
+		return nil
 	case StringTypeHTTP:
 		_, err := parseHTTPURL(r.Content)
 

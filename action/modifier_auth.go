@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -15,6 +16,11 @@ import (
 
 type AuthModifier struct {
 	auth config.ActionModifierAuth
+
+	reOnce   sync.Once
+	headerRE map[string][]*regexp.Regexp
+	queryRE  map[string]*regexp.Regexp
+	reErr    error
 
 	ipOnce sync.Once
 	ipWL   *ipAllowlist
@@ -33,6 +39,17 @@ func NewAuthModifier(auth config.ActionModifierAuth) *AuthModifier {
 func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 	return WrapHandlerWithHooks(handler).Before(func(p *ProcessData) (*ProcessData, error) {
 		logger := p.Ctx.GetLogger()
+
+		m.reOnce.Do(m.initRegex)
+
+		if m.reErr != nil {
+			logger.Warn("Auth >> Failed to init auth regex",
+				zap.Error(m.reErr),
+				zap.String("ctx", util.FiberContextString(p.C)),
+			)
+
+			return m.handleFallback()
+		}
 
 		m.ipOnce.Do(func() { m.initIPAllowlist(logger) })
 
@@ -65,7 +82,7 @@ func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 		// Header checks
 		reqHeaders := p.C.GetReqHeaders()
 
-		for k, patterns := range m.auth.Header {
+		for k, res := range m.headerRE {
 			var values []string
 
 			for hk, hv := range reqHeaders {
@@ -90,27 +107,7 @@ func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 			matched := false
 
 			for _, v := range values {
-				for _, pattern := range patterns {
-					pat, err := readPattern(pattern)
-					if err != nil {
-						logger.Warn("Auth >> Invalid header pattern",
-							zap.String("header", k),
-							zap.Error(err),
-						)
-
-						continue
-					}
-
-					re, err := util.GetCompiledRegexp(pat)
-					if err != nil {
-						logger.Warn("Auth >> Invalid header regexp",
-							zap.String("pattern", pat),
-							zap.Error(err),
-						)
-
-						continue
-					}
-
+				for _, re := range res {
 					if re.MatchString(v) {
 						matched = true
 
@@ -126,7 +123,7 @@ func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 			if !matched {
 				logger.Info("Auth >> Header value not matched",
 					zap.String("header", k),
-					zap.Any("patterns", patterns),
+					zap.Any("patterns", m.auth.Header[k]),
 					zap.Any("actual", values),
 					zap.String("ctx", util.FiberContextString(p.C)),
 				)
@@ -136,31 +133,11 @@ func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 		}
 
 		// Query checks
-		for k, v := range m.auth.Query {
-			pat, err := readPattern(v)
-			if err != nil {
-				logger.Warn("Auth >> Invalid query pattern",
-					zap.String("key", k),
-					zap.Error(err),
-				)
-
-				continue
-			}
-
-			re, err := util.GetCompiledRegexp(pat)
-			if err != nil {
-				logger.Warn("Auth >> Invalid query regexp",
-					zap.String("pattern", pat),
-					zap.Error(err),
-				)
-
-				continue
-			}
-
+		for k, re := range m.queryRE {
 			if !re.MatchString(p.C.Query(k)) {
 				logger.Info("Auth >> Query value not matched",
 					zap.String("key", k),
-					zap.String("pattern", pat),
+					zap.Any("pattern", m.auth.Query[k]),
 					zap.String("actual", p.C.Query(k)),
 					zap.String("ctx", util.FiberContextString(p.C)),
 				)
@@ -173,12 +150,54 @@ func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 	})
 }
 
-func readPattern(r *reader.String) (string, error) {
-	if r == nil {
-		return "", errors.New("empty pattern")
+func (m *AuthModifier) initRegex() {
+	// Pre-compile patterns so per-request does not hit regexp cache locks.
+	if len(m.auth.Header) > 0 {
+		m.headerRE = make(map[string][]*regexp.Regexp, len(m.auth.Header))
+		for k, patterns := range m.auth.Header {
+			out := make([]*regexp.Regexp, 0, len(patterns))
+			for _, p := range patterns {
+				pat, ok := reader.LiteralTrim(p)
+				if !ok {
+					m.reErr = errors.New("auth.header pattern must be literal string")
+
+					return
+				}
+
+				re, err := util.GetCompiledRegexp(pat)
+				if err != nil {
+					m.reErr = err
+
+					return
+				}
+
+				out = append(out, re)
+			}
+
+			m.headerRE[k] = out
+		}
 	}
 
-	return r.ReadString(context.Background())
+	if len(m.auth.Query) > 0 {
+		m.queryRE = make(map[string]*regexp.Regexp, len(m.auth.Query))
+		for k, p := range m.auth.Query {
+			pat, ok := reader.LiteralTrim(p)
+			if !ok {
+				m.reErr = errors.New("auth.query pattern must be literal string")
+
+				return
+			}
+
+			re, err := util.GetCompiledRegexp(pat)
+			if err != nil {
+				m.reErr = err
+
+				return
+			}
+
+			m.queryRE[k] = re
+		}
+	}
 }
 
 func (m *AuthModifier) initIPAllowlist(logger *zap.Logger) {

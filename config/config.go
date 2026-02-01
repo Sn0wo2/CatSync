@@ -1,7 +1,6 @@
 package config
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -14,16 +13,6 @@ import (
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"go.uber.org/zap"
 )
-
-func rstr(r *reader.String) string {
-	if r == nil {
-		return ""
-	}
-
-	s, _ := r.ReadString(context.Background())
-
-	return strings.TrimSpace(s)
-}
 
 func init() {
 	util.DefaultConfigProvider = func() (any, bool) {
@@ -179,7 +168,14 @@ func checkACME(c *Config, add func(error)) {
 		return
 	}
 
-	provider := strings.ToLower(rstr(c.Server.ACME.DNS01.Provider))
+	provider, ok := reader.LiteralTrim(c.Server.ACME.DNS01.Provider)
+	if !ok {
+		add(errors.New("server.acme.dns01.provider must be a literal string (type=string)"))
+
+		return
+	}
+
+	provider = strings.ToLower(provider)
 	if provider == "" {
 		provider = defaultDNSExec
 	}
@@ -188,7 +184,7 @@ func checkACME(c *Config, add func(error)) {
 	case defaultDNSExec, "cloudflare", "dnspod", "alidns", "route53":
 		// ok
 	default:
-		add(fmt.Errorf("invalid server.acme.dns01.provider: %q", rstr(c.Server.ACME.DNS01.Provider)))
+		add(fmt.Errorf("invalid server.acme.dns01.provider: %q", provider))
 	}
 
 	if provider != defaultDNSExec {
@@ -254,7 +250,19 @@ func checkAuth(where string, auth *ActionModifierAuth, actionCount int) error {
 
 	for k, patterns := range auth.Header {
 		for _, pr := range patterns {
-			pat := rstr(pr)
+			pat, ok := reader.LiteralTrim(pr)
+			if !ok {
+				addAuthErr(fmt.Errorf("auth.header pattern must be literal string at %s (header=%q)", where, k))
+
+				continue
+			}
+
+			if pat == "" {
+				addAuthErr(fmt.Errorf("auth.header pattern is empty at %s (header=%q)", where, k))
+
+				continue
+			}
+
 			if _, err := util.GetCompiledRegexp(pat); err != nil {
 				addAuthErr(fmt.Errorf("invalid auth header regexp at %s (header=%q, pattern=%q): %w", where, k, pat, err))
 			}
@@ -262,7 +270,19 @@ func checkAuth(where string, auth *ActionModifierAuth, actionCount int) error {
 	}
 
 	for k, pr := range auth.Query {
-		pat := rstr(pr)
+		pat, ok := reader.LiteralTrim(pr)
+		if !ok {
+			addAuthErr(fmt.Errorf("auth.query pattern must be literal string at %s (key=%q)", where, k))
+
+			continue
+		}
+
+		if pat == "" {
+			addAuthErr(fmt.Errorf("auth.query pattern is empty at %s (key=%q)", where, k))
+
+			continue
+		}
+
 		if _, err := util.GetCompiledRegexp(pat); err != nil {
 			addAuthErr(fmt.Errorf("invalid auth query regexp at %s (key=%q, pattern=%q): %w", where, k, pat, err))
 		}
@@ -290,7 +310,7 @@ func checkAuth(where string, auth *ActionModifierAuth, actionCount int) error {
 	}
 
 	if auth.IPFile != nil {
-		if err := auth.IPFile.Validate(); err != nil {
+		if err := auth.IPFile.ValidateNoIO(); err != nil {
 			addAuthErr(fmt.Errorf("invalid auth ipAllowlistFile at %s: %w", where, err))
 
 			return errors.Join(authErrs...)
@@ -314,7 +334,13 @@ func checkGlobalModifiers(c *Config, add func(error)) {
 func checkActions(c *Config, logger *zap.Logger, add func(error)) {
 	actionCount := len(c.Actions)
 	for i, act := range c.Actions {
-		route := rstr(act.Route)
+		route, ok := reader.LiteralTrim(act.Route)
+		if !ok {
+			add(fmt.Errorf("actions[%d].route must be a literal string (type=string)", i))
+
+			route = ""
+		}
+
 		if route == "" {
 			logger.Warn("Config >> action route is empty; action is jump-only",
 				zap.Int("index", i),
