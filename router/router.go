@@ -5,6 +5,7 @@ import (
 	"github.com/Sn0wo2/CatSync/router/handler"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
 func Init(c *params.Ctx) {
@@ -13,6 +14,7 @@ func Init(c *params.Ctx) {
 		panic("framework not found")
 	}
 
+	app.Use(recover.New())
 	app.Use(compress.New(compress.Config{
 		Level: compress.LevelBestSpeed,
 	}), cors.New())
