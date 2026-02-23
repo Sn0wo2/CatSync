@@ -69,6 +69,12 @@ func buildPayloadModifiers(data config.ActionData) []action.Modifier {
 		}
 
 		return buildModifiersFromGlobalModifier(&v.GlobalModifier)
+	case *config.ActionServerData:
+		if v == nil {
+			return nil
+		}
+
+		return buildModifiersFromGlobalModifier(&v.GlobalModifier)
 	}
 
 	return nil

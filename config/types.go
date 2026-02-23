@@ -108,6 +108,8 @@ type Action struct {
 	// --- Action Datas ---
 	ActionFile   *ActionFileData   `json:"file,omitempty"   optional:"true" yaml:"file,omitempty"`
 	ActionString *ActionStringData `json:"string,omitempty" optional:"true" yaml:"string,omitempty"`
+	ActionServer *ActionServerData `json:"server,omitempty" optional:"true" yaml:"server,omitempty"`
+	ActionReload *ActionReloadData `json:"reload,omitempty" optional:"true" yaml:"reload,omitempty"`
 }
 
 type ActionType string
@@ -115,6 +117,8 @@ type ActionType string
 const (
 	ActionFile   ActionType = "file"
 	ActionString ActionType = "string"
+	ActionServer ActionType = "server"
+	ActionReload ActionType = "reload"
 )
 
 type ActionData interface {
@@ -129,6 +133,22 @@ type ActionFileData struct {
 }
 
 func (a *ActionFileData) action() {}
+
+type ActionServerData struct {
+	GlobalModifier `yaml:",inline"`
+
+	Directory    *reader.String   `json:"directory"  yaml:"directory"`
+	IndexFiles   []*reader.String `json:"indexFiles,omitempty" optional:"true" yaml:"indexFiles,omitempty"`
+	NotFoundHTML *reader.String   `json:"notFoundHTML,omitempty" optional:"true" yaml:"notFoundHTML,omitempty"`
+}
+
+func (a *ActionServerData) action() {}
+
+type ActionReloadData struct {
+	GlobalModifier `yaml:",inline"`
+}
+
+func (a *ActionReloadData) action() {}
 
 type ActionStringData struct {
 	GlobalModifier `yaml:",inline"`
