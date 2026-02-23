@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 
@@ -21,12 +22,6 @@ var (
 	currentConfigLock sync.RWMutex
 )
 
-func init() {
-	util.DefaultConfigProvider = func() (any, bool) {
-		return GetDefaultConfig(), true
-	}
-}
-
 func SetCurrentConfig(cfg *Config) {
 	currentConfigLock.Lock()
 	defer currentConfigLock.Unlock()
@@ -39,13 +34,56 @@ func GetCurrentConfig() *Config {
 	return currentConfig
 }
 
+func (c *Config) resetStrings() {
+	resetStringsRecursive(reflect.ValueOf(c).Elem())
+}
+
+func resetStringsRecursive(v reflect.Value) {
+	switch v.Kind() {
+	case reflect.Ptr:
+		if v.IsNil() {
+			return
+		}
+		resetStringsRecursive(v.Elem())
+	case reflect.Struct:
+		t := v.Type()
+		for i := 0; i < t.NumField(); i++ {
+			field := v.Field(i)
+			fieldType := t.Field(i)
+
+			if fieldType.Type == reflect.TypeOf((*reader.String)(nil)) {
+				if str, ok := field.Addr().Interface().(*reader.String); ok {
+					str.Reset()
+					continue
+				}
+			}
+
+			resetStringsRecursive(field)
+		}
+	case reflect.Slice:
+		for i := 0; i < v.Len(); i++ {
+			resetStringsRecursive(v.Index(i))
+		}
+	case reflect.Map:
+		for _, key := range v.MapKeys() {
+			resetStringsRecursive(v.MapIndex(key))
+		}
+	}
+}
+
+func init() {
+	util.DefaultConfigProvider = func() (any, bool) {
+		return GetDefaultConfig(), true
+	}
+}
+
 func (c *Config) Reload(loaders ...Loader) error {
 	newCfg, err := New(loaders...)
 	if err != nil {
 		return err
 	}
 
-	reader.ResetAllStrings(newCfg)
+	newCfg.resetStrings()
 
 	currentConfigLock.Lock()
 	currentConfig = newCfg

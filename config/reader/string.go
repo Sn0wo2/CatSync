@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -307,56 +306,6 @@ func (r *String) Reset() {
 	r.loaded = false
 	r.value = ""
 	r.err = nil
-}
-
-func ResetAllStrings(cfg interface{}) {
-	if cfg == nil {
-		return
-	}
-
-	v := reflect.ValueOf(cfg)
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-
-	if v.Kind() != reflect.Struct {
-		return
-	}
-
-	resetStringsRecursive(v)
-}
-
-func resetStringsRecursive(v reflect.Value) {
-	switch v.Kind() {
-	case reflect.Ptr:
-		if v.IsNil() {
-			return
-		}
-		resetStringsRecursive(v.Elem())
-	case reflect.Struct:
-		t := v.Type()
-		for i := 0; i < t.NumField(); i++ {
-			field := v.Field(i)
-			fieldType := t.Field(i)
-
-			if fieldType.Type == reflect.TypeOf((*String)(nil)) {
-				if stringPtr, ok := field.Addr().Interface().(*String); ok {
-					stringPtr.Reset()
-					continue
-				}
-			}
-
-			resetStringsRecursive(field)
-		}
-	case reflect.Slice:
-		for i := 0; i < v.Len(); i++ {
-			resetStringsRecursive(v.Index(i))
-		}
-	case reflect.Map:
-		for _, key := range v.MapKeys() {
-			resetStringsRecursive(v.MapIndex(key))
-		}
-	}
 }
 
 func (r *String) ReadLines(ctx context.Context) ([]string, error) {
