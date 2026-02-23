@@ -1,0 +1,36 @@
+# CatSync Configuration
+# YAML 支持通过 $schema 字段来验证配置（需要 IDE 支持，如 VSCode）
+$schema: ./config.schema.json
+
+log:
+  level: debug
+  dir: ./logs
+  fileFormat: "2006-01-02.log"
+
+server:
+  address: :3000
+
+modifiers:
+  - actionModifierResponseHeader:
+      header:
+        Server:
+          - CatSync
+        X-CatSync-Version:
+          - ${VERSION}
+
+actions:
+  - route: ^/$
+    type: server
+    directory: server/welcome
+
+  - route: ^/public/hello\.txt$
+    type: file
+    file:
+      path: ./data/hello.txt
+
+  - route: ""
+    type: string
+    actionModifierStatus:
+      status: 404
+    string:
+      content: "page not found"
