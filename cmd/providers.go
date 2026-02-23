@@ -36,17 +36,22 @@ func NewConfig() (*config.Config, error) {
 				return nil, err
 			}
 
+			log.Write("Using default config, saved to: %s", savePath)
+			config.SetCurrentConfig(cfg)
 			return cfg, nil
 		}
 
 		return nil, err
 	}
 
+	config.SetCurrentConfig(cfg)
 	return cfg, nil
 }
 
 func NewLogger(cfg *config.Config) *zap.Logger {
-	return log.NewLog(sval(cfg.Log.Dir), sval(cfg.Log.Level), sval(cfg.Log.FileFormat))
+	logger := log.NewLog(sval(cfg.Log.Dir), sval(cfg.Log.Level), sval(cfg.Log.FileFormat))
+	log.Flush(logger)
+	return logger
 }
 
 func NewParams(cfg *config.Config, logger *zap.Logger) *params.Ctx {
