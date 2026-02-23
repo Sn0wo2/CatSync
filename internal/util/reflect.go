@@ -23,8 +23,9 @@ func Merge[T any](dst, src *T) {
 			continue
 		}
 
-		if !srcField.IsZero() {
-			dstVal.Field(i).Set(srcField)
+		dstField := dstVal.Field(i)
+		if dstField.IsZero() && !srcField.IsZero() {
+			dstField.Set(srcField)
 		}
 	}
 }
