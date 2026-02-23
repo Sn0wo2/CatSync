@@ -146,6 +146,10 @@ func (e *Executor) ExecuteAt(index int) (Result, error) {
 		if act.ActionFile == nil {
 			return Result{}, fmt.Errorf("action[%d] type=file but file is nil", index)
 		}
+	case config.ActionServer:
+		if act.ActionServer == nil {
+			return Result{}, fmt.Errorf("action[%d] type=server but server is nil", index)
+		}
 	}
 
 	h := action.WrapHandler(baseHandler)
@@ -173,6 +177,10 @@ func (e *Executor) ExecuteAt(index int) (Result, error) {
 		payload = act.ActionFile
 	case config.ActionString:
 		payload = act.ActionString
+	case config.ActionServer:
+		payload = act.ActionServer
+	case config.ActionReload:
+		payload = act.ActionReload
 	}
 
 	if e.builders.Payload != nil {
@@ -190,6 +198,13 @@ func (e *Executor) ExecuteAt(index int) (Result, error) {
 	case config.ActionFile:
 		if act.ActionFile != nil && act.ActionFile.ActionModifierVersion != nil {
 			ph := reader.Must(act.ActionFile.Placeholder)
+			if ph != "" {
+				h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(ph).WithValue(version.GetFormatVersion()))
+			}
+		}
+	case config.ActionServer:
+		if act.ActionServer != nil && act.ActionServer.ActionModifierVersion != nil {
+			ph := reader.Must(act.ActionServer.Placeholder)
 			if ph != "" {
 				h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(ph).WithValue(version.GetFormatVersion()))
 			}

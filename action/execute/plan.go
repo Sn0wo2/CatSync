@@ -83,6 +83,8 @@ func Compile(cfg *config.Config, builders Builders) (*Plan, error) {
 			payload = act.ActionFile
 		case config.ActionString:
 			payload = act.ActionString
+		case config.ActionServer:
+			payload = act.ActionServer
 		}
 
 		if builders.Payload != nil {
@@ -100,6 +102,10 @@ func Compile(cfg *config.Config, builders Builders) (*Plan, error) {
 		case config.ActionFile:
 			if act.ActionFile != nil && act.ActionFile.ActionModifierVersion != nil {
 				ph = strings.TrimSpace(reader.Must(act.ActionFile.Placeholder))
+			}
+		case config.ActionServer:
+			if act.ActionServer != nil && act.ActionServer.ActionModifierVersion != nil {
+				ph = strings.TrimSpace(reader.Must(act.ActionServer.Placeholder))
 			}
 		}
 
@@ -161,6 +167,10 @@ func (r *Runner) ExecuteAt(index int) (Result, error) {
 		payload = pa.act.ActionFile
 	case config.ActionString:
 		payload = pa.act.ActionString
+	case config.ActionServer:
+		payload = pa.act.ActionServer
+	case config.ActionReload:
+		payload = pa.act.ActionReload
 	}
 
 	err := pa.h.ProcessAction(&action.ProcessData{Ctx: r.ctx, C: r.fiberCtx, Action: pa.act, PayLoad: payload})
