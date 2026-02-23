@@ -7,11 +7,18 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/Sn0wo2/CatSync/config/reader"
 	"github.com/Sn0wo2/CatSync/debug"
 	"github.com/Sn0wo2/CatSync/internal/util"
+	"github.com/Sn0wo2/CatSync/log"
 	"go.uber.org/zap"
+)
+
+var (
+	currentConfig     *Config
+	currentConfigLock sync.RWMutex
 )
 
 func init() {
@@ -20,11 +27,29 @@ func init() {
 	}
 }
 
+func SetCurrentConfig(cfg *Config) {
+	currentConfigLock.Lock()
+	defer currentConfigLock.Unlock()
+	currentConfig = cfg
+}
+
+func GetCurrentConfig() *Config {
+	currentConfigLock.RLock()
+	defer currentConfigLock.RUnlock()
+	return currentConfig
+}
+
 func (c *Config) Reload(loaders ...Loader) error {
 	newCfg, err := New(loaders...)
 	if err != nil {
 		return err
 	}
+
+	reader.ResetAllStrings(newCfg)
+
+	currentConfigLock.Lock()
+	currentConfig = newCfg
+	currentConfigLock.Unlock()
 
 	*c = *newCfg
 
@@ -121,6 +146,7 @@ retryLoaders:
 
 	fileCfg.Merge(GetDefaultConfig())
 
+	log.Write("Config loaded from file: %s", Path)
 	return fileCfg, nil
 }
 
@@ -342,7 +368,7 @@ func checkActions(c *Config, logger *zap.Logger, add func(error)) {
 		}
 
 		if route == "" {
-			logger.Warn("Config >> action route is empty; action is jump-only",
+			logger.Info("Config >> action route is empty; action is jump-only",
 				zap.Int("index", i),
 				zap.String("type", string(act.Type)),
 			)
@@ -383,6 +409,26 @@ func checkActions(c *Config, logger *zap.Logger, add func(error)) {
 			}
 
 			add(checkAuth(fmt.Sprintf("actions[%d].file.actionModifierAuth", i), act.ActionFile.ActionModifierAuth, actionCount))
+		case ActionServer:
+			if act.ActionServer == nil {
+				add(fmt.Errorf("actions[%d] type=server but server is nil", i))
+
+				break
+			}
+
+			if act.ActionServer.Directory == nil {
+				add(fmt.Errorf("actions[%d] type=server but server.directory is nil", i))
+			}
+
+			add(checkAuth(fmt.Sprintf("actions[%d].server.actionModifierAuth", i), act.ActionServer.ActionModifierAuth, actionCount))
+		case ActionReload:
+			if act.ActionReload == nil {
+				add(fmt.Errorf("actions[%d] type=reload but reload is nil", i))
+
+				break
+			}
+
+			add(checkAuth(fmt.Sprintf("actions[%d].reload.actionModifierAuth", i), act.ActionReload.ActionModifierAuth, actionCount))
 		}
 	}
 }
