@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -29,9 +30,10 @@ type String struct {
 	Type    StringType `json:"type,omitempty" optional:"true" yaml:"type,omitempty"`
 	Content string     `json:"content"        yaml:"content"`
 
-	once  sync.Once
-	value string
-	err   error
+	loaded bool
+	value  string
+	err    error
+	mu     sync.RWMutex
 }
 
 func Str(s string) *String {
@@ -100,6 +102,19 @@ func (r *String) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (r *String) MarshalJSON() ([]byte, error) {
+	if r == nil {
+		return []byte("null"), nil
+	}
+
+	if r.Type == "" || r.Type == StringTypeString {
+		return json.Marshal(r.Content)
+	}
+
+	type alias String
+	return json.Marshal((*alias)(r))
+}
+
 func (r *String) UnmarshalYAML(node *yaml.Node) error {
 	if node == nil {
 		return nil
@@ -127,6 +142,19 @@ func (r *String) UnmarshalYAML(node *yaml.Node) error {
 	}
 
 	return nil
+}
+
+func (r *String) MarshalYAML() (interface{}, error) {
+	if r == nil {
+		return nil, nil
+	}
+
+	if r.Type == "" || r.Type == StringTypeString {
+		return r.Content, nil
+	}
+
+	type alias String
+	return (*alias)(r), nil
 }
 
 func (r *String) Validate() error {
@@ -184,69 +212,151 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 		return "", nil
 	}
 
-	r.once.Do(func() {
-		t, content := resolve(r.Type, r.Content)
-		switch t {
-		case StringTypeAuto:
-			// resolve() should not return auto, but keep this case for exhaustive linters.
-			r.value = content
-		case StringTypeString:
-			r.value = content
-		case StringTypePath:
-			b, err := os.ReadFile(content) //nolint:gosec
-			if err != nil {
-				r.err = err
+	r.mu.RLock()
+	if r.loaded {
+		r.mu.RUnlock()
+		return r.value, r.err
+	}
+	r.mu.RUnlock()
 
-				return
-			}
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-			r.value = string(b)
-		case StringTypeHTTP:
-			u, err := parseHTTPURL(content)
-			if err != nil {
-				r.err = err
+	if r.loaded {
+		return r.value, r.err
+	}
 
-				return
-			}
+	t, content := resolve(r.Type, r.Content)
+	switch t {
+	case StringTypeAuto:
+		r.value = content
+	case StringTypeString:
+		r.value = content
+	case StringTypePath:
+		b, err := os.ReadFile(content) //nolint:gosec
+		if err != nil {
+			r.err = err
 
-			c := &http.Client{Timeout: 10 * time.Second}
-
-			req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
-			if err != nil {
-				r.err = err
-
-				return
-			}
-
-			resp, err := c.Do(req)
-			if err != nil {
-				r.err = err
-
-				return
-			}
-
-			defer func() { _ = resp.Body.Close() }()
-
-			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-				r.err = fmt.Errorf("http status %d", resp.StatusCode)
-
-				return
-			}
-
-			b, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-			if err != nil {
-				r.err = err
-
-				return
-			}
-
-			r.value = string(b)
-		default:
-			r.err = fmt.Errorf("unsupported type: %q", t)
+			r.loaded = true
+			return r.value, r.err
 		}
-	})
+
+		r.value = string(b)
+	case StringTypeHTTP:
+		u, err := parseHTTPURL(content)
+		if err != nil {
+			r.err = err
+
+			r.loaded = true
+			return r.value, r.err
+		}
+
+		c := &http.Client{Timeout: 10 * time.Second}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+		if err != nil {
+			r.err = err
+
+			r.loaded = true
+			return r.value, r.err
+		}
+
+		resp, err := c.Do(req)
+		if err != nil {
+			r.err = err
+
+			r.loaded = true
+			return r.value, r.err
+		}
+
+		defer func() { _ = resp.Body.Close() }()
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			r.err = fmt.Errorf("http status %d", resp.StatusCode)
+
+			r.loaded = true
+			return r.value, r.err
+		}
+
+		b, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+		if err != nil {
+			r.err = err
+
+			r.loaded = true
+			return r.value, r.err
+		}
+
+		r.value = string(b)
+	default:
+		r.err = fmt.Errorf("unsupported type: %q", t)
+	}
+
+	r.loaded = true
 
 	return r.value, r.err
+}
+
+func (r *String) Reset() {
+	if r == nil {
+		return
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.loaded = false
+	r.value = ""
+	r.err = nil
+}
+
+func ResetAllStrings(cfg interface{}) {
+	if cfg == nil {
+		return
+	}
+
+	v := reflect.ValueOf(cfg)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	if v.Kind() != reflect.Struct {
+		return
+	}
+
+	resetStringsRecursive(v)
+}
+
+func resetStringsRecursive(v reflect.Value) {
+	switch v.Kind() {
+	case reflect.Ptr:
+		if v.IsNil() {
+			return
+		}
+		resetStringsRecursive(v.Elem())
+	case reflect.Struct:
+		t := v.Type()
+		for i := 0; i < t.NumField(); i++ {
+			field := v.Field(i)
+			fieldType := t.Field(i)
+
+			if fieldType.Type == reflect.TypeOf((*String)(nil)) {
+				if stringPtr, ok := field.Addr().Interface().(*String); ok {
+					stringPtr.Reset()
+					continue
+				}
+			}
+
+			resetStringsRecursive(field)
+		}
+	case reflect.Slice:
+		for i := 0; i < v.Len(); i++ {
+			resetStringsRecursive(v.Index(i))
+		}
+	case reflect.Map:
+		for _, key := range v.MapKeys() {
+			resetStringsRecursive(v.MapIndex(key))
+		}
+	}
 }
 
 func (r *String) ReadLines(ctx context.Context) ([]string, error) {
