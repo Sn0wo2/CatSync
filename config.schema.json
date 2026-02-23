@@ -1,0 +1,1071 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Sn0wo2/CatSync/config/config",
+  "properties": {
+    "log": {
+      "properties": {
+        "dir": {
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "content"
+          ]
+        },
+        "level": {
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "content"
+          ]
+        },
+        "fileFormat": {
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "content"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "dir",
+        "level",
+        "fileFormat"
+      ]
+    },
+    "server": {
+      "properties": {
+        "address": {
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "content"
+          ]
+        },
+        "tls": {
+          "properties": {
+            "cert": {
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "content"
+              ]
+            },
+            "key": {
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "content"
+              ]
+            },
+            "redirectHttp": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "cert",
+            "key"
+          ]
+        },
+        "acme": {
+          "properties": {
+            "enable": {
+              "type": "boolean"
+            },
+            "email": {
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "content"
+              ]
+            },
+            "cacheDir": {
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "content"
+              ]
+            },
+            "hosts": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "directoryURL": {
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "content"
+              ]
+            },
+            "http01": {
+              "properties": {
+                "httpAddress": {
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "content"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "type": "object"
+            },
+            "dns01": {
+              "properties": {
+                "provider": {
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "content"
+                  ]
+                },
+                "presentCmd": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "cleanupCmd": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "propagationTimeoutSeconds": {
+                  "type": "integer"
+                },
+                "pollingIntervalSeconds": {
+                  "type": "integer"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "address",
+        "tls"
+      ]
+    },
+    "modifiers": {
+      "items": {
+        "properties": {
+          "actionModifierResponseHeader": {
+            "properties": {
+              "header": {
+                "additionalProperties": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "header"
+            ]
+          },
+          "actionModifierStatus": {
+            "properties": {
+              "status": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "status"
+            ]
+          },
+          "actionModifierAuth": {
+            "properties": {
+              "header": {
+                "additionalProperties": {
+                  "items": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
+                  },
+                  "type": "array"
+                },
+                "type": "object"
+              },
+              "query": {
+                "additionalProperties": {
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "content"
+                  ]
+                },
+                "type": "object"
+              },
+              "ipAllowlist": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "ipAllowlistFile": {
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "content"
+                ]
+              },
+              "fallback": {
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "jumpTo": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "type"
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "actionVersionModifier": {
+            "properties": {
+              "placeholder": {
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "content"
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "placeholder"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "actions": {
+      "items": {
+        "properties": {
+          "route": {
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "content": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "content"
+            ]
+          },
+          "skipGlobalModifiers": {
+            "type": "boolean"
+          },
+          "type": {
+            "type": "string"
+          },
+          "actionModifierResponseHeader": {
+            "properties": {
+              "header": {
+                "additionalProperties": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "header"
+            ]
+          },
+          "actionModifierStatus": {
+            "properties": {
+              "status": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "status"
+            ]
+          },
+          "actionModifierAuth": {
+            "properties": {
+              "header": {
+                "additionalProperties": {
+                  "items": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
+                  },
+                  "type": "array"
+                },
+                "type": "object"
+              },
+              "query": {
+                "additionalProperties": {
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "content"
+                  ]
+                },
+                "type": "object"
+              },
+              "ipAllowlist": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "ipAllowlistFile": {
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "content"
+                ]
+              },
+              "fallback": {
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "jumpTo": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "type"
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "actionVersionModifier": {
+            "properties": {
+              "placeholder": {
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "content"
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "placeholder"
+            ]
+          },
+          "file": {
+            "properties": {
+              "actionModifierResponseHeader": {
+                "properties": {
+                  "header": {
+                    "additionalProperties": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "type": "object"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "header"
+                ]
+              },
+              "actionModifierStatus": {
+                "properties": {
+                  "status": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "status"
+                ]
+              },
+              "actionModifierAuth": {
+                "properties": {
+                  "header": {
+                    "additionalProperties": {
+                      "items": {
+                        "properties": {
+                          "type": {
+                            "type": "string"
+                          },
+                          "content": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "content"
+                        ]
+                      },
+                      "type": "array"
+                    },
+                    "type": "object"
+                  },
+                  "query": {
+                    "additionalProperties": {
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "content"
+                      ]
+                    },
+                    "type": "object"
+                  },
+                  "ipAllowlist": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "ipAllowlistFile": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
+                  },
+                  "fallback": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "jumpTo": {
+                        "type": "integer"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "type"
+                    ]
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object"
+              },
+              "actionVersionModifier": {
+                "properties": {
+                  "placeholder": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "placeholder"
+                ]
+              },
+              "path": {
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "content"
+                ]
+              },
+              "dontSetContentType": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "path",
+              "dontSetContentType"
+            ]
+          },
+          "string": {
+            "properties": {
+              "actionModifierResponseHeader": {
+                "properties": {
+                  "header": {
+                    "additionalProperties": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "type": "object"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "header"
+                ]
+              },
+              "actionModifierStatus": {
+                "properties": {
+                  "status": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "status"
+                ]
+              },
+              "actionModifierAuth": {
+                "properties": {
+                  "header": {
+                    "additionalProperties": {
+                      "items": {
+                        "properties": {
+                          "type": {
+                            "type": "string"
+                          },
+                          "content": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "content"
+                        ]
+                      },
+                      "type": "array"
+                    },
+                    "type": "object"
+                  },
+                  "query": {
+                    "additionalProperties": {
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "content"
+                      ]
+                    },
+                    "type": "object"
+                  },
+                  "ipAllowlist": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "ipAllowlistFile": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
+                  },
+                  "fallback": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "jumpTo": {
+                        "type": "integer"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "type"
+                    ]
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object"
+              },
+              "actionVersionModifier": {
+                "properties": {
+                  "placeholder": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "placeholder"
+                ]
+              },
+              "content": {
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "content"
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "content"
+            ]
+          },
+          "server": {
+            "properties": {
+              "actionModifierResponseHeader": {
+                "properties": {
+                  "header": {
+                    "additionalProperties": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "type": "object"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "header"
+                ]
+              },
+              "actionModifierStatus": {
+                "properties": {
+                  "status": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "status"
+                ]
+              },
+              "actionModifierAuth": {
+                "properties": {
+                  "header": {
+                    "additionalProperties": {
+                      "items": {
+                        "properties": {
+                          "type": {
+                            "type": "string"
+                          },
+                          "content": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "content"
+                        ]
+                      },
+                      "type": "array"
+                    },
+                    "type": "object"
+                  },
+                  "query": {
+                    "additionalProperties": {
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "content"
+                      ]
+                    },
+                    "type": "object"
+                  },
+                  "ipAllowlist": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "ipAllowlistFile": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
+                  },
+                  "fallback": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "jumpTo": {
+                        "type": "integer"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "type"
+                    ]
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object"
+              },
+              "actionVersionModifier": {
+                "properties": {
+                  "placeholder": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "placeholder"
+                ]
+              },
+              "directory": {
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "content"
+                ]
+              },
+              "indexFiles": {
+                "items": {
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "content"
+                  ]
+                },
+                "type": "array"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "directory"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "route",
+          "type"
+        ]
+      },
+      "type": "array"
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "log",
+    "server",
+    "actions"
+  ],
+  "title": "CatSync Config",
+  "description": "Configuration schema for CatSync HTTP server"
+}
