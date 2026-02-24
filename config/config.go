@@ -34,7 +34,7 @@ func GetCurrentConfig() *Config {
 	return currentConfig
 }
 
-func (c *Config) resetStrings() {
+func (c *Config) ResetStrings() {
 	var stack []reflect.Value
 	stack = append(stack, reflect.ValueOf(c).Elem())
 
@@ -87,7 +87,7 @@ func (c *Config) Reload(loaders ...Loader) error {
 		return err
 	}
 
-	newCfg.resetStrings()
+	newCfg.ResetStrings()
 
 	currentConfigLock.Lock()
 	currentConfig = newCfg
