@@ -35,38 +35,42 @@ func GetCurrentConfig() *Config {
 }
 
 func (c *Config) resetStrings() {
-	resetStringsRecursive(reflect.ValueOf(c).Elem())
-}
+	var stack []reflect.Value
+	stack = append(stack, reflect.ValueOf(c).Elem())
 
-func resetStringsRecursive(v reflect.Value) {
-	switch v.Kind() {
-	case reflect.Ptr:
-		if v.IsNil() {
-			return
+	for len(stack) > 0 {
+		v := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		if v.IsZero() {
+			continue
 		}
-		resetStringsRecursive(v.Elem())
-	case reflect.Struct:
-		t := v.Type()
-		for i := 0; i < t.NumField(); i++ {
-			field := v.Field(i)
-			fieldType := t.Field(i)
 
-			if fieldType.Type == reflect.TypeOf((*reader.String)(nil)) {
-				if str, ok := field.Addr().Interface().(*reader.String); ok {
-					str.Reset()
-					continue
+		if v.Type() == reflect.TypeOf((*reader.String)(nil)) {
+			if s, ok := v.Addr().Interface().(*reader.String); ok {
+				s.Reset()
+			}
+			continue
+		}
+
+		switch v.Kind() {
+		case reflect.Ptr:
+			if !v.IsNil() {
+				stack = append(stack, v.Elem())
+			}
+		case reflect.Slice:
+			for i := 0; i < v.Len(); i++ {
+				elem := v.Index(i)
+				if elem.Kind() == reflect.Ptr && !elem.IsNil() {
+					stack = append(stack, elem.Elem())
+				} else if elem.Kind() == reflect.Struct {
+					stack = append(stack, elem)
 				}
 			}
-
-			resetStringsRecursive(field)
-		}
-	case reflect.Slice:
-		for i := 0; i < v.Len(); i++ {
-			resetStringsRecursive(v.Index(i))
-		}
-	case reflect.Map:
-		for _, key := range v.MapKeys() {
-			resetStringsRecursive(v.MapIndex(key))
+		case reflect.Struct:
+			for j := 0; j < v.NumField(); j++ {
+				stack = append(stack, v.Field(j))
+			}
 		}
 	}
 }
