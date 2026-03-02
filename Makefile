@@ -2,10 +2,15 @@
 .PHONY: test_goreleaser
 .PHONY: run_docker
 .PHONY: build
+.PHONY: schema
 
 release:
 	@echo Running release tool...
-	@go run ./tool/release/main.go
+	@python ./scripts/release/tag.py
+
+schema:
+	@echo Generating schema...
+	@go run ./scripts/schema/main.go
 
 build:
 	@echo Building CatSync (all features)...
