@@ -6,13 +6,13 @@ import (
 
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/Sn0wo2/CatSync/response"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
-func Error(logger *zap.Logger) func(ctx *fiber.Ctx, err error) error {
-	return func(ctx *fiber.Ctx, err error) error {
+func Error(logger *zap.Logger) func(ctx fiber.Ctx, err error) error {
+	return func(ctx fiber.Ctx, err error) error {
 		traceID := uuid.NewString()
 
 		stack := string(debug.Stack())

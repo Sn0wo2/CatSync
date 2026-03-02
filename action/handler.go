@@ -3,12 +3,12 @@ package action
 import (
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/params"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type ProcessData struct {
 	Ctx     *params.Ctx
-	C       *fiber.Ctx
+	C       fiber.Ctx
 	Action  *config.Action
 	PayLoad config.ActionData
 }

@@ -7,10 +7,16 @@ import (
 	"github.com/Sn0wo2/CatSync/action/execute"
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/params"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
-func buildGlobalModifiers(cfg *config.Config) []action.Modifier {
+type ModifierBuilder struct{}
+
+func NewModifierBuilder() *ModifierBuilder {
+	return &ModifierBuilder{}
+}
+
+func (b *ModifierBuilder) BuildGlobal(cfg *config.Config) []action.Modifier {
 	var modifiers []action.Modifier
 
 	if cfg == nil {
@@ -18,13 +24,13 @@ func buildGlobalModifiers(cfg *config.Config) []action.Modifier {
 	}
 
 	for i := range cfg.Modifiers {
-		modifiers = append(modifiers, buildModifiersFromGlobalModifier(&cfg.Modifiers[i])...)
+		modifiers = append(modifiers, b.BuildFromGlobalModifier(&cfg.Modifiers[i])...)
 	}
 
 	return modifiers
 }
 
-func buildModifiersFromGlobalModifier(gm *config.GlobalModifier) []action.Modifier {
+func (b *ModifierBuilder) BuildFromGlobalModifier(gm *config.GlobalModifier) []action.Modifier {
 	var modifiers []action.Modifier
 	if gm == nil {
 		return modifiers
@@ -47,53 +53,54 @@ func buildModifiersFromGlobalModifier(gm *config.GlobalModifier) []action.Modifi
 	return modifiers
 }
 
-func buildActionModifiers(act *config.Action) []action.Modifier {
+func (b *ModifierBuilder) BuildAction(act *config.Action) []action.Modifier {
 	if act == nil {
 		return nil
 	}
 
-	return buildModifiersFromGlobalModifier(&act.GlobalModifier)
+	return b.BuildFromGlobalModifier(&act.GlobalModifier)
 }
 
-func buildPayloadModifiers(data config.ActionData) []action.Modifier {
+func (b *ModifierBuilder) BuildPayload(data config.ActionData) []action.Modifier {
 	switch v := data.(type) {
 	case *config.ActionStringData:
 		if v == nil {
 			return nil
 		}
 
-		return buildModifiersFromGlobalModifier(&v.GlobalModifier)
+		return b.BuildFromGlobalModifier(&v.GlobalModifier)
 	case *config.ActionFileData:
 		if v == nil {
 			return nil
 		}
 
-		return buildModifiersFromGlobalModifier(&v.GlobalModifier)
+		return b.BuildFromGlobalModifier(&v.GlobalModifier)
 	case *config.ActionServerData:
 		if v == nil {
 			return nil
 		}
 
-		return buildModifiersFromGlobalModifier(&v.GlobalModifier)
+		return b.BuildFromGlobalModifier(&v.GlobalModifier)
 	}
 
 	return nil
 }
 
 func Actions(c *params.Ctx) fiber.Handler {
-	pl, err := execute.Compile(c.GetConfig(), execute.Builders{Global: buildGlobalModifiers, Action: buildActionModifiers, Payload: buildPayloadModifiers})
+	b := NewModifierBuilder()
+
+	pl, err := execute.Compile(c.GetConfig(), execute.Builders{Global: b.BuildGlobal, Action: b.BuildAction, Payload: b.BuildPayload})
 	if err != nil {
 		panic(err)
 	}
 
-	return func(ctx *fiber.Ctx) error {
+	return func(ctx fiber.Ctx) error {
 		exec := pl.Runner(c, ctx)
 
 		jumpVisited := map[int]bool{}
 		forceIndex := -1
 
-		end := len(c.GetConfig().Actions)
-		for i := 0; i < end; i++ {
+		for i := 0; i < len(c.GetConfig().Actions); i++ {
 			exec.WithSkipRouteCheck(i == forceIndex)
 			res, err := exec.ExecuteAt(i)
 			forceIndex = -1
@@ -127,7 +134,6 @@ func Actions(c *params.Ctx) fiber.Handler {
 			}
 		}
 
-		// Notfound convention: always execute the last action.
 		if len(c.GetConfig().Actions) == 0 {
 			return ctx.Next()
 		}

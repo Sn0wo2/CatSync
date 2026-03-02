@@ -10,7 +10,7 @@ import (
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/Sn0wo2/CatSync/params"
 	"github.com/Sn0wo2/CatSync/version"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // Result indicates how the caller should continue processing.
@@ -37,7 +37,7 @@ type Executor struct {
 	builders Builders
 
 	ctx      *params.Ctx
-	fiberCtx *fiber.Ctx
+	fiberCtx fiber.Ctx
 
 	skipRouteCheck bool
 }
@@ -76,7 +76,7 @@ func (e *Executor) WithPayloadBuilder(fn func(config.ActionData) []action.Modifi
 	return e
 }
 
-func (e *Executor) WithContext(ctx *params.Ctx, fiberCtx *fiber.Ctx) *Executor {
+func (e *Executor) WithContext(ctx *params.Ctx, fiberCtx fiber.Ctx) *Executor {
 	e.ctx = ctx
 	e.fiberCtx = fiberCtx
 
@@ -136,7 +136,6 @@ func (e *Executor) ExecuteAt(index int) (Result, error) {
 		return Result{NotMatched: true}, nil
 	}
 
-	// Validate payload presence early to avoid nil deref later.
 	switch act.Type {
 	case config.ActionString:
 		if act.ActionString == nil {
@@ -149,6 +148,10 @@ func (e *Executor) ExecuteAt(index int) (Result, error) {
 	case config.ActionServer:
 		if act.ActionServer == nil {
 			return Result{}, fmt.Errorf("action[%d] type=server but server is nil", index)
+		}
+	case config.ActionReload:
+		if act.ActionReload == nil {
+			return Result{}, fmt.Errorf("action[%d] type=reload but reload is nil", index)
 		}
 	}
 
@@ -190,25 +193,23 @@ func (e *Executor) ExecuteAt(index int) (Result, error) {
 	switch act.Type {
 	case config.ActionString:
 		if act.ActionString != nil && act.ActionString.ActionModifierVersion != nil {
-			ph := reader.Must(act.ActionString.Placeholder)
-			if ph != "" {
+			if ph := reader.Must(act.ActionString.Placeholder); ph != "" {
 				h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(ph).WithValue(version.GetFormatVersion()))
 			}
 		}
 	case config.ActionFile:
 		if act.ActionFile != nil && act.ActionFile.ActionModifierVersion != nil {
-			ph := reader.Must(act.ActionFile.Placeholder)
-			if ph != "" {
+			if ph := reader.Must(act.ActionFile.Placeholder); ph != "" {
 				h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(ph).WithValue(version.GetFormatVersion()))
 			}
 		}
 	case config.ActionServer:
 		if act.ActionServer != nil && act.ActionServer.ActionModifierVersion != nil {
-			ph := reader.Must(act.ActionServer.Placeholder)
-			if ph != "" {
+			if ph := reader.Must(act.ActionServer.Placeholder); ph != "" {
 				h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(ph).WithValue(version.GetFormatVersion()))
 			}
 		}
+	case config.ActionReload:
 	}
 
 	err := h.Build().ProcessAction(&action.ProcessData{Ctx: e.ctx, C: e.fiberCtx, Action: &act, PayLoad: payload})

@@ -3,9 +3,9 @@ package router
 import (
 	"github.com/Sn0wo2/CatSync/params"
 	"github.com/Sn0wo2/CatSync/router/handler"
-	"github.com/gofiber/fiber/v2/middleware/compress"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/fiber/v3/middleware/compress"
+	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/gofiber/fiber/v3/middleware/recover"
 )
 
 func Init(c *params.Ctx) {

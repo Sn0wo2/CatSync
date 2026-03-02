@@ -9,7 +9,7 @@ import (
 	"github.com/Sn0wo2/CatSync/config/reader"
 	"github.com/Sn0wo2/CatSync/debug"
 	"github.com/Sn0wo2/CatSync/router/errorhandler"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
@@ -24,24 +24,19 @@ type Framework struct {
 }
 
 func NewFiber(p Provider) *Framework {
-	app := &Framework{
+	return &Framework{
 		Provider: p,
 		App: fiber.New(fiber.Config{
-			AppName:               "CatSync",
-			CaseSensitive:         true,
-			DisableStartupMessage: false,
-			ErrorHandler:          errorhandler.Error(p.GetLogger()),
-			IdleTimeout:           5 * time.Second,
-			// dlv cant debug multiple process(prefork)
-			Prefork:           !debug.IsDebugging(),
+			AppName:           "CatSync",
+			CaseSensitive:     true,
+			ErrorHandler:      errorhandler.Error(p.GetLogger()),
+			IdleTimeout:       5 * time.Second,
 			ReadTimeout:       10 * time.Second,
 			ReduceMemoryUsage: true,
 			StrictRouting:     true,
 			WriteTimeout:      10 * time.Second,
 		}),
 	}
-
-	return app
 }
 
 func (ctx *Framework) StartFiber() error {
@@ -74,7 +69,7 @@ func (ctx *Framework) StartFiber() error {
 
 		logger.Info("TLS listening", zap.String("addr", addr))
 
-		return ctx.Listener(tlsLn)
+		return ctx.Listener(tlsLn, fiber.ListenConfig{EnablePrefork: !debug.IsDebugging()})
 	}
 
 	cert := reader.Must(cfg.Server.TLS.Cert)
@@ -83,12 +78,16 @@ func (ctx *Framework) StartFiber() error {
 	if cert != "" && key != "" {
 		logger.Info("TLS listening", zap.String("addr", addr))
 
-		return ctx.ListenTLS(addr, cert, key)
+		return ctx.Listen(addr, fiber.ListenConfig{
+			EnablePrefork: !debug.IsDebugging(),
+			CertFile:      cert,
+			CertKeyFile:   key,
+		})
 	}
 
 	logger.Info("HTTP listening", zap.String("addr", addr))
 
-	return ctx.Listen(addr)
+	return ctx.Listen(addr, fiber.ListenConfig{EnablePrefork: !debug.IsDebugging()})
 }
 
 // httpServerToStd is a minimal adapter to satisfy existing ACME functions.

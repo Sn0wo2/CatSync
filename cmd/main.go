@@ -10,7 +10,7 @@ import (
 
 	"github.com/Sn0wo2/CatSync/cli"
 	"github.com/Sn0wo2/CatSync/version"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 

@@ -13,7 +13,7 @@ import (
 	"github.com/Sn0wo2/CatSync/config/reader"
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/Sn0wo2/go-common/helper"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
@@ -194,7 +194,7 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) error {
 
 	dirStr := reader.Must(serverData.Directory)
 	if dirStr == "" {
-		return fmt.Errorf("directory is required for server action")
+		return errors.New("directory is required for server action")
 	}
 
 	wd, err := os.Getwd()
@@ -203,6 +203,7 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) error {
 	}
 
 	baseDir := filepath.Join(wd, "data", dirStr)
+
 	absBaseDir, err := filepath.Abs(filepath.Clean(baseDir))
 	if err != nil {
 		return fmt.Errorf("failed to get absolute base directory: %w", err)
@@ -244,8 +245,10 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) error {
 			if serverData.NotFoundHTML != nil {
 				notFoundHTML = reader.Must(serverData.NotFoundHTML)
 			}
+
 			return p.C.SendString(notFoundHTML)
 		}
+
 		return fmt.Errorf("failed to access file: %w", err)
 	}
 
@@ -259,13 +262,16 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) error {
 		}
 
 		var foundPath string
+
 		for _, sf := range indexFiles {
 			if sf == nil {
 				continue
 			}
+
 			indexPath := filepath.Join(fullPath, reader.Must(sf))
 			if _, err := os.Stat(indexPath); err == nil {
 				foundPath = indexPath
+
 				break
 			}
 		}
@@ -281,6 +287,7 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) error {
 			if serverData.NotFoundHTML != nil {
 				notFoundHTML = reader.Must(serverData.NotFoundHTML)
 			}
+
 			return p.C.SendString(notFoundHTML)
 		}
 	}
@@ -304,17 +311,19 @@ func (h *ReloadHandler) ProcessAction(p *ProcessData) error {
 
 	cfg := config.GetCurrentConfig()
 	if cfg == nil {
-		return fmt.Errorf("no config loaded")
+		return errors.New("no config loaded")
 	}
 
 	err := cfg.Reload(loader.NewYAMLLoader(), loader.NewJSONLoader())
 	if err != nil {
 		p.Ctx.GetLogger().Error("Action >> Reload Config Failed", zap.Error(err), zap.String("ctx", util.FiberContextString(p.C)))
 		p.C.Status(fiber.StatusInternalServerError)
+
 		return p.C.SendString(fmt.Sprintf("Config reload failed: %v", err))
 	}
 
 	p.Ctx.GetLogger().Info("Action >> Reload Config Success", zap.String("ctx", util.FiberContextString(p.C)))
 	p.C.Status(fiber.StatusOK)
+
 	return p.C.SendString("Config reloaded successfully")
 }

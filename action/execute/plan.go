@@ -12,7 +12,7 @@ import (
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/Sn0wo2/CatSync/params"
 	"github.com/Sn0wo2/CatSync/version"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type Plan struct {
@@ -49,7 +49,6 @@ func Compile(cfg *config.Config, builders Builders) (*Plan, error) {
 			continue
 		}
 
-		// Compile route once.
 		route, ok := reader.LiteralTrim(act.Route)
 		if !ok {
 			return nil, fmt.Errorf("actions[%d].route must be literal string", i)
@@ -85,13 +84,14 @@ func Compile(cfg *config.Config, builders Builders) (*Plan, error) {
 			payload = act.ActionString
 		case config.ActionServer:
 			payload = act.ActionServer
+		case config.ActionReload:
+			payload = act.ActionReload
 		}
 
 		if builders.Payload != nil {
 			add(builders.Payload(payload))
 		}
 
-		// Version placeholder modifier is pure and can be pre-built.
 		ph := ""
 
 		switch act.Type {
@@ -107,6 +107,7 @@ func Compile(cfg *config.Config, builders Builders) (*Plan, error) {
 			if act.ActionServer != nil && act.ActionServer.ActionModifierVersion != nil {
 				ph = strings.TrimSpace(reader.Must(act.ActionServer.Placeholder))
 			}
+		case config.ActionReload:
 		}
 
 		if ph != "" {
@@ -122,11 +123,11 @@ func Compile(cfg *config.Config, builders Builders) (*Plan, error) {
 type Runner struct {
 	pl        *Plan
 	ctx       *params.Ctx
-	fiberCtx  *fiber.Ctx
+	fiberCtx  fiber.Ctx
 	skipRoute bool
 }
 
-func (p *Plan) Runner(ctx *params.Ctx, fiberCtx *fiber.Ctx) *Runner {
+func (p *Plan) Runner(ctx *params.Ctx, fiberCtx fiber.Ctx) *Runner {
 	return &Runner{pl: p, ctx: ctx, fiberCtx: fiberCtx}
 }
 

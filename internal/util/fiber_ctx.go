@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	"github.com/Sn0wo2/go-common/helper"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
-func FiberContextString(ctx *fiber.Ctx) string {
+func FiberContextString(ctx fiber.Ctx) string {
 	var sb strings.Builder
 
 	ips := ctx.IPs()
