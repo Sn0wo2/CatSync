@@ -1040,6 +1040,21 @@
                   ]
                 },
                 "type": "array"
+              },
+              "notFoundHTML": {
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "content"
+                ]
               }
             },
             "additionalProperties": false,
@@ -1047,6 +1062,147 @@
             "required": [
               "directory"
             ]
+          },
+          "reload": {
+            "properties": {
+              "actionModifierResponseHeader": {
+                "properties": {
+                  "header": {
+                    "additionalProperties": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "type": "object"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "header"
+                ]
+              },
+              "actionModifierStatus": {
+                "properties": {
+                  "status": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "status"
+                ]
+              },
+              "actionModifierAuth": {
+                "properties": {
+                  "header": {
+                    "additionalProperties": {
+                      "items": {
+                        "properties": {
+                          "type": {
+                            "type": "string"
+                          },
+                          "content": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "content"
+                        ]
+                      },
+                      "type": "array"
+                    },
+                    "type": "object"
+                  },
+                  "query": {
+                    "additionalProperties": {
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "content"
+                      ]
+                    },
+                    "type": "object"
+                  },
+                  "ipAllowlist": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "ipAllowlistFile": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
+                  },
+                  "fallback": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "jumpTo": {
+                        "type": "integer"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "type"
+                    ]
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object"
+              },
+              "actionVersionModifier": {
+                "properties": {
+                  "placeholder": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "placeholder"
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "type": "object"
           }
         },
         "additionalProperties": false,
