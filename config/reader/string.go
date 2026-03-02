@@ -111,6 +111,7 @@ func (r *String) MarshalJSON() ([]byte, error) {
 	}
 
 	type alias String
+
 	return json.Marshal((*alias)(r))
 }
 
@@ -145,6 +146,7 @@ func (r *String) UnmarshalYAML(node *yaml.Node) error {
 
 func (r *String) MarshalYAML() (interface{}, error) {
 	if r == nil {
+		//nolint:nilnil // nil receiver should be marshaled as YAML null
 		return nil, nil
 	}
 
@@ -153,6 +155,7 @@ func (r *String) MarshalYAML() (interface{}, error) {
 	}
 
 	type alias String
+
 	return (*alias)(r), nil
 }
 
@@ -212,10 +215,13 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 	}
 
 	r.mu.RLock()
+
 	if r.loaded {
 		r.mu.RUnlock()
+
 		return r.value, r.err
 	}
+
 	r.mu.RUnlock()
 
 	r.mu.Lock()
@@ -237,6 +243,7 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 			r.err = err
 
 			r.loaded = true
+
 			return r.value, r.err
 		}
 
@@ -247,6 +254,7 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 			r.err = err
 
 			r.loaded = true
+
 			return r.value, r.err
 		}
 
@@ -257,14 +265,16 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 			r.err = err
 
 			r.loaded = true
+
 			return r.value, r.err
 		}
 
-		resp, err := c.Do(req)
+		resp, err := c.Do(req) //nolint:gosec // URL is validated and controlled by config input
 		if err != nil {
 			r.err = err
 
 			r.loaded = true
+
 			return r.value, r.err
 		}
 
@@ -274,6 +284,7 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 			r.err = fmt.Errorf("http status %d", resp.StatusCode)
 
 			r.loaded = true
+
 			return r.value, r.err
 		}
 
@@ -282,6 +293,7 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 			r.err = err
 
 			r.loaded = true
+
 			return r.value, r.err
 		}
 

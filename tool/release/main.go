@@ -12,6 +12,7 @@ import (
 
 //nolint:unparam
 func runCmd(command string, args ...string) (string, error) {
+	//nolint:gosec // command/args are fixed by this tool's internal call sites
 	out, err := exec.Command(command, args...).CombinedOutput()
 
 	s := strings.TrimSpace(helper.BytesToString(out))
@@ -37,6 +38,7 @@ func must(out string, err error) string {
 func executeStep(description string, command string, args ...string) {
 	fmt.Println(description)
 
+	//nolint:gosec // command/args are fixed by this tool's internal call sites
 	cmd := exec.Command(command, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
