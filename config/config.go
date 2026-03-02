@@ -25,17 +25,20 @@ var (
 func SetCurrentConfig(cfg *Config) {
 	currentConfigLock.Lock()
 	defer currentConfigLock.Unlock()
+
 	currentConfig = cfg
 }
 
 func GetCurrentConfig() *Config {
 	currentConfigLock.RLock()
 	defer currentConfigLock.RUnlock()
+
 	return currentConfig
 }
 
 func (c *Config) ResetStrings() {
 	var stack []reflect.Value
+
 	stack = append(stack, reflect.ValueOf(c).Elem())
 
 	for len(stack) > 0 {
@@ -50,6 +53,7 @@ func (c *Config) ResetStrings() {
 			if s, ok := v.Addr().Interface().(*reader.String); ok {
 				s.Reset()
 			}
+
 			continue
 		}
 
@@ -59,7 +63,7 @@ func (c *Config) ResetStrings() {
 				stack = append(stack, v.Elem())
 			}
 		case reflect.Slice:
-			for i := 0; i < v.Len(); i++ {
+			for i := range v.Len() {
 				elem := v.Index(i)
 				if elem.Kind() == reflect.Ptr && !elem.IsNil() {
 					stack = append(stack, elem.Elem())
@@ -68,9 +72,34 @@ func (c *Config) ResetStrings() {
 				}
 			}
 		case reflect.Struct:
-			for j := 0; j < v.NumField(); j++ {
+			for j := range v.NumField() {
 				stack = append(stack, v.Field(j))
 			}
+		case reflect.Invalid,
+			reflect.Bool,
+			reflect.Int,
+			reflect.Int8,
+			reflect.Int16,
+			reflect.Int32,
+			reflect.Int64,
+			reflect.Uint,
+			reflect.Uint8,
+			reflect.Uint16,
+			reflect.Uint32,
+			reflect.Uint64,
+			reflect.Uintptr,
+			reflect.Float32,
+			reflect.Float64,
+			reflect.Complex64,
+			reflect.Complex128,
+			reflect.Array,
+			reflect.Chan,
+			reflect.Func,
+			reflect.Interface,
+			reflect.Map,
+			reflect.String,
+			reflect.UnsafePointer:
+			// no nested values to inspect
 		}
 	}
 }
@@ -188,7 +217,8 @@ retryLoaders:
 
 	fileCfg.Merge(GetDefaultConfig())
 
-	log.Write("Config loaded from file: %s", Path)
+	log.Writef("Config loaded from file: %s", Path)
+
 	return fileCfg, nil
 }
 

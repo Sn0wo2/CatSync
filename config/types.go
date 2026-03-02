@@ -137,9 +137,9 @@ func (a *ActionFileData) action() {}
 type ActionServerData struct {
 	GlobalModifier `yaml:",inline"`
 
-	Directory    *reader.String   `json:"directory"  yaml:"directory"`
-	IndexFiles   []*reader.String `json:"indexFiles,omitempty" optional:"true" yaml:"indexFiles,omitempty"`
-	NotFoundHTML *reader.String   `json:"notFoundHTML,omitempty" optional:"true" yaml:"notFoundHTML,omitempty"`
+	Directory    *reader.String   `json:"directory"              yaml:"directory"`
+	IndexFiles   []*reader.String `json:"indexFiles,omitempty"   optional:"true"  yaml:"indexFiles,omitempty"`
+	NotFoundHTML *reader.String   `json:"notFoundHTML,omitempty" optional:"true"  yaml:"notFoundHTML,omitempty"`
 }
 
 func (a *ActionServerData) action() {}
