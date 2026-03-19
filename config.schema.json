@@ -75,6 +75,9 @@
             "content"
           ]
         },
+        "prefork": {
+          "type": "boolean"
+        },
         "tls": {
           "properties": {
             "cert": {
@@ -259,6 +262,21 @@
                   "type": "array"
                 },
                 "type": "object"
+              },
+              "upstream": {
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "content"
+                ]
               }
             },
             "additionalProperties": false,
@@ -271,6 +289,21 @@
             "properties": {
               "status": {
                 "type": "integer"
+              },
+              "upstream": {
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "content"
+                ]
               }
             },
             "additionalProperties": false,
@@ -424,6 +457,21 @@
                   "type": "array"
                 },
                 "type": "object"
+              },
+              "upstream": {
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "content"
+                ]
               }
             },
             "additionalProperties": false,
@@ -436,6 +484,21 @@
             "properties": {
               "status": {
                 "type": "integer"
+              },
+              "upstream": {
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "content"
+                ]
               }
             },
             "additionalProperties": false,
@@ -561,6 +624,21 @@
                       "type": "array"
                     },
                     "type": "object"
+                  },
+                  "upstream": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
                   }
                 },
                 "additionalProperties": false,
@@ -573,6 +651,21 @@
                 "properties": {
                   "status": {
                     "type": "integer"
+                  },
+                  "upstream": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
                   }
                 },
                 "additionalProperties": false,
@@ -724,6 +817,21 @@
                       "type": "array"
                     },
                     "type": "object"
+                  },
+                  "upstream": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
                   }
                 },
                 "additionalProperties": false,
@@ -736,6 +844,21 @@
                 "properties": {
                   "status": {
                     "type": "integer"
+                  },
+                  "upstream": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
                   }
                 },
                 "additionalProperties": false,
@@ -883,6 +1006,21 @@
                       "type": "array"
                     },
                     "type": "object"
+                  },
+                  "upstream": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
                   }
                 },
                 "additionalProperties": false,
@@ -895,6 +1033,21 @@
                 "properties": {
                   "status": {
                     "type": "integer"
+                  },
+                  "upstream": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
                   }
                 },
                 "additionalProperties": false,
@@ -1075,6 +1228,21 @@
                       "type": "array"
                     },
                     "type": "object"
+                  },
+                  "upstream": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
                   }
                 },
                 "additionalProperties": false,
@@ -1087,6 +1255,21 @@
                 "properties": {
                   "status": {
                     "type": "integer"
+                  },
+                  "upstream": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "content"
+                    ]
                   }
                 },
                 "additionalProperties": false,
