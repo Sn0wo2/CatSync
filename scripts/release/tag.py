@@ -39,11 +39,15 @@ def main() -> int:
         raise RuntimeError("Uncommitted changes found, please commit or stash them first.")
 
     local = run_cmd("git", "rev-parse", "@")
-    remote = run_cmd("git", "rev-parse", "@{u}")
 
-    if local != remote:
-        print("Local branch is not up to date with remote, pulling...")
-        run_cmd("git", "pull")
+    try:
+        remote = run_cmd("git", "rev-parse", "@{upstream}")
+
+        if local != remote:
+            print("Local branch is not up to date with remote, pulling...")
+            run_cmd("git", "pull")
+    except RuntimeError:
+        print("Note: No upstream branch detected. Skipping remote sync check.")
 
     last_tag = run_cmd("git", "describe", "--tags", "--abbrev=0")
     if last_tag:
