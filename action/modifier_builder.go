@@ -1,6 +1,10 @@
 package action
 
-import "github.com/Sn0wo2/CatSync/config"
+import (
+	"context"
+
+	"github.com/Sn0wo2/CatSync/config"
+)
 
 type ModifierBuilder struct{}
 
@@ -67,7 +71,7 @@ func (b *ModifierBuilder) BuildFromGlobalModifier(gm *config.GlobalModifier) []M
 
 	modifiers := make([]Modifier, 0, 3)
 	if gm.ActionModifierStatus != nil {
-		modifiers = append(modifiers, NewStatusModifier().WithStatus(gm.Status))
+		modifiers = append(modifiers, NewStatusModifier().WithStatus(gm.ActionModifierStatus.Status))
 	}
 
 	if gm.ActionModifierAuth != nil {
@@ -75,9 +79,11 @@ func (b *ModifierBuilder) BuildFromGlobalModifier(gm *config.GlobalModifier) []M
 	}
 
 	if gm.ActionModifierResponseHeader != nil {
-		for k, v := range gm.ActionModifierResponseHeader.Header {
-			modifiers = append(modifiers, NewResponseHeaderModifier(k, v...))
+		upstream, err := gm.ActionModifierResponseHeader.Upstream.ReadString(context.Background())
+		if err != nil {
+			return nil
 		}
+		modifiers = append(modifiers, NewResponseHeaderModifier().WithHeader(gm.ActionModifierResponseHeader.Header).WithUpStream(upstream))
 	}
 
 	return modifiers

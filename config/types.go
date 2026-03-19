@@ -163,10 +163,12 @@ func (a *ActionStringData) action() {}
 
 type ActionModifierResponseHeader struct {
 	Header http.Header `json:"header" yaml:"header"`
+	Upstream *reader.String `json:"upstream,omitempty" optional:"true" yaml:"upstream,omitempty"`
 }
 
 type ActionModifierStatus struct {
 	Status uint16 `json:"status" yaml:"status"`
+	Upstream *reader.String `json:"upstream,omitempty" optional:"true" yaml:"upstream,omitempty"`
 }
 
 type ActionModifierAuth struct {
