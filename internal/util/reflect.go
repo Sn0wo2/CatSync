@@ -56,12 +56,13 @@ func mergeYamlNodeRecursive(node *yaml.Node, value reflect.Value) {
 		value = value.Elem()
 	}
 
-	//nolint:exhaustive
 	switch node.Kind {
 	case yaml.DocumentNode:
 		for _, n := range node.Content {
 			mergeYamlNodeRecursive(n, value)
 		}
+	case yaml.AliasNode:
+		mergeYamlNodeRecursive(node.Alias, value)
 	case yaml.MappingNode:
 		if value.Kind() != reflect.Struct {
 			return
@@ -96,7 +97,7 @@ func mergeYamlNodeRecursive(node *yaml.Node, value reflect.Value) {
 	case yaml.ScalarNode:
 		if value.CanSet() {
 			var newValue string
-			//nolint:exhaustive
+
 			switch value.Kind() {
 			case reflect.String:
 				newValue = value.String()
@@ -109,7 +110,19 @@ func mergeYamlNodeRecursive(node *yaml.Node, value reflect.Value) {
 				newValue = fmt.Sprintf("%g", value.Float())
 			case reflect.Bool:
 				newValue = strconv.FormatBool(value.Bool())
-			default:
+			case reflect.Invalid,
+				reflect.Uintptr,
+				reflect.Complex64,
+				reflect.Complex128,
+				reflect.Array,
+				reflect.Chan,
+				reflect.Func,
+				reflect.Interface,
+				reflect.Map,
+				reflect.Ptr,
+				reflect.Slice,
+				reflect.Struct,
+				reflect.UnsafePointer:
 				// Unsupported types are ignored to prevent incorrect mutations.
 				return
 			}
@@ -142,156 +155,199 @@ func Validate(cfg any, tag string) error {
 }
 
 func validateWithPath(cfg any, tag string, path string, tagPath string) error {
+	v, err := getStructValue(cfg)
+	if err != nil {
+		return err
+	}
+
+	return validateStructValue(v, tag, path, tagPath)
+}
+
+func getStructValue(cfg any) (reflect.Value, error) {
 	v := reflect.ValueOf(cfg)
 	if v.Kind() == reflect.Ptr {
 		if v.IsNil() {
-			return errors.New("validate: nil pointer received")
+			return reflect.Value{}, errors.New("validate: nil pointer received")
 		}
 
 		v = v.Elem()
 	}
 
 	if v.Kind() != reflect.Struct {
-		return fmt.Errorf("validate: input must be a struct or a pointer to a struct, but got %s", v.Kind())
+		return reflect.Value{}, fmt.Errorf("validate: input must be a struct or a pointer to a struct, but got %s", v.Kind())
 	}
 
+	return v, nil
+}
+
+func validateStructValue(v reflect.Value, tag string, path string, tagPath string) error {
 	t := v.Type()
 	for i := range v.NumField() {
 		field := t.Field(i)
-
 		if field.PkgPath != "" || field.Tag.Get("optional") == "true" {
 			continue
 		}
 
-		value := v.Field(i)
+		fieldPath, fieldTagPath := buildFieldPaths(field, tag, path, tagPath)
 
-		var isEmpty bool
-
-		//nolint:exhaustive
-		switch value.Kind() {
-		case reflect.String:
-			isEmpty = strings.TrimSpace(value.String()) == ""
-		case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
-			isEmpty = value.Int() == 0
-		case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
-			isEmpty = value.Uint() == 0
-		case reflect.Float32, reflect.Float64:
-			isEmpty = value.Float() == 0
-		case reflect.Complex64, reflect.Complex128:
-			isEmpty = value.Complex() == 0+0i
-		case reflect.Ptr, reflect.Interface:
-			isEmpty = value.IsNil()
-		case reflect.Slice, reflect.Array:
-			isEmpty = value.Len() == 0
-			if !isEmpty {
-				if value.Len() > 0 {
-					elem := value.Index(0)
-
-					elemKind := elem.Kind()
-					if elemKind == reflect.Struct || (elemKind == reflect.Ptr && elem.Elem().Kind() == reflect.Struct) {
-						slicePath := field.Name
-						if path != "" {
-							slicePath = path + "." + slicePath
-						}
-
-						sliceTagPath := getFieldNameForPath(field, tag)
-						if tagPath != "" {
-							sliceTagPath = tagPath + "." + sliceTagPath
-						}
-
-						for i := range value.Len() {
-							elementPath := fmt.Sprintf("%s[%d]", slicePath, i)
-
-							elementTagPath := fmt.Sprintf("%s[%d]", sliceTagPath, i)
-							if err := validateWithPath(value.Index(i).Interface(), tag, elementPath, elementTagPath); err != nil {
-								return err
-							}
-						}
-					}
-				}
-			}
-		case reflect.Map:
-			isEmpty = value.Len() == 0
-			if !isEmpty {
-				mapPath := field.Name
-				if path != "" {
-					mapPath = path + "." + mapPath
-				}
-
-				mapTagPath := getFieldNameForPath(field, tag)
-				if tagPath != "" {
-					mapTagPath = tagPath + "." + mapTagPath
-				}
-
-				iter := value.MapRange()
-				for iter.Next() {
-					k := iter.Key()
-					v := iter.Value()
-
-					if v.IsValid() && (v.Kind() == reflect.Struct || (v.Kind() == reflect.Ptr && !v.IsNil() && v.Elem().Kind() == reflect.Struct)) {
-						elementPath := fmt.Sprintf("%s[%v]", mapPath, k.Interface())
-
-						elementTagPath := fmt.Sprintf("%s[%v]", mapTagPath, k.Interface())
-						if err := validateWithPath(v.Interface(), tag, elementPath, elementTagPath); err != nil {
-							return err
-						}
-					}
-				}
-			}
-		case reflect.Struct:
-			if value.CanAddr() {
-				newPath := field.Name
-				if path != "" {
-					newPath = path + "." + newPath
-				}
-
-				newTagPath := getFieldNameForPath(field, tag)
-				if tagPath != "" {
-					newTagPath = tagPath + "." + newTagPath
-				}
-
-				if err := validateWithPath(value.Addr().Interface(), tag, newPath, newTagPath); err != nil {
-					return err
-				}
-			}
-		case reflect.Chan, reflect.Func, reflect.UnsafePointer:
-			isEmpty = value.IsNil()
-		default:
+		isEmpty, err := validateFieldValue(v.Field(i), tag, fieldPath, fieldTagPath)
+		if err != nil {
+			return err
 		}
 
-		if !isEmpty {
-			continue
+		if isEmpty {
+			return buildRequiredFieldError(t, field, fieldPath, fieldTagPath)
 		}
-
-		fullPath := field.Name
-		if path != "" {
-			fullPath = path + "." + fullPath
-		}
-
-		fullTagPath := getFieldNameForPath(field, tag)
-		if tagPath != "" {
-			fullTagPath = tagPath + "." + fullTagPath
-		}
-
-		errMsg := fmt.Sprintf("validate: field [%s] is required but empty", fullPath)
-		if fullTagPath != "" {
-			errMsg = fmt.Sprintf("validate: field [%s](%s) is required but empty", fullPath, fullTagPath)
-		}
-
-		if DefaultConfigProvider != nil {
-			if defaultCfg, ok := DefaultConfigProvider(); ok {
-				parentStruct := reflect.ValueOf(defaultCfg).Elem().FieldByName(t.Name())
-				if parentStruct.IsValid() {
-					defaultValue := parentStruct.FieldByName(field.Name)
-					if defaultValue.IsValid() {
-						errMsg += fmt.Sprintf(", default value is: '%v'", defaultValue.Interface())
-					}
-				}
-			}
-		}
-
-		return errors.New(errMsg)
 	}
 
 	return nil
+}
+
+func buildFieldPaths(field reflect.StructField, tag string, path string, tagPath string) (string, string) {
+	fieldPath := field.Name
+	if path != "" {
+		fieldPath = path + "." + fieldPath
+	}
+
+	fieldTagPath := getFieldNameForPath(field, tag)
+	if tagPath != "" {
+		fieldTagPath = tagPath + "." + fieldTagPath
+	}
+
+	return fieldPath, fieldTagPath
+}
+
+func validateFieldValue(value reflect.Value, tag string, path string, tagPath string) (bool, error) {
+	switch value.Kind() {
+	case reflect.Invalid:
+		return true, nil
+	case reflect.Bool:
+		return !value.Bool(), nil
+	case reflect.String:
+		return strings.TrimSpace(value.String()) == "", nil
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return value.Int() == 0, nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return value.Uint() == 0, nil
+	case reflect.Float32, reflect.Float64:
+		return value.Float() == 0, nil
+	case reflect.Complex64, reflect.Complex128:
+		return value.Complex() == 0+0i, nil
+	case reflect.Ptr, reflect.Interface:
+		return value.IsNil(), nil
+	case reflect.Slice, reflect.Array:
+		return validateSequenceValue(value, tag, path, tagPath)
+	case reflect.Map:
+		return validateMapValue(value, tag, path, tagPath)
+	case reflect.Struct:
+		if !value.CanAddr() {
+			return false, nil
+		}
+
+		return false, validateWithPath(value.Addr().Interface(), tag, path, tagPath)
+	case reflect.Chan, reflect.Func, reflect.UnsafePointer:
+		return value.IsNil(), nil
+	default:
+		return false, nil
+	}
+}
+
+func validateSequenceValue(value reflect.Value, tag string, path string, tagPath string) (bool, error) {
+	if value.Len() == 0 {
+		return true, nil
+	}
+
+	for i := range value.Len() {
+		element := value.Index(i)
+		if !isStructLikeValue(element) {
+			continue
+		}
+
+		elementPath := fmt.Sprintf("%s[%d]", path, i)
+
+		elementTagPath := fmt.Sprintf("%s[%d]", tagPath, i)
+		if err := validateWithPath(element.Interface(), tag, elementPath, elementTagPath); err != nil {
+			return false, err
+		}
+	}
+
+	return false, nil
+}
+
+func validateMapValue(value reflect.Value, tag string, path string, tagPath string) (bool, error) {
+	if value.Len() == 0 {
+		return true, nil
+	}
+
+	iter := value.MapRange()
+	for iter.Next() {
+		key := iter.Key()
+
+		element := iter.Value()
+		if !isStructLikeValue(element) {
+			continue
+		}
+
+		elementPath := fmt.Sprintf("%s[%v]", path, key.Interface())
+
+		elementTagPath := fmt.Sprintf("%s[%v]", tagPath, key.Interface())
+		if err := validateWithPath(element.Interface(), tag, elementPath, elementTagPath); err != nil {
+			return false, err
+		}
+	}
+
+	return false, nil
+}
+
+func isStructLikeValue(value reflect.Value) bool {
+	if !value.IsValid() {
+		return false
+	}
+
+	if value.Kind() == reflect.Struct {
+		return true
+	}
+
+	return value.Kind() == reflect.Ptr && !value.IsNil() && value.Elem().Kind() == reflect.Struct
+}
+
+func buildRequiredFieldError(parentType reflect.Type, field reflect.StructField, path string, tagPath string) error {
+	errMsg := fmt.Sprintf("validate: field [%s] is required but empty", path)
+	if tagPath != "" {
+		errMsg = fmt.Sprintf("validate: field [%s](%s) is required but empty", path, tagPath)
+	}
+
+	if defaultValue, ok := getDefaultFieldValue(parentType, field.Name); ok {
+		errMsg += fmt.Sprintf(", default value is: '%v'", defaultValue)
+	}
+
+	return errors.New(errMsg)
+}
+
+func getDefaultFieldValue(parentType reflect.Type, fieldName string) (any, bool) {
+	if DefaultConfigProvider == nil {
+		return nil, false
+	}
+
+	defaultCfg, ok := DefaultConfigProvider()
+	if !ok {
+		return nil, false
+	}
+
+	defaultValue := reflect.ValueOf(defaultCfg)
+	if defaultValue.Kind() != reflect.Ptr || defaultValue.IsNil() {
+		return nil, false
+	}
+
+	parentStruct := defaultValue.Elem().FieldByName(parentType.Name())
+	if !parentStruct.IsValid() {
+		return nil, false
+	}
+
+	fieldValue := parentStruct.FieldByName(fieldName)
+	if !fieldValue.IsValid() {
+		return nil, false
+	}
+
+	return fieldValue.Interface(), true
 }

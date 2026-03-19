@@ -23,6 +23,7 @@ func (v *StatusModifier) WithStatus(status uint16) *StatusModifier {
 // WithUpstream 会覆盖掉 WithStatus
 func (v *StatusModifier) WithUpstream(upstream string) *StatusModifier {
 	v.upstream = upstream
+
 	return v
 }
 
@@ -32,9 +33,17 @@ func (v *StatusModifier) Status() (uint16, error) {
 		if err != nil {
 			return v.status, err
 		}
-		defer resp.Body.Close()
-		return uint16(resp.StatusCode), nil
+
+		defer func() { _ = resp.Body.Close() }()
+
+		statusCode := resp.StatusCode
+		if statusCode < 100 || statusCode > 599 {
+			return v.status, fmt.Errorf("invalid upstream status code: %d", statusCode)
+		}
+
+		return uint16(statusCode), nil
 	}
+
 	return v.status, nil
 }
 

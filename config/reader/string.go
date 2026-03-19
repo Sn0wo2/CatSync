@@ -269,7 +269,7 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 			return r.value, r.err
 		}
 
-		resp, err := c.Do(req) //nolint:gosec // URL is validated and controlled by config input
+		resp, err := c.Do(req)
 		if err != nil {
 			r.err = err
 

@@ -26,10 +26,10 @@ type Log struct {
 }
 
 type Server struct {
-	Address *reader.String `json:"address"        yaml:"address"`
-	Prefork bool `json:"prefork,omitempty" optional:"true" yaml:"prefork,omitempty"`
-	TLS     ServerTLS      `json:"tls"            optional:"true" yaml:"tls"`
-	ACME    *ServerACME    `json:"acme,omitempty" optional:"true" yaml:"acme,omitempty"`
+	Address *reader.String `json:"address"           yaml:"address"`
+	Prefork bool           `json:"prefork,omitempty" optional:"true" yaml:"prefork,omitempty"`
+	TLS     ServerTLS      `json:"tls"               optional:"true" yaml:"tls"`
+	ACME    *ServerACME    `json:"acme,omitempty"    optional:"true" yaml:"acme,omitempty"`
 }
 
 // GlobalModifier
@@ -162,12 +162,12 @@ func (a *ActionStringData) action() {}
 // Modifier middleware
 
 type ActionModifierResponseHeader struct {
-	Header http.Header `json:"header" yaml:"header"`
+	Header http.Header `json:"header"             yaml:"header"`
 	Upstream *reader.String `json:"upstream,omitempty" optional:"true" yaml:"upstream,omitempty"`
 }
 
 type ActionModifierStatus struct {
-	Status uint16 `json:"status" yaml:"status"`
+	Status uint16 `json:"status"             yaml:"status"`
 	Upstream *reader.String `json:"upstream,omitempty" optional:"true" yaml:"upstream,omitempty"`
 }
 

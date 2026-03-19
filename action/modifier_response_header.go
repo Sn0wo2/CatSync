@@ -17,30 +17,37 @@ func NewResponseHeaderModifier() *ResponseHeaderModifier {
 
 func (m *ResponseHeaderModifier) WithHeader(header http.Header) *ResponseHeaderModifier {
 	m.header = header
+
 	return m
 }
 
 func (m *ResponseHeaderModifier) WithUpStream(upstream string) *ResponseHeaderModifier {
 	m.upstream = upstream
+
 	return m
 }
+
 func (m *ResponseHeaderModifier) ProcessModifier(handler Handler) Handler {
 	return WrapHandlerWithHooks(handler).Before(func(p *ProcessData) (*ProcessData, error) {
 		hasUpstreamPlaceholder := false
+
 		for _, v := range m.header {
 			if len(v) == 1 && v[0] == "$[UPSTREAM_HEADER]" {
 				hasUpstreamPlaceholder = true
+
 				break
 			}
 		}
 
 		var upstreamMap map[string][]string
+
 		if m.upstream != "" && hasUpstreamPlaceholder {
 			resp, err := http.Get(m.upstream)
 			if err != nil {
 				return nil, fmt.Errorf("fetch upstream error: %w", err)
 			}
-			defer resp.Body.Close()
+
+			defer func() { _ = resp.Body.Close() }()
 
 			upstreamMap = make(map[string][]string, len(resp.Header))
 			for k, v := range resp.Header {

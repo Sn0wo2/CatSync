@@ -71,7 +71,7 @@ func (b *ModifierBuilder) BuildFromGlobalModifier(gm *config.GlobalModifier) []M
 
 	modifiers := make([]Modifier, 0, 3)
 	if gm.ActionModifierStatus != nil {
-		modifiers = append(modifiers, NewStatusModifier().WithStatus(gm.ActionModifierStatus.Status))
+		modifiers = append(modifiers, NewStatusModifier().WithStatus(gm.Status))
 	}
 
 	if gm.ActionModifierAuth != nil {
@@ -83,6 +83,7 @@ func (b *ModifierBuilder) BuildFromGlobalModifier(gm *config.GlobalModifier) []M
 		if err != nil {
 			return nil
 		}
+
 		modifiers = append(modifiers, NewResponseHeaderModifier().WithHeader(gm.ActionModifierResponseHeader.Header).WithUpStream(upstream))
 	}
 
