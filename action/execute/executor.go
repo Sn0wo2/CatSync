@@ -217,13 +217,11 @@ func (e *Executor) ExecuteAt(index int) (Result, error) {
 		return Result{Matched: true}, nil
 	}
 
-	var jumpErr *action.AuthFallbackJumpError
-	if errors.As(err, &jumpErr) {
+	if jumpErr, ok2 := errors.AsType[*action.AuthFallbackJumpError](err); ok2 {
 		return Result{Matched: true, JumpTo: &jumpErr.JumpTo}, nil
 	}
 
-	var nextErr *action.AuthFallbackNextError
-	if errors.As(err, &nextErr) {
+	if _, ok2 := errors.AsType[*action.AuthFallbackNextError](err); ok2 {
 		return Result{NotMatched: true}, nil
 	}
 

@@ -12,13 +12,10 @@ import (
 func Actions(c *params.Ctx) fiber.Handler {
 	b := action.NewModifierBuilder()
 
-	pl, err := execute.Compile(c.GetConfig(), execute.Builders{Global: b.BuildGlobal, Action: b.BuildAction, Payload: b.BuildPayload})
-	if err != nil {
-		panic(err)
-	}
+	exec := execute.New().WithConfig(c.GetConfig()).WithBuilders(execute.Builders{Global: b.BuildGlobal, Action: b.BuildAction, Payload: b.BuildPayload})
 
 	return func(ctx fiber.Ctx) error {
-		exec := pl.Runner(c, ctx)
+		exec.WithContext(c, ctx)
 
 		jumpVisited := map[int]bool{}
 		forceIndex := -1
