@@ -14,11 +14,9 @@ import (
 	"go.uber.org/zap"
 )
 
-func init() {
-	cli.Execute()
-}
-
 func main() {
+	cli.Execute()
+
 	appCtx, err := InitializeApp()
 	if err != nil {
 		panic(err)
