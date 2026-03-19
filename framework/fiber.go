@@ -75,19 +75,25 @@ func (ctx *Framework) StartFiber() error {
 	cert := reader.Must(cfg.Server.TLS.Cert)
 
 	key := reader.Must(cfg.Server.TLS.Key)
+
+	fl := fiber.ListenConfig{}
+
+	if cfg.Server.Prefork {
+		fl.EnablePrefork = !debug.IsDebugging()
+	}
+
 	if cert != "" && key != "" {
 		logger.Info("TLS listening", zap.String("addr", addr))
 
-		return ctx.Listen(addr, fiber.ListenConfig{
-			EnablePrefork: !debug.IsDebugging(),
-			CertFile:      cert,
-			CertKeyFile:   key,
-		})
+		fl.CertFile = cert
+		fl.CertKeyFile = key
+
+		return ctx.Listen(addr, fl)
 	}
 
 	logger.Info("HTTP listening", zap.String("addr", addr))
 
-	return ctx.Listen(addr, fiber.ListenConfig{EnablePrefork: !debug.IsDebugging()})
+	return ctx.Listen(addr, fl)
 }
 
 // httpServerToStd is a minimal adapter to satisfy existing ACME functions.

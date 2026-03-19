@@ -27,6 +27,7 @@ type Log struct {
 
 type Server struct {
 	Address *reader.String `json:"address"        yaml:"address"`
+	Prefork bool `json:"prefork,omitempty" optional:"true" yaml:"prefork,omitempty"`
 	TLS     ServerTLS      `json:"tls"            optional:"true" yaml:"tls"`
 	ACME    *ServerACME    `json:"acme,omitempty" optional:"true" yaml:"acme,omitempty"`
 }
