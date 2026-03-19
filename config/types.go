@@ -162,12 +162,12 @@ func (a *ActionStringData) action() {}
 // Modifier middleware
 
 type ActionModifierResponseHeader struct {
-	Header http.Header `json:"header"             yaml:"header"`
+	Header   http.Header    `json:"header"             yaml:"header"`
 	Upstream *reader.String `json:"upstream,omitempty" optional:"true" yaml:"upstream,omitempty"`
 }
 
 type ActionModifierStatus struct {
-	Status uint16 `json:"status"             yaml:"status"`
+	Status   uint16         `json:"status"             yaml:"status"`
 	Upstream *reader.String `json:"upstream,omitempty" optional:"true" yaml:"upstream,omitempty"`
 }
 

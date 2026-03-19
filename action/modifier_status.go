@@ -6,7 +6,7 @@ import (
 )
 
 type StatusModifier struct {
-	status uint16
+	status   uint16
 	upstream string
 }
 
