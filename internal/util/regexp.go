@@ -22,7 +22,7 @@ func GetCompiledRegexp(pattern string) (*regexp.Regexp, error) {
 
 	cacheMutex.RUnlock()
 
-	re, err := regexp.Compile(pattern)
+	re, err := regexp.Compile("^" + pattern + "$")
 	if err != nil {
 		return nil, fmt.Errorf("invalid regexp %q: %w", pattern, err)
 	}
