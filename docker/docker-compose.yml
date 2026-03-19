@@ -1,5 +1,5 @@
 services:
-  CatSync:
+  catsync:
     image: ghcr.io/sn0wo2/catsync:latest
     container_name: CatSync
     restart: unless-stopped
