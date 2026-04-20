@@ -28,18 +28,17 @@ const (
 type String struct {
 	Type    StringType `json:"type,omitempty" optional:"true" yaml:"type,omitempty"`
 	Content string     `json:"content"        yaml:"content"`
-
-	loaded bool
-	value  string
-	err    error
-	mu     sync.RWMutex
+	loaded  bool
+	value   string
+	err     error
+	mu      sync.RWMutex
 }
 
 func Str(s string) *String {
 	return &String{Type: StringTypeString, Content: s}
 }
 
-func Get(r *String) (string, error) {
+func (r *String) Get() (string, error) {
 	if r == nil {
 		return "", nil
 	}
@@ -47,17 +46,17 @@ func Get(r *String) (string, error) {
 	return r.ReadString(context.Background())
 }
 
-func Must(r *String) string {
-	s, _ := Get(r)
+func (r *String) Must() string {
+	s, _ := r.Get()
 
 	return s
 }
 
-func Trim(r *String) string {
-	return strings.TrimSpace(Must(r))
+func (r *String) Trim() string {
+	return strings.TrimSpace(r.Must())
 }
 
-func Literal(r *String) (string, bool) {
+func (r *String) Literal() (string, bool) {
 	if r == nil {
 		return "", true
 	}
@@ -69,8 +68,8 @@ func Literal(r *String) (string, bool) {
 	return "", false
 }
 
-func LiteralTrim(r *String) (string, bool) {
-	s, ok := Literal(r)
+func (r *String) LiteralTrim() (string, bool) {
+	s, ok := r.Literal()
 
 	return strings.TrimSpace(s), ok
 }
@@ -144,9 +143,8 @@ func (r *String) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
-func (r *String) MarshalYAML() (interface{}, error) {
+func (r *String) MarshalYAML() (any, error) {
 	if r == nil {
-		//nolint:nilnil // nil receiver should be marshaled as YAML null
 		return nil, nil
 	}
 
@@ -159,33 +157,6 @@ func (r *String) MarshalYAML() (interface{}, error) {
 	return (*alias)(r), nil
 }
 
-func (r *String) Validate() error {
-	if r == nil {
-		return nil
-	}
-
-	if strings.TrimSpace(r.Content) == "" {
-		return errors.New("content is empty")
-	}
-
-	switch r.Type {
-	case "", StringTypeString, StringTypeAuto:
-		return nil
-	case StringTypePath:
-		return validatePath(r.Content)
-	case StringTypeHTTP:
-		_, err := parseHTTPURL(r.Content)
-
-		return err
-	default:
-		return fmt.Errorf("invalid type: %q", r.Type)
-	}
-}
-
-// ValidateNoIO validates basic structure without performing I/O.
-//
-// - type=path: does NOT stat the file
-// - type=http: validates URL format only
 func (r *String) ValidateNoIO() error {
 	if r == nil {
 		return nil
@@ -223,7 +194,6 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 	}
 
 	r.mu.RUnlock()
-
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -238,10 +208,9 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 	case StringTypeString:
 		r.value = content
 	case StringTypePath:
-		b, err := os.ReadFile(content) //nolint:gosec
+		b, err := os.ReadFile(content)
 		if err != nil {
 			r.err = err
-
 			r.loaded = true
 
 			return r.value, r.err
@@ -252,7 +221,6 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 		u, err := parseHTTPURL(content)
 		if err != nil {
 			r.err = err
-
 			r.loaded = true
 
 			return r.value, r.err
@@ -263,7 +231,6 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 		if err != nil {
 			r.err = err
-
 			r.loaded = true
 
 			return r.value, r.err
@@ -272,7 +239,6 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 		resp, err := c.Do(req)
 		if err != nil {
 			r.err = err
-
 			r.loaded = true
 
 			return r.value, r.err
@@ -282,7 +248,6 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			r.err = fmt.Errorf("http status %d", resp.StatusCode)
-
 			r.loaded = true
 
 			return r.value, r.err
@@ -291,7 +256,6 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 		b, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		if err != nil {
 			r.err = err
-
 			r.loaded = true
 
 			return r.value, r.err
@@ -375,18 +339,6 @@ func looksLikePath(s string) bool {
 	}
 
 	return false
-}
-
-func validatePath(p string) error {
-	if strings.TrimSpace(p) == "" {
-		return errors.New("path is empty")
-	}
-
-	if _, err := os.Stat(p); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func parseHTTPURL(raw string) (*url.URL, error) {

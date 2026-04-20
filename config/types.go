@@ -32,8 +32,6 @@ type Server struct {
 	ACME    *ServerACME    `json:"acme,omitempty"    optional:"true" yaml:"acme,omitempty"`
 }
 
-// GlobalModifier
-//
 // Action 特有的Modifier会覆盖掉 GlobalModifier
 type GlobalModifier struct {
 	*ActionModifierResponseHeader `json:"actionModifierResponseHeader,omitempty" optional:"true" yaml:"actionModifierResponseHeader,omitempty"`
@@ -41,6 +39,8 @@ type GlobalModifier struct {
 	*ActionModifierAuth           `json:"actionModifierAuth,omitempty"           optional:"true" yaml:"actionModifierAuth,omitempty"`
 	*ActionModifierVersion        `json:"actionVersionModifier,omitempty"        optional:"true" yaml:"actionVersionModifier,omitempty"`
 }
+
+func (gm *GlobalModifier) GetGlobalModifier() *GlobalModifier { return gm }
 
 type ServerTLS struct {
 	Cert *reader.String `json:"cert" yaml:"cert"`
@@ -69,7 +69,6 @@ type ServerACME struct {
 	DNS01  *ServerACMEDNS01  `json:"dns01,omitempty"  optional:"true" yaml:"dns01,omitempty"`
 }
 
-// ServerACMEHTTP01 configures HTTP-01 challenge.
 type ServerACMEHTTP01 struct {
 	HTTPAddress *reader.String `json:"httpAddress,omitempty" optional:"true" yaml:"httpAddress,omitempty"`
 }
@@ -103,14 +102,35 @@ type Action struct {
 
 	Type ActionType `json:"type" yaml:"type"`
 
-	// --- Action Modifiers ---
 	GlobalModifier `yaml:",inline"`
 
-	// --- Action Datas ---
 	ActionFile   *ActionFileData   `json:"file,omitempty"   optional:"true" yaml:"file,omitempty"`
 	ActionString *ActionStringData `json:"string,omitempty" optional:"true" yaml:"string,omitempty"`
 	ActionServer *ActionServerData `json:"server,omitempty" optional:"true" yaml:"server,omitempty"`
 	ActionReload *ActionReloadData `json:"reload,omitempty" optional:"true" yaml:"reload,omitempty"`
+}
+
+func (a *Action) GetPayload() ActionData {
+	switch a.Type {
+	case ActionFile:
+		if a.ActionFile != nil {
+			return a.ActionFile
+		}
+	case ActionString:
+		if a.ActionString != nil {
+			return a.ActionString
+		}
+	case ActionServer:
+		if a.ActionServer != nil {
+			return a.ActionServer
+		}
+	case ActionReload:
+		if a.ActionReload != nil {
+			return a.ActionReload
+		}
+	}
+
+	return nil
 }
 
 type ActionType string
@@ -124,6 +144,7 @@ const (
 
 type ActionData interface {
 	action()
+	GetGlobalModifier() *GlobalModifier
 }
 
 type ActionFileData struct {
@@ -158,8 +179,6 @@ type ActionStringData struct {
 }
 
 func (a *ActionStringData) action() {}
-
-// Modifier middleware
 
 type ActionModifierResponseHeader struct {
 	Header   http.Header    `json:"header"             yaml:"header"`
