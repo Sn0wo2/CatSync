@@ -3,6 +3,7 @@ package action
 import (
 	"fmt"
 	"net/http"
+	"time"
 )
 
 type StatusModifier struct {
@@ -28,7 +29,8 @@ func (v *StatusModifier) WithUpstream(upstream string) *StatusModifier {
 
 func (v *StatusModifier) Status() (uint16, error) {
 	if v.upstream != "" {
-		resp, err := http.Get(v.upstream)
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Get(v.upstream)
 		if err != nil {
 			return v.status, err
 		}
