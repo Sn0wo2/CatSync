@@ -13,7 +13,7 @@ schema:
 	@go run ./scripts/schema/main.go
 
 build:
-	@echo Building CatSync (all features)...
+	@printf 'Building CatSync (all features)...\n'
 	@go build -trimpath -tags catsync_all -ldflags "-s -w" -o CatSync ./cmd
 
 test_goreleaser:
