@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Sn0wo2/CatSync/internal/cache"
+	"github.com/jellydator/ttlcache/v3"
 )
 
 var sharedClient = &http.Client{
@@ -22,16 +22,19 @@ type Response struct {
 }
 
 type Fetcher struct {
-	cache *cache.TTL[string, *Response]
+	cache *ttlcache.Cache[string, *Response]
 }
 
 func NewFetcher(ttl time.Duration) *Fetcher {
-	return &Fetcher{cache: cache.NewTTL[string, *Response](ttl)}
+	c := ttlcache.New(ttlcache.WithTTL[string, *Response](ttl))
+	go c.Start()
+
+	return &Fetcher{cache: c}
 }
 
 func (f *Fetcher) Fetch(url string) (*Response, error) {
-	if resp, ok := f.cache.Get(url); ok {
-		return resp, nil
+	if item := f.cache.Get(url); item != nil {
+		return item.Value(), nil
 	}
 
 	resp, err := sharedClient.Get(url)
@@ -46,7 +49,7 @@ func (f *Fetcher) Fetch(url string) (*Response, error) {
 		Header:     resp.Header.Clone(),
 	}
 
-	f.cache.Set(url, r)
+	f.cache.Set(url, r, ttlcache.DefaultTTL)
 
 	return r, nil
 }

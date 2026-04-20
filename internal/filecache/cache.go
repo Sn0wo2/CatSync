@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/Sn0wo2/CatSync/internal/cache"
+	lru "github.com/jellydator/ttlcache/v3"
 )
 
 type Entry struct {
@@ -14,20 +14,20 @@ type Entry struct {
 }
 
 type Cache struct {
-	inner *cache.TTL[string, *Entry]
+	inner *lru.Cache[string, *Entry]
 }
 
 func New(ttl time.Duration) *Cache {
-	c := &Cache{
-		inner: cache.NewTTL[string, *Entry](ttl),
-	}
+	c := &Cache{inner: lru.New(lru.WithTTL[string, *Entry](ttl))}
+
+	go c.inner.Start()
 
 	return c
 }
 
 func (c *Cache) Get(path string, detectContentType bool) (*Entry, error) {
-	if entry, ok := c.inner.Get(path); ok {
-		return entry, nil
+	if item := c.inner.Get(path); item != nil {
+		return item.Value(), nil
 	}
 
 	data, err := os.ReadFile(path) //nolint:gosec // path sanitized upstream
@@ -40,7 +40,7 @@ func (c *Cache) Get(path string, detectContentType bool) (*Entry, error) {
 		entry.ContentType = http.DetectContentType(data)
 	}
 
-	c.inner.Set(path, entry)
+	c.inner.Set(path, entry, lru.DefaultTTL)
 
 	return entry, nil
 }

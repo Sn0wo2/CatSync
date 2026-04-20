@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/Sn0wo2/CatSync/internal/cache"
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
-var regexpCache, _ = cache.NewLRU[string, *regexp.Regexp](1024)
+var regexpCache, _ = lru.New[string, *regexp.Regexp](1024)
 
 func GetCompiledRegexp(pattern string) (*regexp.Regexp, error) {
 	if re, ok := regexpCache.Get(pattern); ok {
