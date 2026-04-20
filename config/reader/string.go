@@ -185,6 +185,13 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 		return "", nil
 	}
 
+	fail := func(err error) (string, error) {
+		r.err = err
+		r.loaded = true
+
+		return r.value, r.err
+	}
+
 	r.mu.RLock()
 
 	if r.loaded {
@@ -210,60 +217,42 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 	case StringTypePath:
 		b, err := os.ReadFile(content)
 		if err != nil {
-			r.err = err
-			r.loaded = true
-
-			return r.value, r.err
+			return fail(err)
 		}
 
 		r.value = string(b)
 	case StringTypeHTTP:
 		u, err := parseHTTPURL(content)
 		if err != nil {
-			r.err = err
-			r.loaded = true
-
-			return r.value, r.err
+			return fail(err)
 		}
 
 		c := &http.Client{Timeout: 10 * time.Second}
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 		if err != nil {
-			r.err = err
-			r.loaded = true
-
-			return r.value, r.err
+			return fail(err)
 		}
 
 		resp, err := c.Do(req)
 		if err != nil {
-			r.err = err
-			r.loaded = true
-
-			return r.value, r.err
+			return fail(err)
 		}
 
 		defer func() { _ = resp.Body.Close() }()
 
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			r.err = fmt.Errorf("http status %d", resp.StatusCode)
-			r.loaded = true
-
-			return r.value, r.err
+			return fail(fmt.Errorf("http status %d", resp.StatusCode))
 		}
 
 		b, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		if err != nil {
-			r.err = err
-			r.loaded = true
-
-			return r.value, r.err
+			return fail(err)
 		}
 
 		r.value = string(b)
 	default:
-		r.err = fmt.Errorf("unsupported type: %q", t)
+		return fail(fmt.Errorf("unsupported type: %q", t))
 	}
 
 	r.loaded = true

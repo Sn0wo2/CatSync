@@ -295,11 +295,7 @@ func (c *Config) checkACME(add func(error)) {
 }
 
 func (c *Config) checkStatus(where string, status uint16) error {
-	if status == 0 {
-		return nil
-	}
-
-	if status < 100 || status > 599 {
+	if status != 0 && (status < 100 || status > 599) {
 		return fmt.Errorf("invalid status code at %s: %d", where, status)
 	}
 
@@ -345,13 +341,7 @@ func (c *Config) checkAuth(where string, auth *ActionModifierAuth, actionCount i
 	for k, patterns := range auth.Header {
 		for _, pr := range patterns {
 			pat, ok := pr.LiteralTrim()
-			if !ok {
-				addAuthErr(fmt.Errorf("auth.header pattern must be literal string at %s (header=%q)", where, k))
-
-				continue
-			}
-
-			if pat == "" {
+			if !ok || pat == "" {
 				addAuthErr(fmt.Errorf("auth.header pattern is empty at %s (header=%q)", where, k))
 
 				continue
@@ -365,13 +355,7 @@ func (c *Config) checkAuth(where string, auth *ActionModifierAuth, actionCount i
 
 	for k, pr := range auth.Query {
 		pat, ok := pr.LiteralTrim()
-		if !ok {
-			addAuthErr(fmt.Errorf("auth.query pattern must be literal string at %s (key=%q)", where, k))
-
-			continue
-		}
-
-		if pat == "" {
+		if !ok || pat == "" {
 			addAuthErr(fmt.Errorf("auth.query pattern is empty at %s (key=%q)", where, k))
 
 			continue
@@ -428,7 +412,7 @@ func (c *Config) checkGlobalModifiers(add func(error)) {
 func (c *Config) checkActions(logger *zap.Logger, add func(error)) {
 	actionCount := len(c.Actions)
 	for i, act := range c.Actions {
-	route, ok := act.Route.LiteralTrim()
+		route, ok := act.Route.LiteralTrim()
 		if !ok {
 			add(fmt.Errorf("actions[%d].route must be a literal string (type=string)", i))
 
@@ -455,15 +439,14 @@ func (c *Config) checkActions(logger *zap.Logger, add func(error)) {
 		payload := act.GetPayload()
 		if payload == nil {
 			add(fmt.Errorf("actions[%d] type=%s but payload is nil", i, act.Type))
-		} else {
-			if act.Type == ActionServer {
-				if act.ActionServer.Directory == nil {
-					add(fmt.Errorf("actions[%d] type=server but server.directory is nil", i))
-				}
-			}
-
-			c.checkActionGlobalModifier(fmt.Sprintf("actions[%d].%s", i, act.Type), payload.GetGlobalModifier(), actionCount, add)
+			continue
 		}
+
+		if act.Type == ActionServer && act.ActionServer.Directory == nil {
+			add(fmt.Errorf("actions[%d] type=server but server.directory is nil", i))
+		}
+
+		c.checkActionGlobalModifier(fmt.Sprintf("actions[%d].%s", i, act.Type), payload.GetGlobalModifier(), actionCount, add)
 	}
 }
 
