@@ -257,11 +257,6 @@ func (m *AuthModifier) initIPAllowlist(logger *zap.Logger) {
 		}
 	}
 
-	if len(wl.addrs) == 0 && len(wl.prefixes) == 0 {
-		m.ipWL = nil
-		m.ipErr = nil
-	}
-
 	m.ipWL = wl
 }
 
