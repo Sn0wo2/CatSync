@@ -3,13 +3,13 @@ package action
 import (
 	"context"
 	"errors"
-	"net"
+	"net/netip"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
 	"github.com/Sn0wo2/CatSync/config"
-	"github.com/Sn0wo2/CatSync/config/reader"
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"go.uber.org/zap"
 )
@@ -28,8 +28,8 @@ type AuthModifier struct {
 }
 
 type ipAllowlist struct {
-	ips  []net.IP
-	nets []*net.IPNet
+	addrs    []netip.Addr
+	prefixes []netip.Prefix
 }
 
 func NewAuthModifier(auth config.ActionModifierAuth) *AuthModifier {
@@ -45,7 +45,7 @@ func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 		if m.reErr != nil {
 			logger.Warn("Auth >> Failed to init auth regex",
 				zap.Error(m.reErr),
-				zap.String("ctx", util.FiberContextString(p.C)),
+				util.LazyFiberContext(p.C),
 			)
 
 			return m.handleFallback()
@@ -56,7 +56,7 @@ func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 		if m.ipErr != nil {
 			logger.Warn("Auth >> Failed to init ip allowlist",
 				zap.Error(m.ipErr),
-				zap.String("ctx", util.FiberContextString(p.C)),
+				util.LazyFiberContext(p.C),
 			)
 
 			return m.handleFallback()
@@ -72,14 +72,13 @@ func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 				logger.Info("Auth >> IP not allowed",
 					zap.Any("allowed", m.auth.IPAllow),
 					zap.Strings("actual", ips),
-					zap.String("ctx", util.FiberContextString(p.C)),
+					util.LazyFiberContext(p.C),
 				)
 
 				return m.handleFallback()
 			}
 		}
 
-		// Header checks
 		reqHeaders := p.C.GetReqHeaders()
 
 		for k, res := range m.headerRE {
@@ -93,53 +92,31 @@ func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 				}
 			}
 
-			// Missing header should be treated as auth mismatch.
 			if len(values) == 0 {
-				logger.Info("Auth >> Header missing",
-					zap.String("header", k),
-					zap.String("ctx", util.FiberContextString(p.C)),
-				)
+				logger.Info("Auth >> Header missing", zap.String("header", k), util.LazyFiberContext(p.C))
 
 				return m.handleFallback()
 			}
 
-			// Any (pattern, value) match passes the header check.
-			matched := false
-
-			for _, v := range values {
-				for _, re := range res {
-					if re.MatchString(v) {
-						matched = true
-
-						break
-					}
-				}
-
-				if matched {
-					break
-				}
-			}
-
-			if !matched {
+			if !m.matchHeaderValues(values, res) {
 				logger.Info("Auth >> Header value not matched",
 					zap.String("header", k),
 					zap.Any("patterns", m.auth.Header[k]),
 					zap.Any("actual", values),
-					zap.String("ctx", util.FiberContextString(p.C)),
+					util.LazyFiberContext(p.C),
 				)
 
 				return m.handleFallback()
 			}
 		}
 
-		// Query checks
 		for k, re := range m.queryRE {
 			if !re.MatchString(p.C.Query(k)) {
 				logger.Info("Auth >> Query value not matched",
 					zap.String("key", k),
 					zap.Any("pattern", m.auth.Query[k]),
 					zap.String("actual", p.C.Query(k)),
-					zap.String("ctx", util.FiberContextString(p.C)),
+					util.LazyFiberContext(p.C),
 				)
 
 				return m.handleFallback()
@@ -150,14 +127,25 @@ func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
 	})
 }
 
+func (m *AuthModifier) matchHeaderValues(values []string, res []*regexp.Regexp) bool {
+	for _, v := range values {
+		for _, re := range res {
+			if re.MatchString(v) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func (m *AuthModifier) initRegex() {
-	// Pre-compile patterns so per-request does not hit regexp cache locks.
 	if len(m.auth.Header) > 0 {
 		m.headerRE = make(map[string][]*regexp.Regexp, len(m.auth.Header))
 		for k, patterns := range m.auth.Header {
 			out := make([]*regexp.Regexp, 0, len(patterns))
 			for _, p := range patterns {
-				pat, ok := reader.LiteralTrim(p)
+				pat, ok := p.LiteralTrim()
 				if !ok {
 					m.reErr = errors.New("auth.header pattern must be literal string")
 
@@ -181,7 +169,7 @@ func (m *AuthModifier) initRegex() {
 	if len(m.auth.Query) > 0 {
 		m.queryRE = make(map[string]*regexp.Regexp, len(m.auth.Query))
 		for k, p := range m.auth.Query {
-			pat, ok := reader.LiteralTrim(p)
+			pat, ok := p.LiteralTrim()
 			if !ok {
 				m.reErr = errors.New("auth.query pattern must be literal string")
 
@@ -208,7 +196,7 @@ func (m *AuthModifier) initIPAllowlist(logger *zap.Logger) {
 		return
 	}
 
-	wl := &ipAllowlist{ips: []net.IP{}, nets: []*net.IPNet{}}
+	wl := &ipAllowlist{}
 
 	add := func(raw string) error {
 		s := strings.TrimSpace(raw)
@@ -217,22 +205,22 @@ func (m *AuthModifier) initIPAllowlist(logger *zap.Logger) {
 		}
 
 		if strings.Contains(s, "/") {
-			_, n, err := net.ParseCIDR(s)
+			prefix, err := netip.ParsePrefix(s)
 			if err != nil {
 				return err
 			}
 
-			wl.nets = append(wl.nets, n)
+			wl.prefixes = append(wl.prefixes, prefix)
 
 			return nil
 		}
 
-		ip := net.ParseIP(s)
-		if ip == nil {
-			return errors.New("invalid ip")
+		addr, err := netip.ParseAddr(s)
+		if err != nil {
+			return err
 		}
 
-		wl.ips = append(wl.ips, ip)
+		wl.addrs = append(wl.addrs, addr)
 
 		return nil
 	}
@@ -254,19 +242,12 @@ func (m *AuthModifier) initIPAllowlist(logger *zap.Logger) {
 		}
 
 		for i, line := range lines {
-			lineNo := i + 1
-
-			line = strings.TrimSpace(line)
-			if line == "" || strings.HasPrefix(line, "#") {
-				continue
-			}
-
 			if err := add(line); err != nil {
 				m.ipErr = err
 				if logger != nil {
 					logger.Warn("Auth >> Invalid ipAllowlistFile entry",
-						zap.Int("line", lineNo),
-						zap.String("value", line),
+						zap.Int("line", i+1),
+						zap.String("value", strings.TrimSpace(line)),
 						zap.Error(err),
 					)
 				}
@@ -276,11 +257,9 @@ func (m *AuthModifier) initIPAllowlist(logger *zap.Logger) {
 		}
 	}
 
-	if len(wl.ips) == 0 && len(wl.nets) == 0 {
+	if len(wl.addrs) == 0 && len(wl.prefixes) == 0 {
 		m.ipWL = nil
 		m.ipErr = nil
-
-		return
 	}
 
 	m.ipWL = wl
@@ -293,19 +272,17 @@ func (wl *ipAllowlist) allowAny(ips []string) bool {
 			continue
 		}
 
-		ip := net.ParseIP(ipStr)
-		if ip == nil {
+		addr, err := netip.ParseAddr(ipStr)
+		if err != nil {
 			continue
 		}
 
-		for _, allowed := range wl.ips {
-			if allowed.Equal(ip) {
-				return true
-			}
+		if slices.Contains(wl.addrs, addr) {
+			return true
 		}
 
-		for _, n := range wl.nets {
-			if n.Contains(ip) {
+		for _, prefix := range wl.prefixes {
+			if prefix.Contains(addr) {
 				return true
 			}
 		}

@@ -3,25 +3,28 @@ package execute
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/Sn0wo2/CatSync/action"
 	"github.com/Sn0wo2/CatSync/config"
-	"github.com/Sn0wo2/CatSync/config/reader"
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/Sn0wo2/CatSync/params"
 	"github.com/Sn0wo2/CatSync/version"
 	"github.com/gofiber/fiber/v3"
 )
 
-// Result indicates how the caller should continue processing.
-//
-// - Matched means the action was selected and executed successfully.
-// - NotMatched means the action does not match current request and caller should try next action.
-// - Jump means auth fallback requested a jump to another action index; caller should execute that index.
+type ResultStatus uint8
+
+const (
+	StatusNotMatched ResultStatus = iota
+	StatusMatched
+	StatusJump
+)
+
 type Result struct {
-	Matched    bool
-	NotMatched bool
-	JumpTo     *int
+	Status ResultStatus
+	JumpTo int
 }
 
 type Builders struct {
@@ -30,16 +33,29 @@ type Builders struct {
 	Payload func(config.ActionData) []action.Modifier
 }
 
-// Executor is a per-request action executor.
-// Routers should create one and then call ExecuteAt.
+type routeEntry struct {
+	empty bool
+	exact string
+	re    *regexp.Regexp
+}
+
+type actionEntry struct {
+	route   routeEntry
+	handler action.Handler
+	payload config.ActionData
+}
+
+const regexMetaChars = `.*+?()[]{}|\^$`
+
+func isExactRoute(pattern string) bool {
+	return !strings.ContainsAny(pattern, regexMetaChars)
+}
+
 type Executor struct {
 	cfg      *config.Config
 	builders Builders
-
-	ctx      *params.Ctx
-	fiberCtx fiber.Ctx
-
-	skipRouteCheck bool
+	entries  []actionEntry // prebuilt per-action, indexed same as cfg.Actions
+	exactMap map[string][]int
 }
 
 func New() *Executor {
@@ -58,172 +74,220 @@ func (e *Executor) WithBuilders(builders Builders) *Executor {
 	return e
 }
 
-func (e *Executor) WithGlobalBuilder(fn func(*config.Config) []action.Modifier) *Executor {
-	e.builders.Global = fn
+func (e *Executor) Build() *Executor {
+	actions := e.cfg.Actions
+	e.entries = make([]actionEntry, len(actions))
+	e.exactMap = make(map[string][]int, len(actions))
 
-	return e
-}
+	for i := range actions {
+		act := &actions[i]
+		entry := &e.entries[i]
 
-func (e *Executor) WithActionBuilder(fn func(*config.Action) []action.Modifier) *Executor {
-	e.builders.Action = fn
+	route := act.Route.Must()
+		switch {
+		case route == "":
+			entry.route.empty = true
+		case isExactRoute(route):
+			entry.route.exact = route
+			e.exactMap[route] = append(e.exactMap[route], i)
+		default:
+			re, err := util.GetCompiledRegexp(route)
+			if err == nil {
+				entry.route.re = re
+			}
+		}
 
-	return e
-}
+		baseHandler, ok := action.HandlerRegistry[act.Type]
+		if !ok {
+			continue
+		}
 
-func (e *Executor) WithPayloadBuilder(fn func(config.ActionData) []action.Modifier) *Executor {
-	e.builders.Payload = fn
+		payload := act.GetPayload()
+		if payload == nil {
+			continue
+		}
 
-	return e
-}
+		entry.payload = payload
 
-func (e *Executor) WithContext(ctx *params.Ctx, fiberCtx fiber.Ctx) *Executor {
-	e.ctx = ctx
-	e.fiberCtx = fiberCtx
+		h := action.WrapHandler(baseHandler)
 
-	return e
-}
+		add := func(ms []action.Modifier) {
+			for _, m := range ms {
+				h.WithModifier(m)
+			}
+		}
 
-// WithSkipRouteCheck forces execution regardless of action.route.
-//
-// This is used for jump-only actions (route is empty) and auth fallback jumps.
-func (e *Executor) WithSkipRouteCheck(skip bool) *Executor {
-	e.skipRouteCheck = skip
+		if !act.SkipGlobalModifiers && e.builders.Global != nil {
+			add(e.builders.Global(e.cfg))
+		}
 
-	return e
-}
+		if e.builders.Action != nil {
+			add(e.builders.Action(act))
+		}
 
-func (e *Executor) ExecuteAt(index int) (Result, error) {
-	if e == nil {
-		return Result{}, errors.New("nil executor")
+		if e.builders.Payload != nil {
+			add(e.builders.Payload(payload))
+		}
+
+		if gm := payload.GetGlobalModifier(); gm != nil && gm.ActionModifierVersion != nil {
+			if ph := gm.Placeholder.Must(); ph != "" {
+				h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(ph).WithValue(version.GetFormatVersion()))
+			}
+		}
+
+		entry.handler = h.Build()
 	}
 
-	if e.cfg == nil {
-		return Result{}, errors.New("nil config")
+	return e
+}
+
+type RequestContext struct {
+	Ctx      *params.Ctx
+	FiberCtx fiber.Ctx
+}
+
+func (e *Executor) matchRoute(index int, path string) bool {
+	entry := &e.entries[index]
+
+	if entry.route.empty {
+		return false
 	}
 
-	if e.ctx == nil {
-		return Result{}, errors.New("nil params ctx")
+	if entry.route.exact != "" {
+		return entry.route.exact == path
 	}
 
-	if e.fiberCtx == nil {
-		return Result{}, errors.New("nil fiber ctx")
+	if entry.route.re != nil {
+		return entry.route.re.MatchString(path)
 	}
 
-	if index < 0 || index >= len(e.cfg.Actions) {
+	return false
+}
+
+const maxJumpDepth = 16
+
+func (e *Executor) executeOne(rc *RequestContext, index int, skipRoute bool) (Result, error) {
+	if index < 0 || index >= len(e.entries) {
 		return Result{}, fmt.Errorf("invalid action index: %d", index)
+	}
+
+	if !skipRoute && !e.matchRoute(index, rc.FiberCtx.Path()) {
+		return Result{Status: StatusNotMatched}, nil
+	}
+
+	entry := &e.entries[index]
+	if entry.handler == nil || entry.payload == nil {
+		return Result{Status: StatusNotMatched}, nil
 	}
 
 	act := e.cfg.Actions[index]
 
-	if !e.skipRouteCheck {
-		route := reader.Must(act.Route)
-		if route == "" {
-			return Result{NotMatched: true}, nil
-		}
-
-		re, err := util.GetCompiledRegexp(route)
-		if err != nil {
-			return Result{}, fmt.Errorf("invalid route regexp %q: %w", route, err)
-		}
-
-		if !re.MatchString(e.fiberCtx.Path()) {
-			return Result{NotMatched: true}, nil
-		}
-	}
-
-	baseHandler, ok := action.HandlerRegistry[act.Type]
-	if !ok {
-		return Result{NotMatched: true}, nil
-	}
-
-	switch act.Type {
-	case config.ActionString:
-		if act.ActionString == nil {
-			return Result{}, fmt.Errorf("action[%d] type=string but string is nil", index)
-		}
-	case config.ActionFile:
-		if act.ActionFile == nil {
-			return Result{}, fmt.Errorf("action[%d] type=file but file is nil", index)
-		}
-	case config.ActionServer:
-		if act.ActionServer == nil {
-			return Result{}, fmt.Errorf("action[%d] type=server but server is nil", index)
-		}
-	case config.ActionReload:
-		if act.ActionReload == nil {
-			return Result{}, fmt.Errorf("action[%d] type=reload but reload is nil", index)
-		}
-	}
-
-	h := action.WrapHandler(baseHandler)
-
-	add := func(ms []action.Modifier) {
-		for _, m := range ms {
-			h.WithModifier(m)
-		}
-	}
-
-	if !act.SkipGlobalModifiers {
-		if e.builders.Global != nil {
-			add(e.builders.Global(e.cfg))
-		}
-	}
-
-	if e.builders.Action != nil {
-		add(e.builders.Action(&act))
-	}
-
-	var payload config.ActionData
-
-	switch act.Type {
-	case config.ActionFile:
-		payload = act.ActionFile
-	case config.ActionString:
-		payload = act.ActionString
-	case config.ActionServer:
-		payload = act.ActionServer
-	case config.ActionReload:
-		payload = act.ActionReload
-	}
-
-	if e.builders.Payload != nil {
-		add(e.builders.Payload(payload))
-	}
-
-	switch act.Type {
-	case config.ActionString:
-		if act.ActionString != nil && act.ActionString.ActionModifierVersion != nil {
-			if ph := reader.Must(act.ActionString.Placeholder); ph != "" {
-				h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(ph).WithValue(version.GetFormatVersion()))
-			}
-		}
-	case config.ActionFile:
-		if act.ActionFile != nil && act.ActionFile.ActionModifierVersion != nil {
-			if ph := reader.Must(act.ActionFile.Placeholder); ph != "" {
-				h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(ph).WithValue(version.GetFormatVersion()))
-			}
-		}
-	case config.ActionServer:
-		if act.ActionServer != nil && act.ActionServer.ActionModifierVersion != nil {
-			if ph := reader.Must(act.ActionServer.Placeholder); ph != "" {
-				h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(ph).WithValue(version.GetFormatVersion()))
-			}
-		}
-	case config.ActionReload:
-	}
-
-	err := h.Build().ProcessAction(&action.ProcessData{Ctx: e.ctx, C: e.fiberCtx, Action: &act, PayLoad: payload})
+	err := entry.handler.ProcessAction(&action.ProcessData{Ctx: rc.Ctx, C: rc.FiberCtx, Action: &act, Payload: entry.payload})
 	if err == nil {
-		return Result{Matched: true}, nil
+		return Result{Status: StatusMatched}, nil
 	}
 
-	if jumpErr, ok2 := errors.AsType[*action.AuthFallbackJumpError](err); ok2 {
-		return Result{Matched: true, JumpTo: &jumpErr.JumpTo}, nil
+	if jumpErr, ok := errors.AsType[*action.AuthFallbackJumpError](err); ok {
+		return Result{Status: StatusJump, JumpTo: jumpErr.JumpTo}, nil
 	}
 
-	if _, ok2 := errors.AsType[*action.AuthFallbackNextError](err); ok2 {
-		return Result{NotMatched: true}, nil
+	if _, ok := errors.AsType[*action.AuthFallbackNextError](err); ok {
+		return Result{Status: StatusNotMatched}, nil
 	}
 
-	return Result{Matched: true}, err
+	return Result{Status: StatusMatched}, err
+}
+
+func (e *Executor) Dispatch(rc *RequestContext) (bool, error) {
+	if e == nil || e.cfg == nil {
+		return false, errors.New("nil executor or config")
+	}
+
+	if rc == nil || rc.Ctx == nil || rc.FiberCtx == nil {
+		return false, errors.New("nil request context")
+	}
+
+	n := len(e.cfg.Actions)
+	if n == 0 {
+		return false, nil
+	}
+
+	var (
+		visitedBits uint64
+		visitedMap  map[int]struct{}
+	)
+
+	markVisited := func(idx int) bool {
+		if n <= 64 {
+			bit := uint64(1) << idx
+			if visitedBits&bit != 0 {
+				return false
+			}
+
+			visitedBits |= bit
+
+			return true
+		}
+
+		if visitedMap == nil {
+			visitedMap = make(map[int]struct{}, maxJumpDepth)
+		}
+
+		if _, dup := visitedMap[idx]; dup {
+			return false
+		}
+
+		visitedMap[idx] = struct{}{}
+
+		return true
+	}
+
+	for i := range n {
+		res, err := e.executeOne(rc, i, false)
+		if err != nil {
+			return false, err
+		}
+
+		switch res.Status {
+		case StatusNotMatched:
+			continue
+
+		case StatusMatched:
+			return true, nil
+
+		case StatusJump:
+			target := res.JumpTo
+			for range maxJumpDepth {
+				if target < 0 || target >= n {
+					return false, fmt.Errorf("invalid auth fallback jumpTo index: %d", target)
+				}
+
+				if !markVisited(target) {
+					return false, fmt.Errorf("auth fallback jump loop detected at index: %d", target)
+				}
+
+				jres, jerr := e.executeOne(rc, target, true)
+				if jerr != nil {
+					return false, jerr
+				}
+
+				if jres.Status == StatusMatched {
+					return true, nil
+				}
+
+				if jres.Status == StatusNotMatched {
+					break
+				}
+
+				target = jres.JumpTo
+			}
+		}
+	}
+
+	lastRes, lastErr := e.executeOne(rc, n-1, true)
+	if lastErr != nil {
+		return false, lastErr
+	}
+
+	return lastRes.Status == StatusMatched, nil
 }

@@ -34,34 +34,11 @@ func (b *ModifierBuilder) BuildAction(act *config.Action) []Modifier {
 }
 
 func (b *ModifierBuilder) BuildPayload(data config.ActionData) []Modifier {
-	switch v := data.(type) {
-	case *config.ActionStringData:
-		if v == nil {
-			return nil
-		}
-
-		return b.BuildFromGlobalModifier(&v.GlobalModifier)
-	case *config.ActionFileData:
-		if v == nil {
-			return nil
-		}
-
-		return b.BuildFromGlobalModifier(&v.GlobalModifier)
-	case *config.ActionServerData:
-		if v == nil {
-			return nil
-		}
-
-		return b.BuildFromGlobalModifier(&v.GlobalModifier)
-	case *config.ActionReloadData:
-		if v == nil {
-			return nil
-		}
-
-		return b.BuildFromGlobalModifier(&v.GlobalModifier)
-	default:
+	if data == nil {
 		return nil
 	}
+
+	return b.BuildFromGlobalModifier(data.GetGlobalModifier())
 }
 
 func (b *ModifierBuilder) BuildFromGlobalModifier(gm *config.GlobalModifier) []Modifier {
@@ -71,7 +48,8 @@ func (b *ModifierBuilder) BuildFromGlobalModifier(gm *config.GlobalModifier) []M
 
 	modifiers := make([]Modifier, 0, 3)
 	if gm.ActionModifierStatus != nil {
-		modifiers = append(modifiers, NewStatusModifier().WithStatus(gm.Status))
+		upstream, _ := gm.ActionModifierStatus.Upstream.ReadString(context.Background())
+		modifiers = append(modifiers, NewStatusModifier().WithStatus(gm.Status).WithUpstream(upstream))
 	}
 
 	if gm.ActionModifierAuth != nil {
@@ -79,12 +57,13 @@ func (b *ModifierBuilder) BuildFromGlobalModifier(gm *config.GlobalModifier) []M
 	}
 
 	if gm.ActionModifierResponseHeader != nil {
-		upstream, err := gm.ActionModifierResponseHeader.Upstream.ReadString(context.Background())
-		if err != nil {
-			return nil
-		}
-
+		upstream, _ := gm.ActionModifierResponseHeader.Upstream.ReadString(context.Background())
 		modifiers = append(modifiers, NewResponseHeaderModifier().WithHeader(gm.ActionModifierResponseHeader.Header).WithUpStream(upstream))
+	}
+
+	if gm.ActionModifierVersion != nil {
+		placeholder, _ := gm.Placeholder.ReadString(context.Background())
+		modifiers = append(modifiers, NewPlaceholderModifier().WithPlaceholder(placeholder))
 	}
 
 	return modifiers

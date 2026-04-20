@@ -42,7 +42,6 @@ func (s *ExtraStore) Set(k Key, v any) {
 }
 
 func (s *ExtraStore) Get(k Key, out any) bool {
-	// out must be a non-nil pointer.
 	vOut := reflect.ValueOf(out)
 	if vOut.Kind() != reflect.Ptr || vOut.IsNil() {
 		return false

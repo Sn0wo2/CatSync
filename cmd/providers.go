@@ -18,9 +18,6 @@ import (
 func NewConfig() (*config.Config, error) {
 	cfg, err := config.New(loader.NewYAMLLoader(), loader.NewJSONLoader())
 	if err != nil {
-		// If CONFIG_PATH/DEBUG_CONFIG_PATH points to a missing file,
-		// config.New returns a wrapped os.ErrNotExist (not ErrConfigNotFound).
-		// Treat both as "config not found" and create default config at config.Path.
 		if errors.Is(err, config.ErrConfigNotFound) || errors.Is(err, os.ErrNotExist) {
 			cfg = config.GetDefaultConfig()
 
@@ -51,7 +48,7 @@ func NewConfig() (*config.Config, error) {
 }
 
 func NewLogger(cfg *config.Config) *zap.Logger {
-	logger := log.NewLog(sval(cfg.Log.Dir), sval(cfg.Log.Level), sval(cfg.Log.FileFormat))
+	logger := log.NewLog(cfg.Log.Dir.Must(), cfg.Log.Level.Must(), cfg.Log.FileFormat.Must())
 	log.Flush(logger)
 
 	return logger

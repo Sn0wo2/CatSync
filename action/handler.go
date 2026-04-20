@@ -10,13 +10,12 @@ type ProcessData struct {
 	Ctx     *params.Ctx
 	C       fiber.Ctx
 	Action  *config.Action
-	PayLoad config.ActionData
+	Payload config.ActionData
 }
 
 type Handler interface {
 	ProcessAction(data *ProcessData) error
 }
-
 type HookFunc func(*ProcessData) (*ProcessData, error)
 
 type HandlerWithHooks struct {
@@ -46,21 +45,22 @@ func (h *HandlerWithHooks) After(hook HookFunc) *HandlerWithHooks {
 }
 
 func (h *HandlerWithHooks) ProcessAction(data *ProcessData) error {
-	var err error
-
 	for _, hook := range h.beforeHooks {
+		var err error
+
 		data, err = hook(data)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = h.Handler.ProcessAction(data)
-	if err != nil {
+	if err := h.Handler.ProcessAction(data); err != nil {
 		return err
 	}
 
 	for _, hook := range h.afterHooks {
+		var err error
+
 		data, err = hook(data)
 		if err != nil {
 			return err

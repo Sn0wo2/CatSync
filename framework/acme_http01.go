@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/Sn0wo2/CatSync/config"
-	"github.com/Sn0wo2/CatSync/config/reader"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
@@ -30,7 +29,7 @@ func startACMEHTTP01(server tlsConfigSetter, cfg *config.Config, acmeCfg *config
 		return fmt.Errorf("nil logger")
 	}
 
-	cacheDir := reader.Trim(acmeCfg.CacheDir)
+	cacheDir := acmeCfg.CacheDir.Trim()
 	if cacheDir == "" {
 		cacheDir = "./data/acme"
 	}
@@ -38,13 +37,13 @@ func startACMEHTTP01(server tlsConfigSetter, cfg *config.Config, acmeCfg *config
 	m := &autocert.Manager{
 		Prompt: autocert.AcceptTOS,
 		Cache:  autocert.DirCache(cacheDir),
-		Email:  reader.Trim(acmeCfg.Email),
+		Email:  acmeCfg.Email.Trim(),
 	}
 
 	if len(acmeCfg.Hosts) > 0 {
 		m.HostPolicy = autocert.HostWhitelist(acmeCfg.Hosts...)
 	}
-	dirURL := reader.Trim(acmeCfg.DirectoryURL)
+	dirURL := acmeCfg.DirectoryURL.Trim()
 	if dirURL != "" {
 		m.Client = &acme.Client{DirectoryURL: dirURL}
 	}
@@ -53,7 +52,7 @@ func startACMEHTTP01(server tlsConfigSetter, cfg *config.Config, acmeCfg *config
 
 	httpAddr := ""
 	if acmeCfg.HTTP01 != nil {
-		httpAddr = reader.Trim(acmeCfg.HTTP01.HTTPAddress)
+		httpAddr = acmeCfg.HTTP01.HTTPAddress.Trim()
 	}
 	if httpAddr == "" {
 		httpAddr = ":80"
@@ -65,7 +64,7 @@ func startACMEHTTP01(server tlsConfigSetter, cfg *config.Config, acmeCfg *config
 	}
 
 	tlsPort := "443"
-	if _, port, err := net.SplitHostPort(reader.Trim(cfg.Server.Address)); err == nil && port != "" {
+	if _, port, err := net.SplitHostPort(cfg.Server.Address.Trim()); err == nil && port != "" {
 		tlsPort = port
 	}
 
@@ -75,8 +74,6 @@ func startACMEHTTP01(server tlsConfigSetter, cfg *config.Config, acmeCfg *config
 			return
 		}
 
-		// Redirect only to known hosts to avoid host-header injection / open redirects.
-		// Note: server.acme.hosts is required when ACME is enabled.
 		requestHost := r.Host
 		if h, _, err := net.SplitHostPort(requestHost); err == nil {
 			requestHost = h
@@ -105,7 +102,6 @@ func startACMEHTTP01(server tlsConfigSetter, cfg *config.Config, acmeCfg *config
 		http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
 	})
 
-	// Start HTTP-01 challenge handler.
 	go func() {
 		logger.Info("ACME HTTP challenge listening", zap.String("addr", httpAddr))
 		h := m.HTTPHandler(redirectHandler)

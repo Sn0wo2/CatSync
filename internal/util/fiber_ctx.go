@@ -8,6 +8,7 @@ import (
 
 	"github.com/Sn0wo2/go-common/helper"
 	"github.com/gofiber/fiber/v3"
+	"go.uber.org/zap"
 )
 
 func FiberContextString(ctx fiber.Ctx) string {
@@ -55,4 +56,17 @@ func FiberContextString(ctx fiber.Ctx) string {
 	}
 
 	return sb.String()
+}
+
+type lazyCtxStringer struct {
+	ctx fiber.Ctx
+}
+
+func (l lazyCtxStringer) String() string {
+	return FiberContextString(l.ctx)
+}
+
+// when the log entry is actually written (i.e., log level is enabled).
+func LazyFiberContext(ctx fiber.Ctx) zap.Field {
+	return zap.Stringer("ctx", lazyCtxStringer{ctx: ctx})
 }

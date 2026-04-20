@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/Sn0wo2/CatSync/config"
-	"github.com/Sn0wo2/CatSync/config/reader"
 	"github.com/Sn0wo2/CatSync/debug"
 	"github.com/Sn0wo2/CatSync/router/errorhandler"
 	"github.com/gofiber/fiber/v3"
@@ -27,14 +26,13 @@ func NewFiber(p Provider) *Framework {
 	return &Framework{
 		Provider: p,
 		App: fiber.New(fiber.Config{
-			AppName:           "CatSync",
-			CaseSensitive:     true,
-			ErrorHandler:      errorhandler.Error(p.GetLogger()),
-			IdleTimeout:       5 * time.Second,
-			ReadTimeout:       10 * time.Second,
-			ReduceMemoryUsage: true,
-			StrictRouting:     true,
-			WriteTimeout:      10 * time.Second,
+			AppName:       "CatSync",
+			CaseSensitive: true,
+			ErrorHandler:  errorhandler.Error(p.GetLogger()),
+			IdleTimeout:   5 * time.Second,
+			ReadTimeout:   10 * time.Second,
+			StrictRouting: true,
+			WriteTimeout:  10 * time.Second,
 		}),
 	}
 }
@@ -42,8 +40,7 @@ func NewFiber(p Provider) *Framework {
 func (ctx *Framework) StartFiber() error {
 	cfg := ctx.GetConfig()
 	logger := ctx.GetLogger()
-
-	addr := reader.Must(cfg.Server.Address)
+	addr := cfg.Server.Address.Must()
 
 	if cfg.Server.ACME != nil && cfg.Server.ACME.Enable {
 		ln, err := net.Listen("tcp", addr)
@@ -72,9 +69,9 @@ func (ctx *Framework) StartFiber() error {
 		return ctx.Listener(tlsLn, fiber.ListenConfig{EnablePrefork: !debug.IsDebugging()})
 	}
 
-	cert := reader.Must(cfg.Server.TLS.Cert)
+	cert := cfg.Server.TLS.Cert.Must()
 
-	key := reader.Must(cfg.Server.TLS.Key)
+	key := cfg.Server.TLS.Key.Must()
 
 	fl := fiber.ListenConfig{}
 
@@ -96,8 +93,6 @@ func (ctx *Framework) StartFiber() error {
 	return ctx.Listen(addr, fl)
 }
 
-// httpServerToStd is a minimal adapter to satisfy existing ACME functions.
-// It only exposes TLSConfig.
 type httpServerToStd struct {
 	TLSConfig *tls.Config
 }

@@ -38,9 +38,9 @@ func main() {
 	signal.Notify(shutdownChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
 	go func() {
-		addr := sval(cfg.Server.Address)
-		cert := sval(cfg.Server.TLS.Cert)
-		key := sval(cfg.Server.TLS.Key)
+	addr := cfg.Server.Address.Must()
+	cert := cfg.Server.TLS.Cert.Must()
+	key := cfg.Server.TLS.Key.Must()
 
 		protocol := "http"
 		if (cert != "" && key != "") || (cfg.Server.ACME != nil && cfg.Server.ACME.Enable) {
@@ -51,13 +51,12 @@ func main() {
 
 		host, port, err := net.SplitHostPort(addr)
 		if err != nil {
-			if strings.HasPrefix(addr, ":") {
-				port = strings.TrimPrefix(addr, ":")
+			if after, found := strings.CutPrefix(addr, ":"); found {
+				port = after
 			}
 		}
 
 		var logAddresses []string
-
 		if host == "" || host == "0.0.0.0" {
 			logAddresses = append(logAddresses, fmt.Sprintf("%s://localhost:%s", protocol, port))
 
@@ -82,7 +81,6 @@ func main() {
 	}()
 
 	<-shutdownChan
-
 	logger.Info("Shutting down server...")
 
 	if err := app.Shutdown(); err != nil {

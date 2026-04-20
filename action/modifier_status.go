@@ -20,7 +20,6 @@ func (v *StatusModifier) WithStatus(status uint16) *StatusModifier {
 	return v
 }
 
-// WithUpstream 会覆盖掉 WithStatus
 func (v *StatusModifier) WithUpstream(upstream string) *StatusModifier {
 	v.upstream = upstream
 

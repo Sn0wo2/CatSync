@@ -4,12 +4,17 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/Sn0wo2/CatSync/internal/upstream"
 )
 
 type ResponseHeaderModifier struct {
 	header   http.Header
 	upstream string
 }
+
+var headerFetcher = upstream.NewFetcher(30 * time.Second)
 
 func NewResponseHeaderModifier() *ResponseHeaderModifier {
 	return &ResponseHeaderModifier{}
@@ -42,12 +47,10 @@ func (m *ResponseHeaderModifier) ProcessModifier(handler Handler) Handler {
 		var upstreamMap map[string][]string
 
 		if m.upstream != "" && hasUpstreamPlaceholder {
-			resp, err := http.Get(m.upstream)
+			resp, err := headerFetcher.Fetch(m.upstream)
 			if err != nil {
 				return nil, fmt.Errorf("fetch upstream error: %w", err)
 			}
-
-			defer func() { _ = resp.Body.Close() }()
 
 			upstreamMap = make(map[string][]string, len(resp.Header))
 			for k, v := range resp.Header {

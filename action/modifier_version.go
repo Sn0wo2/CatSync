@@ -5,7 +5,6 @@ import "strings"
 type PlaceholderModifier struct {
 	placeholder string
 	value       string
-	header      bool
 }
 
 func NewPlaceholderModifier() *PlaceholderModifier {
@@ -24,44 +23,26 @@ func (p *PlaceholderModifier) WithValue(value string) *PlaceholderModifier {
 	return p
 }
 
-func (p *PlaceholderModifier) WithHeader(header bool) *PlaceholderModifier {
-	p.header = header
-
-	return p
-}
-
-func (p *PlaceholderModifier) Value() string {
-	return p.value
-}
-
 func (p *PlaceholderModifier) ProcessModifier(handler Handler) Handler {
 	// Run in After hook so response headers are already populated
 	// by other modifiers and the action handler.
 	return WrapHandlerWithHooks(handler).After(func(pd *ProcessData) (*ProcessData, error) {
 		for k, vals := range pd.C.GetRespHeaders() {
-			keyHas := p.header && strings.Contains(k, p.placeholder)
-			if !keyHas {
-				found := false
+			found := false
 
-				for _, vv := range vals {
-					if strings.Contains(vv, p.placeholder) {
-						found = true
+			for _, vv := range vals {
+				if strings.Contains(vv, p.placeholder) {
+					found = true
 
-						break
-					}
+					break
 				}
+			}
 
-				if !found {
-					continue
-				}
+			if !found {
+				continue
 			}
 
 			pd.C.Response().Header.Del(k)
-
-			newKey := k
-			if p.header && strings.Contains(k, p.placeholder) {
-				newKey = strings.ReplaceAll(k, p.placeholder, p.value)
-			}
 
 			out := vals[:0]
 			for _, vv := range vals {
@@ -73,7 +54,7 @@ func (p *PlaceholderModifier) ProcessModifier(handler Handler) Handler {
 			}
 
 			if len(out) > 0 {
-				pd.C.Append(newKey, out...)
+				pd.C.Append(k, out...)
 			}
 		}
 

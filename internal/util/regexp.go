@@ -3,35 +3,23 @@ package util
 import (
 	"fmt"
 	"regexp"
-	"sync"
+
+	"github.com/Sn0wo2/CatSync/internal/cache"
 )
 
-var (
-	regexpCache = make(map[string]*regexp.Regexp)
-	cacheMutex  sync.RWMutex
-)
+var regexpCache, _ = cache.NewLRU[string, *regexp.Regexp](1024)
 
 func GetCompiledRegexp(pattern string) (*regexp.Regexp, error) {
-	cacheMutex.RLock()
-
-	if re, ok := regexpCache[pattern]; ok {
-		cacheMutex.RUnlock()
-
+	if re, ok := regexpCache.Get(pattern); ok {
 		return re, nil
 	}
-
-	cacheMutex.RUnlock()
 
 	re, err := regexp.Compile("^" + pattern + "$")
 	if err != nil {
 		return nil, fmt.Errorf("invalid regexp %q: %w", pattern, err)
 	}
 
-	cacheMutex.Lock()
-
-	regexpCache[pattern] = re
-
-	cacheMutex.Unlock()
+	regexpCache.Add(pattern, re)
 
 	return re, nil
 }

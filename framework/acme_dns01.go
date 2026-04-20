@@ -112,20 +112,18 @@ func runDNSCmd(cmd []string, domain, fqdn, value, token, keyAuth string) error {
 		return errors.New("empty command")
 	}
 
-	repl := func(s string) string {
-		s = strings.ReplaceAll(s, "{DOMAIN}", domain)
-		s = strings.ReplaceAll(s, "{FQDN}", fqdn)
-		s = strings.ReplaceAll(s, "{VALUE}", value)
-		s = strings.ReplaceAll(s, "{TOKEN}", token)
-		s = strings.ReplaceAll(s, "{KEYAUTH}", keyAuth)
-		return s
-	}
+	replacer := strings.NewReplacer(
+		"{DOMAIN}", domain,
+		"{FQDN}", fqdn,
+		"{VALUE}", value,
+		"{TOKEN}", token,
+		"{KEYAUTH}", keyAuth,
+	)
 
 	argv := make([]string, 0, len(cmd))
 	for _, s := range cmd {
-		argv = append(argv, repl(s))
+		argv = append(argv, replacer.Replace(s))
 	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -143,20 +141,19 @@ func runDNSCmd(cmd []string, domain, fqdn, value, token, keyAuth string) error {
 }
 
 func startACMEDNS01(server tlsConfigSetter, acmeCfg *config.ServerACME, logger *zap.Logger) error {
-	if acmeCfg == nil {
-		return errors.New("nil acme config")
+return errors.New("nil acme config")
 	}
 	if logger == nil {
-		return errors.New("nil logger")
+return errors.New("nil logger")
 	}
 	if len(acmeCfg.Hosts) == 0 {
-		return errors.New("acme.hosts is empty")
+return errors.New("acme.hosts is empty")
 	}
 	if acmeCfg.DNS01 == nil {
-		return errors.New("acme.dns01 is required")
-	}
+return errors.New("acme.dns01 is required")
+}
 
-	cacheDir := reader.Trim(acmeCfg.CacheDir)
+	cacheDir := acmeCfg.CacheDir.Trim()
 	if cacheDir == "" {
 		cacheDir = "./data/acme"
 	}
@@ -172,10 +169,10 @@ func startACMEDNS01(server tlsConfigSetter, acmeCfg *config.ServerACME, logger *
 		return err
 	}
 
-	user := &legoUser{email: reader.Trim(acmeCfg.Email), key: accountKey}
+	user := &legoUser{email: acmeCfg.Email.Trim(), key: accountKey}
 	legoCfg := lego.NewConfig(user)
 	legoCfg.CADirURL = lego.LEDirectoryProduction
-	dirURL := reader.Trim(acmeCfg.DirectoryURL)
+	dirURL := acmeCfg.DirectoryURL.Trim()
 	if dirURL != "" {
 		legoCfg.CADirURL = dirURL
 	}
@@ -187,7 +184,7 @@ func startACMEDNS01(server tlsConfigSetter, acmeCfg *config.ServerACME, logger *
 		return err
 	}
 
-	providerName := strings.ToLower(reader.Trim(acmeCfg.DNS01.Provider))
+	providerName := strings.ToLower(acmeCfg.DNS01.Provider.Trim())
 	if providerName == "" {
 		providerName = "exec"
 	}
@@ -207,7 +204,6 @@ func startACMEDNS01(server tlsConfigSetter, acmeCfg *config.ServerACME, logger *
 		provider = p
 	}
 
-	// Propagation settings.
 	propTimeout := time.Duration(acmeCfg.DNS01.PropagationTimeoutSeconds) * time.Second
 	if propTimeout <= 0 {
 		propTimeout = dns01.DefaultPropagationTimeout
@@ -313,7 +309,6 @@ func startACMEDNS01(server tlsConfigSetter, acmeCfg *config.ServerACME, logger *
 		},
 	})
 
-	// Renew loop: re-obtain when expiring soon.
 	go func() {
 		const (
 			checkEvery  = 12 * time.Hour
