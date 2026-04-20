@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/Sn0wo2/CatSync/config"
-	"github.com/Sn0wo2/CatSync/config/reader"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/challenge"
@@ -141,17 +140,21 @@ func runDNSCmd(cmd []string, domain, fqdn, value, token, keyAuth string) error {
 }
 
 func startACMEDNS01(server tlsConfigSetter, acmeCfg *config.ServerACME, logger *zap.Logger) error {
-return errors.New("nil acme config")
+	if server == nil {
+		return errors.New("nil http server")
+	}
+	if acmeCfg == nil {
+		return errors.New("nil acme config")
 	}
 	if logger == nil {
-return errors.New("nil logger")
+		return errors.New("nil logger")
 	}
 	if len(acmeCfg.Hosts) == 0 {
-return errors.New("acme.hosts is empty")
+		return errors.New("acme.hosts is empty")
 	}
 	if acmeCfg.DNS01 == nil {
-return errors.New("acme.dns01 is required")
-}
+		return errors.New("acme.dns01 is required")
+	}
 
 	cacheDir := acmeCfg.CacheDir.Trim()
 	if cacheDir == "" {
