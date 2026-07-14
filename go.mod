@@ -10,7 +10,7 @@ require (
 	github.com/google/wire v0.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/invopop/jsonschema v0.13.0
-	github.com/jellydator/ttlcache/v3 v3.4.0
+	github.com/jellydator/ttlcache/v3 v3.4.1
 	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
