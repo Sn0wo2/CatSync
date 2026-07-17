@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/Sn0wo2/CatSync/config"
-	"github.com/Sn0wo2/CatSync/internal/util"
 	"gopkg.in/yaml.v3"
 )
 
@@ -27,27 +26,7 @@ func (y *YAMLLoader) Load(cfg *config.Config, fileName string) error {
 		return err
 	}
 
-	node := &yaml.Node{}
-	if err := yaml.Unmarshal(file, node); err != nil {
-		return err
-	}
-
-	if err := yaml.Unmarshal(file, cfg); err != nil {
-		return err
-	}
-
-	util.MergeYamlNode(node, cfg)
-
-	cd, err := yaml.Marshal(node)
-	if err != nil {
-		return err
-	}
-
-	if err := os.MkdirAll(filepath.Dir(fileName), 0o750); err != nil {
-		return err
-	}
-
-	return os.WriteFile(fileName, cd, 0o600)
+	return yaml.Unmarshal(file, cfg)
 }
 
 func (y *YAMLLoader) Save(cfg *config.Config, fileName string) error {

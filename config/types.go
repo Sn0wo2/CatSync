@@ -7,10 +7,12 @@ import (
 	"github.com/Sn0wo2/CatSync/config/reader"
 )
 
-var (
-	Path              string
-	ErrConfigNotFound = errors.New("no config file found in default search paths")
-)
+var ErrConfigNotFound = errors.New("no config file found in default search paths")
+
+type LoadResult struct {
+	Config *Config
+	Path   string
+}
 
 type Config struct {
 	Log       Log              `json:"log"                 yaml:"log"`
@@ -32,12 +34,40 @@ type Server struct {
 	ACME    *ServerACME    `json:"acme,omitempty"    optional:"true" yaml:"acme,omitempty"`
 }
 
-// Action 特有的Modifier会覆盖掉 GlobalModifier
 type GlobalModifier struct {
 	*ActionModifierResponseHeader `json:"actionModifierResponseHeader,omitempty" optional:"true" yaml:"actionModifierResponseHeader,omitempty"`
 	*ActionModifierStatus         `json:"actionModifierStatus,omitempty"         optional:"true" yaml:"actionModifierStatus,omitempty"`
 	*ActionModifierAuth           `json:"actionModifierAuth,omitempty"           optional:"true" yaml:"actionModifierAuth,omitempty"`
 	*ActionModifierVersion        `json:"actionVersionModifier,omitempty"        optional:"true" yaml:"actionVersionModifier,omitempty"`
+}
+
+type GlobalModifierVisitor struct {
+	Status         func(*ActionModifierStatus)
+	Auth           func(*ActionModifierAuth)
+	ResponseHeader func(*ActionModifierResponseHeader)
+	Version        func(*ActionModifierVersion)
+}
+
+func (gm *GlobalModifier) Visit(visitor GlobalModifierVisitor) {
+	if gm == nil {
+		return
+	}
+
+	if gm.ActionModifierStatus != nil && visitor.Status != nil {
+		visitor.Status(gm.ActionModifierStatus)
+	}
+
+	if gm.ActionModifierAuth != nil && visitor.Auth != nil {
+		visitor.Auth(gm.ActionModifierAuth)
+	}
+
+	if gm.ActionModifierResponseHeader != nil && visitor.ResponseHeader != nil {
+		visitor.ResponseHeader(gm.ActionModifierResponseHeader)
+	}
+
+	if gm.ActionModifierVersion != nil && visitor.Version != nil {
+		visitor.Version(gm.ActionModifierVersion)
+	}
 }
 
 func (gm *GlobalModifier) GetGlobalModifier() *GlobalModifier { return gm }

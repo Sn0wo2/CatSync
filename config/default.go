@@ -1,10 +1,13 @@
 package config
 
-import (
-	"github.com/Sn0wo2/CatSync/config/reader"
+import "github.com/Sn0wo2/CatSync/config/reader"
+
+const (
+	contentTypeHeader    = "Content-Type"
+	htmlContentType      = "text/html; charset=utf-8"
+	plainTextContentType = "text/plain; charset=utf-8"
 )
 
-// when no custom NotFoundHTML is configured.
 const DefaultNotFoundHTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -58,7 +61,7 @@ func GetDefaultConfig() *Config {
 				Type:  ActionServer,
 				GlobalModifier: GlobalModifier{
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
-						Header: map[string][]string{"Content-Type": {"text/html; charset=utf-8"}},
+						Header: map[string][]string{contentTypeHeader: {htmlContentType}},
 					},
 				},
 				ActionServer: &ActionServerData{
@@ -70,7 +73,7 @@ func GetDefaultConfig() *Config {
 				Type:  ActionString,
 				GlobalModifier: GlobalModifier{
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
-						Header: map[string][]string{"Content-Type": {"text/plain; charset=utf-8"}},
+						Header: map[string][]string{contentTypeHeader: {plainTextContentType}},
 					},
 				},
 				ActionString: &ActionStringData{Content: reader.Str("ActionString: plain text response\n")},
@@ -91,7 +94,7 @@ func GetDefaultConfig() *Config {
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 200},
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
-						Header: map[string][]string{"Content-Type": {"text/plain; charset=utf-8"}},
+						Header: map[string][]string{contentTypeHeader: {plainTextContentType}},
 					},
 				},
 				ActionString: &ActionStringData{Content: reader.Str("Status: 200 OK\n")},
@@ -102,7 +105,7 @@ func GetDefaultConfig() *Config {
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 201},
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
-						Header: map[string][]string{"Content-Type": {"text/plain; charset=utf-8"}},
+						Header: map[string][]string{contentTypeHeader: {plainTextContentType}},
 					},
 				},
 				ActionString: &ActionStringData{Content: reader.Str("Status: 201 Created\n")},
@@ -121,8 +124,8 @@ func GetDefaultConfig() *Config {
 				GlobalModifier: GlobalModifier{
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
 						Header: map[string][]string{
-							"Content-Type": {"text/plain; charset=utf-8"},
-							"X-Global":     {"from-global-modifier"},
+							contentTypeHeader: {plainTextContentType},
+							"X-Global":        {"from-global-modifier"},
 						},
 					},
 				},
@@ -146,7 +149,7 @@ func GetDefaultConfig() *Config {
 						Fallback: &ActionModifierAuthFallback{Type: AuthFallbackNext},
 					},
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
-						Header: map[string][]string{"Content-Type": {"text/plain; charset=utf-8"}},
+						Header: map[string][]string{contentTypeHeader: {plainTextContentType}},
 					},
 				},
 				ActionString: &ActionStringData{Content: reader.Str("Auth success! (X-Token: secret)\n")},
@@ -162,7 +165,7 @@ func GetDefaultConfig() *Config {
 						Fallback: &ActionModifierAuthFallback{Type: AuthFallbackJump, JumpTo: 10},
 					},
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
-						Header: map[string][]string{"Content-Type": {"text/plain; charset=utf-8"}},
+						Header: map[string][]string{contentTypeHeader: {plainTextContentType}},
 					},
 				},
 				ActionString: &ActionStringData{Content: reader.Str("Auth success with jump!\n")},
@@ -173,7 +176,7 @@ func GetDefaultConfig() *Config {
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 401},
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
-						Header: map[string][]string{"Content-Type": {"text/plain; charset=utf-8"}},
+						Header: map[string][]string{contentTypeHeader: {plainTextContentType}},
 					},
 				},
 				ActionString: &ActionStringData{Content: reader.Str("Auth failed - jumped to fallback\n")},
@@ -183,7 +186,7 @@ func GetDefaultConfig() *Config {
 				Type:  ActionReload,
 				GlobalModifier: GlobalModifier{
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
-						Header: map[string][]string{"Content-Type": {"text/plain; charset=utf-8"}},
+						Header: map[string][]string{contentTypeHeader: {plainTextContentType}},
 					},
 				},
 				ActionReload: &ActionReloadData{},
@@ -194,7 +197,7 @@ func GetDefaultConfig() *Config {
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 404},
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
-						Header: map[string][]string{"Content-Type": {"text/html; charset=utf-8"}},
+						Header: map[string][]string{contentTypeHeader: {htmlContentType}},
 					},
 				},
 				ActionServer: &ActionServerData{
