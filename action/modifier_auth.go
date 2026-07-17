@@ -36,95 +36,97 @@ func NewAuthModifier(auth config.ActionModifierAuth) *AuthModifier {
 	return &AuthModifier{auth: auth}
 }
 
-func (m *AuthModifier) ProcessModifier(handler Handler) Handler {
-	return WrapHandlerWithHooks(handler).Before(func(p *ProcessData) (*ProcessData, error) {
-		logger := p.Ctx.GetLogger()
+func (m *AuthModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
+	logger := p.Ctx.GetLogger()
 
-		m.reOnce.Do(m.initRegex)
+	m.reOnce.Do(m.initRegex)
 
-		if m.reErr != nil {
-			logger.Warn("Auth >> Failed to init auth regex",
-				zap.Error(m.reErr),
+	if m.reErr != nil {
+		logger.Warn("Auth >> Failed to init auth regex",
+			zap.Error(m.reErr),
+			util.LazyFiberContext(p.C),
+		)
+
+		return p, m.handleFallback()
+	}
+
+	m.ipOnce.Do(func() { m.initIPAllowlist(logger) })
+
+	if m.ipErr != nil {
+		logger.Warn("Auth >> Failed to init ip allowlist",
+			zap.Error(m.ipErr),
+			util.LazyFiberContext(p.C),
+		)
+
+		return p, m.handleFallback()
+	}
+
+	if m.ipWL != nil {
+		ips := p.C.IPs()
+		if len(ips) == 0 {
+			ips = []string{p.C.IP()}
+		}
+
+		if !m.ipWL.allowAny(ips) {
+			logger.Info("Auth >> IP not allowed",
+				zap.Any("allowed", m.auth.IPAllow),
+				zap.Strings("actual", ips),
 				util.LazyFiberContext(p.C),
 			)
 
-			return m.handleFallback()
+			return p, m.handleFallback()
+		}
+	}
+
+	reqHeaders := p.C.GetReqHeaders()
+
+	for k, res := range m.headerRE {
+		var values []string
+
+		for hk, hv := range reqHeaders {
+			if strings.EqualFold(hk, k) {
+				values = hv
+
+				break
+			}
 		}
 
-		m.ipOnce.Do(func() { m.initIPAllowlist(logger) })
+		if len(values) == 0 {
+			logger.Info("Auth >> Header missing", zap.String("header", k), util.LazyFiberContext(p.C))
 
-		if m.ipErr != nil {
-			logger.Warn("Auth >> Failed to init ip allowlist",
-				zap.Error(m.ipErr),
+			return p, m.handleFallback()
+		}
+
+		if !m.matchHeaderValues(values, res) {
+			logger.Info("Auth >> Header value not matched",
+				zap.String("header", k),
+				zap.Any("patterns", m.auth.Header[k]),
+				zap.Any("actual", values),
 				util.LazyFiberContext(p.C),
 			)
 
-			return m.handleFallback()
+			return p, m.handleFallback()
 		}
+	}
 
-		if m.ipWL != nil {
-			ips := p.C.IPs()
-			if len(ips) == 0 {
-				ips = []string{p.C.IP()}
-			}
+	for k, re := range m.queryRE {
+		if !re.MatchString(p.C.Query(k)) {
+			logger.Info("Auth >> Query value not matched",
+				zap.String("key", k),
+				zap.Any("pattern", m.auth.Query[k]),
+				zap.String("actual", p.C.Query(k)),
+				util.LazyFiberContext(p.C),
+			)
 
-			if !m.ipWL.allowAny(ips) {
-				logger.Info("Auth >> IP not allowed",
-					zap.Any("allowed", m.auth.IPAllow),
-					zap.Strings("actual", ips),
-					util.LazyFiberContext(p.C),
-				)
-
-				return m.handleFallback()
-			}
+			return p, m.handleFallback()
 		}
+	}
 
-		reqHeaders := p.C.GetReqHeaders()
+	return p, ExecutionResult{}
+}
 
-		for k, res := range m.headerRE {
-			var values []string
-
-			for hk, hv := range reqHeaders {
-				if strings.EqualFold(hk, k) {
-					values = hv
-
-					break
-				}
-			}
-
-			if len(values) == 0 {
-				logger.Info("Auth >> Header missing", zap.String("header", k), util.LazyFiberContext(p.C))
-
-				return m.handleFallback()
-			}
-
-			if !m.matchHeaderValues(values, res) {
-				logger.Info("Auth >> Header value not matched",
-					zap.String("header", k),
-					zap.Any("patterns", m.auth.Header[k]),
-					zap.Any("actual", values),
-					util.LazyFiberContext(p.C),
-				)
-
-				return m.handleFallback()
-			}
-		}
-
-		for k, re := range m.queryRE {
-			if !re.MatchString(p.C.Query(k)) {
-				logger.Info("Auth >> Query value not matched",
-					zap.String("key", k),
-					zap.Any("pattern", m.auth.Query[k]),
-					zap.String("actual", p.C.Query(k)),
-					util.LazyFiberContext(p.C),
-				)
-
-				return m.handleFallback()
-			}
-		}
-
-		return p, nil
-	})
+func (m *AuthModifier) After(p *ProcessData) (*ProcessData, ExecutionResult) {
+	return p, ExecutionResult{}
 }
 
 func (m *AuthModifier) matchHeaderValues(values []string, res []*regexp.Regexp) bool {
@@ -286,17 +288,17 @@ func (wl *ipAllowlist) allowAny(ips []string) bool {
 	return false
 }
 
-func (m *AuthModifier) handleFallback() (*ProcessData, error) {
+func (m *AuthModifier) handleFallback() ExecutionResult {
 	if m.auth.Fallback == nil || m.auth.Fallback.Type == "" {
-		return nil, &AuthFallbackNextError{}
+		return ExecutionResult{Status: ExecutionFallbackNext}
 	}
 
 	switch m.auth.Fallback.Type {
-	case config.AuthFallbackNext:
-		return nil, &AuthFallbackNextError{}
 	case config.AuthFallbackJump:
-		return nil, &AuthFallbackJumpError{JumpTo: m.auth.Fallback.JumpTo}
+		return ExecutionResult{Status: ExecutionFallbackJump, JumpTo: m.auth.Fallback.JumpTo}
+	case config.AuthFallbackNext:
+		return ExecutionResult{Status: ExecutionFallbackNext}
 	default:
-		return nil, &AuthFallbackNextError{}
+		return ExecutionResult{Status: ExecutionFallbackNext}
 	}
 }

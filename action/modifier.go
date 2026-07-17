@@ -1,7 +1,8 @@
 package action
 
 type Modifier interface {
-	ProcessModifier(handler Handler) Handler
+	Before(data *ProcessData) (*ProcessData, ExecutionResult)
+	After(data *ProcessData) (*ProcessData, ExecutionResult)
 }
 
 type ModifiableHandler struct {
@@ -11,8 +12,7 @@ type ModifiableHandler struct {
 
 func WrapHandler(h Handler) *ModifiableHandler {
 	return &ModifiableHandler{
-		Handler:   h,
-		modifiers: []Modifier{},
+		Handler: h,
 	}
 }
 
@@ -22,11 +22,28 @@ func (h *ModifiableHandler) WithModifier(m Modifier) *ModifiableHandler {
 	return h
 }
 
-func (h *ModifiableHandler) Build() Handler {
-	result := h.Handler
-	for _, m := range h.modifiers {
-		result = m.ProcessModifier(result)
+func (h *ModifiableHandler) ProcessAction(data *ProcessData) ExecutionResult {
+	for i := len(h.modifiers) - 1; i >= 0; i-- {
+		var result ExecutionResult
+
+		data, result = h.modifiers[i].Before(data)
+		if result.Err != nil || result.Status != ExecutionCompleted {
+			return result
+		}
 	}
 
-	return result
+	if result := h.Handler.ProcessAction(data); result.Err != nil || result.Status != ExecutionCompleted {
+		return result
+	}
+
+	for _, modifier := range h.modifiers {
+		var result ExecutionResult
+
+		data, result = modifier.After(data)
+		if result.Err != nil || result.Status != ExecutionCompleted {
+			return result
+		}
+	}
+
+	return ExecutionResult{}
 }

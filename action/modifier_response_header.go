@@ -26,44 +26,46 @@ func (m *ResponseHeaderModifier) WithHeader(header http.Header) *ResponseHeaderM
 	return m
 }
 
-func (m *ResponseHeaderModifier) WithUpStream(upstream string) *ResponseHeaderModifier {
+func (m *ResponseHeaderModifier) WithUpstream(upstream string) *ResponseHeaderModifier {
 	m.upstream = upstream
 
 	return m
 }
 
-func (m *ResponseHeaderModifier) ProcessModifier(handler Handler) Handler {
-	return WrapHandlerWithHooks(handler).Before(func(p *ProcessData) (*ProcessData, error) {
-		var upstreamMap map[string][]string
+func (m *ResponseHeaderModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
+	var upstreamMap map[string][]string
 
-		for k, v := range m.header {
-			kLower := strings.ToLower(k)
+	for k, v := range m.header {
+		kLower := strings.ToLower(k)
 
-			if len(v) == 1 && v[0] == "$[UPSTREAM_HEADER]" {
-				if upstreamMap == nil {
-					if m.upstream == "" {
-						continue
-					}
-
-					resp, err := headerFetcher.Fetch(m.upstream)
-					if err != nil {
-						return nil, fmt.Errorf("fetch upstream error: %w", err)
-					}
-
-					upstreamMap = make(map[string][]string, len(resp.Header))
-					for k, v := range resp.Header {
-						upstreamMap[strings.ToLower(k)] = v
-					}
+		if len(v) == 1 && v[0] == "$[UPSTREAM_HEADER]" {
+			if upstreamMap == nil {
+				if m.upstream == "" {
+					continue
 				}
 
-				for _, val := range upstreamMap[kLower] {
-					p.C.Append(k, val)
+				resp, err := headerFetcher.Fetch(m.upstream)
+				if err != nil {
+					return nil, ExecutionResult{Err: fmt.Errorf("fetch upstream error: %w", err)}
 				}
-			} else {
-				p.C.Append(k, v...)
+
+				upstreamMap = make(map[string][]string, len(resp.Header))
+				for k, v := range resp.Header {
+					upstreamMap[strings.ToLower(k)] = v
+				}
 			}
-		}
 
-		return p, nil
-	})
+			for _, val := range upstreamMap[kLower] {
+				p.C.Append(k, val)
+			}
+		} else {
+			p.C.Append(k, v...)
+		}
+	}
+
+	return p, ExecutionResult{}
+}
+
+func (m *ResponseHeaderModifier) After(p *ProcessData) (*ProcessData, ExecutionResult) {
+	return p, ExecutionResult{}
 }

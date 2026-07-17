@@ -4,67 +4,62 @@ import (
 	"context"
 
 	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/version"
 )
 
-type ModifierBuilder struct{}
-
-func NewModifierBuilder() *ModifierBuilder {
-	return &ModifierBuilder{}
-}
-
-func (b *ModifierBuilder) BuildGlobal(cfg *config.Config) []Modifier {
+func BuildGlobalModifiers(cfg *config.Config) []Modifier {
 	if cfg == nil {
 		return nil
 	}
 
 	modifiers := make([]Modifier, 0, len(cfg.Modifiers))
 	for i := range cfg.Modifiers {
-		modifiers = append(modifiers, b.BuildFromGlobalModifier(&cfg.Modifiers[i])...)
+		modifiers = append(modifiers, buildModifiers(&cfg.Modifiers[i])...)
 	}
 
 	return modifiers
 }
 
-func (b *ModifierBuilder) BuildAction(act *config.Action) []Modifier {
+func BuildActionModifiers(act *config.Action) []Modifier {
 	if act == nil {
 		return nil
 	}
 
-	return b.BuildFromGlobalModifier(&act.GlobalModifier)
+	return buildModifiers(&act.GlobalModifier)
 }
 
-func (b *ModifierBuilder) BuildPayload(data config.ActionData) []Modifier {
+func BuildPayloadModifiers(data config.ActionData) []Modifier {
 	if data == nil {
 		return nil
 	}
 
-	return b.BuildFromGlobalModifier(data.GetGlobalModifier())
+	return buildModifiers(data.GetGlobalModifier())
 }
 
-func (b *ModifierBuilder) BuildFromGlobalModifier(gm *config.GlobalModifier) []Modifier {
+func buildModifiers(gm *config.GlobalModifier) []Modifier {
 	if gm == nil {
 		return nil
 	}
 
-	modifiers := make([]Modifier, 0, 3)
-	if gm.ActionModifierStatus != nil {
-		upstream, _ := gm.ActionModifierStatus.Upstream.ReadString(context.Background())
-		modifiers = append(modifiers, NewStatusModifier().WithStatus(gm.Status).WithUpstream(upstream))
-	}
+	modifiers := make([]Modifier, 0, 4)
 
-	if gm.ActionModifierAuth != nil {
-		modifiers = append(modifiers, NewAuthModifier(*gm.ActionModifierAuth))
-	}
-
-	if gm.ActionModifierResponseHeader != nil {
-		upstream, _ := gm.ActionModifierResponseHeader.Upstream.ReadString(context.Background())
-		modifiers = append(modifiers, NewResponseHeaderModifier().WithHeader(gm.ActionModifierResponseHeader.Header).WithUpStream(upstream))
-	}
-
-	if gm.ActionModifierVersion != nil {
-		placeholder, _ := gm.Placeholder.ReadString(context.Background())
-		modifiers = append(modifiers, NewPlaceholderModifier().WithPlaceholder(placeholder))
-	}
+	gm.Visit(config.GlobalModifierVisitor{
+		Status: func(status *config.ActionModifierStatus) {
+			upstream, _ := status.Upstream.ReadString(context.Background())
+			modifiers = append(modifiers, NewStatusModifier().WithStatus(status.Status).WithUpstream(upstream))
+		},
+		Auth: func(auth *config.ActionModifierAuth) {
+			modifiers = append(modifiers, NewAuthModifier(*auth))
+		},
+		ResponseHeader: func(header *config.ActionModifierResponseHeader) {
+			upstream, _ := header.Upstream.ReadString(context.Background())
+			modifiers = append(modifiers, NewResponseHeaderModifier().WithHeader(header.Header).WithUpstream(upstream))
+		},
+		Version: func(modifier *config.ActionModifierVersion) {
+			placeholder, _ := modifier.Placeholder.ReadString(context.Background())
+			modifiers = append(modifiers, NewPlaceholderModifier().WithPlaceholder(placeholder).WithValue(version.GetFormatVersion()))
+		},
+	})
 
 	return modifiers
 }

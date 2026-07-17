@@ -27,32 +27,34 @@ func (v *StatusModifier) WithUpstream(upstream string) *StatusModifier {
 	return v
 }
 
-func (v *StatusModifier) ProcessModifier(handler Handler) Handler {
-	return WrapHandlerWithHooks(handler).Before(func(p *ProcessData) (*ProcessData, error) {
-		status := v.status
-		if v.upstream != "" {
-			client := &http.Client{Timeout: 10 * time.Second}
-			resp, err := client.Get(v.upstream)
-			if err != nil {
-				return nil, err
-			}
+func (v *StatusModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
+	status := v.status
+	if v.upstream != "" {
+		client := &http.Client{Timeout: 10 * time.Second}
 
-			statusCode := resp.StatusCode
-			_ = resp.Body.Close()
-
-			if statusCode < 100 || statusCode > 599 {
-				return nil, fmt.Errorf("invalid upstream status code: %d", statusCode)
-			}
-
-			status = uint16(statusCode)
+		resp, err := client.Get(v.upstream)
+		if err != nil {
+			return nil, ExecutionResult{Err: err}
 		}
 
-		if status < 100 || status > 599 {
-			return nil, fmt.Errorf("invalid status code: %d", status)
+		_ = resp.Body.Close()
+
+		if resp.StatusCode < 100 || resp.StatusCode > 599 {
+			return nil, ExecutionResult{Err: fmt.Errorf("invalid upstream status code: %d", resp.StatusCode)}
 		}
 
-		p.C.Status(int(status))
+		status = uint16(resp.StatusCode)
+	}
 
-		return p, nil
-	})
+	if status < 100 || status > 599 {
+		return nil, ExecutionResult{Err: fmt.Errorf("invalid status code: %d", status)}
+	}
+
+	p.C.Status(int(status))
+
+	return p, ExecutionResult{}
+}
+
+func (v *StatusModifier) After(p *ProcessData) (*ProcessData, ExecutionResult) {
+	return p, ExecutionResult{}
 }

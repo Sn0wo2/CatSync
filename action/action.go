@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/Sn0wo2/CatSync/config"
-	"github.com/Sn0wo2/CatSync/config/loader"
 	"github.com/Sn0wo2/CatSync/config/reader"
 	"github.com/Sn0wo2/CatSync/internal/filecache"
 	"github.com/Sn0wo2/CatSync/internal/util"
@@ -31,20 +30,20 @@ func NewString() Handler {
 	return &StringHandler{}
 }
 
-func (h *StringHandler) ProcessAction(p *ProcessData) error {
+func (h *StringHandler) ProcessAction(p *ProcessData) ExecutionResult {
 	stringData, ok := p.Payload.(*config.ActionStringData)
 	if !ok {
-		return fmt.Errorf("invalid action data type for string action: expected *ActionStringData, got %T", p.Payload)
+		return ExecutionResult{Err: fmt.Errorf("invalid action data type for string action: expected *ActionStringData, got %T", p.Payload)}
 	}
 
 	body := stringData.Content.Must()
 
 	p.Ctx.GetLogger().Info("Action >> Serve String", util.LazyFiberContext(p.C))
 
-	return p.C.SendString(body)
+	return ExecutionResult{Err: p.C.SendString(body)}
 }
 
-var fileCache = filecache.New(1 * time.Second)
+var fileCache = filecache.New(time.Second)
 
 type FileHandler struct{}
 
@@ -52,38 +51,38 @@ func NewFile() Handler {
 	return &FileHandler{}
 }
 
-func (h *FileHandler) ProcessAction(p *ProcessData) error {
+func (h *FileHandler) ProcessAction(p *ProcessData) ExecutionResult {
 	fileData, ok := p.Payload.(*config.ActionFileData)
 	if !ok {
-		return fmt.Errorf("invalid action data type for file action: expected *config.ActionFileData, got %T", p.Payload)
+		return ExecutionResult{Err: fmt.Errorf("invalid action data type for file action: expected *config.ActionFileData, got %T", p.Payload)}
 	}
 
 	pathStr := fileData.Path.Must()
 
 	safePath, err := filepath.Abs(filepath.Clean(pathStr))
 	if err != nil {
-		return fmt.Errorf("failed to get absolute path: %w", err)
+		return ExecutionResult{Err: fmt.Errorf("failed to get absolute path: %w", err)}
 	}
 
 	wd, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("failed to get working directory: %w", err)
+		return ExecutionResult{Err: fmt.Errorf("failed to get working directory: %w", err)}
 	}
 
 	absDataDir, _ := filepath.Abs(filepath.Join(wd, "data"))
 
 	dataDirWithSep := absDataDir + string(filepath.Separator)
 	if safePath != absDataDir && !strings.HasPrefix(safePath, dataDirWithSep) {
-		return fmt.Errorf("file path is not in data directory: %s", safePath)
+		return ExecutionResult{Err: fmt.Errorf("file path is not in data directory: %s", safePath)}
 	}
 
 	if err := h.ensureFile(safePath); err != nil {
-		return err
+		return ExecutionResult{Err: err}
 	}
 
 	entry, err := fileCache.Get(safePath, !fileData.DontSetContentType)
 	if err != nil {
-		return fmt.Errorf("failed to read file: %w", err)
+		return ExecutionResult{Err: fmt.Errorf("failed to read file: %w", err)}
 	}
 
 	if !fileData.DontSetContentType && entry.ContentType != "" {
@@ -92,7 +91,7 @@ func (h *FileHandler) ProcessAction(p *ProcessData) error {
 
 	p.Ctx.GetLogger().Info("Action >> Serve File", zap.String("path", pathStr), util.LazyFiberContext(p.C))
 
-	return p.C.Send(entry.Content)
+	return ExecutionResult{Err: p.C.Send(entry.Content)}
 }
 
 func (h *FileHandler) ensureFile(safePath string) error {
@@ -132,6 +131,76 @@ func NewServer() Handler {
 	return &ServerHandler{}
 }
 
+func (h *ServerHandler) ProcessAction(p *ProcessData) ExecutionResult {
+	serverData, ok := p.Payload.(*config.ActionServerData)
+	if !ok {
+		return ExecutionResult{Err: fmt.Errorf("invalid action data type for server action: expected *config.ActionServerData, got %T", p.Payload)}
+	}
+
+	dirStr := serverData.Directory.Must()
+	if dirStr == "" {
+		return ExecutionResult{Err: errors.New("directory is required for server action")}
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return ExecutionResult{Err: fmt.Errorf("failed to get working directory: %w", err)}
+	}
+
+	baseDir := filepath.Join(wd, "data", dirStr)
+
+	absBaseDir, err := filepath.Abs(filepath.Clean(baseDir))
+	if err != nil {
+		return ExecutionResult{Err: fmt.Errorf("failed to get absolute base directory: %w", err)}
+	}
+
+	absBaseDirSep := absBaseDir + string(filepath.Separator)
+	absServerDir, _ := filepath.Abs(filepath.Join(wd, "data", "server"))
+
+	serverDirWithSep := absServerDir + string(filepath.Separator)
+	if absBaseDir == absServerDir {
+		return ExecutionResult{Err: fmt.Errorf("directory cannot be server itself, must be a subdirectory under data/server: %s", dirStr)}
+	}
+
+	if !strings.HasPrefix(absBaseDir, serverDirWithSep) {
+		return ExecutionResult{Err: fmt.Errorf("directory must be under data/server: %s", dirStr)}
+	}
+
+	reqPath := p.C.Path()
+	if strings.Contains(reqPath, "..") {
+		return ExecutionResult{Err: fiber.NewError(fiber.StatusForbidden, "path traversal not allowed")}
+	}
+
+	reqPath = strings.TrimPrefix(reqPath, "/")
+
+	fullPath := filepath.Clean(filepath.Join(absBaseDir, reqPath))
+	if !strings.HasPrefix(fullPath, absBaseDirSep) && fullPath != absBaseDir {
+		return ExecutionResult{Err: fiber.NewError(fiber.StatusForbidden, "access denied")}
+	}
+
+	fileInfo, err := os.Stat(fullPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return ExecutionResult{Err: h.sendErrorPage(p, serverData, fiber.StatusNotFound, dirStr, reqPath)}
+		}
+
+		return ExecutionResult{Err: fmt.Errorf("failed to access file: %w", err)}
+	}
+
+	if fileInfo.IsDir() {
+		foundPath := h.findIndexFile(fullPath, serverData.IndexFiles)
+		if foundPath == "" {
+			return ExecutionResult{Err: h.sendErrorPage(p, serverData, fiber.StatusForbidden, dirStr, reqPath)}
+		}
+
+		fullPath = foundPath
+	}
+
+	p.Ctx.GetLogger().Info("Action >> Serve Server", zap.String("dir", dirStr), zap.String("file", reqPath), util.LazyFiberContext(p.C))
+
+	return ExecutionResult{Err: p.C.SendFile(fullPath)}
+}
+
 func (h *ServerHandler) sendErrorPage(p *ProcessData, serverData *config.ActionServerData, status int, dir, file string) error {
 	p.C.Set(fiber.HeaderContentType, "text/html; charset=utf-8")
 	p.C.Status(status)
@@ -167,103 +236,31 @@ func (h *ServerHandler) findIndexFile(fullPath string, indexFiles []*reader.Stri
 	return ""
 }
 
-func (h *ServerHandler) ProcessAction(p *ProcessData) error {
-	serverData, ok := p.Payload.(*config.ActionServerData)
-	if !ok {
-		return fmt.Errorf("invalid action data type for server action: expected *config.ActionServerData, got %T", p.Payload)
-	}
-
-	dirStr := serverData.Directory.Must()
-	if dirStr == "" {
-		return errors.New("directory is required for server action")
-	}
-
-	wd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get working directory: %w", err)
-	}
-
-	baseDir := filepath.Join(wd, "data", dirStr)
-
-	absBaseDir, err := filepath.Abs(filepath.Clean(baseDir))
-	if err != nil {
-		return fmt.Errorf("failed to get absolute base directory: %w", err)
-	}
-
-	absBaseDirSep := absBaseDir + string(filepath.Separator)
-	absServerDir, _ := filepath.Abs(filepath.Join(wd, "data", "server"))
-
-	serverDirWithSep := absServerDir + string(filepath.Separator)
-	if absBaseDir == absServerDir {
-		return fmt.Errorf("directory cannot be server itself, must be a subdirectory under data/server: %s", dirStr)
-	}
-
-	if !strings.HasPrefix(absBaseDir, serverDirWithSep) {
-		return fmt.Errorf("directory must be under data/server: %s", dirStr)
-	}
-
-	reqPath := p.C.Path()
-	if strings.Contains(reqPath, "..") {
-		return fiber.NewError(fiber.StatusForbidden, "path traversal not allowed")
-	}
-
-	reqPath = strings.TrimPrefix(reqPath, "/")
-
-	fullPath := filepath.Clean(filepath.Join(absBaseDir, reqPath))
-	if !strings.HasPrefix(fullPath, absBaseDirSep) && fullPath != absBaseDir {
-		return fiber.NewError(fiber.StatusForbidden, "access denied")
-	}
-
-	fileInfo, err := os.Stat(fullPath)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return h.sendErrorPage(p, serverData, fiber.StatusNotFound, dirStr, reqPath)
-		}
-
-		return fmt.Errorf("failed to access file: %w", err)
-	}
-
-	if fileInfo.IsDir() {
-		foundPath := h.findIndexFile(fullPath, serverData.IndexFiles)
-		if foundPath == "" {
-			return h.sendErrorPage(p, serverData, fiber.StatusForbidden, dirStr, reqPath)
-		}
-
-		fullPath = foundPath
-	}
-
-	p.Ctx.GetLogger().Info("Action >> Serve Server", zap.String("dir", dirStr), zap.String("file", reqPath), util.LazyFiberContext(p.C))
-
-	return p.C.SendFile(fullPath)
-}
-
 type ReloadHandler struct{}
 
 func NewReload() Handler {
 	return &ReloadHandler{}
 }
 
-func (h *ReloadHandler) ProcessAction(p *ProcessData) error {
+func (h *ReloadHandler) ProcessAction(p *ProcessData) ExecutionResult {
 	_, ok := p.Payload.(*config.ActionReloadData)
 	if !ok {
-		return fmt.Errorf("invalid action data type for reload action: expected *config.ActionReloadData, got %T", p.Payload)
+		return ExecutionResult{Err: fmt.Errorf("invalid action data type for reload action: expected *config.ActionReloadData, got %T", p.Payload)}
 	}
 
-	cfg := config.GetCurrentConfig()
-	if cfg == nil {
-		return errors.New("no config loaded")
+	if p.Reloader == nil {
+		return ExecutionResult{Err: errors.New("runtime reloader is unavailable")}
 	}
 
-	err := cfg.Reload(loader.NewYAMLLoader(), loader.NewJSONLoader())
-	if err != nil {
+	if err := p.Reloader.Reload(); err != nil {
 		p.Ctx.GetLogger().Error("Action >> Reload Config Failed", zap.Error(err), util.LazyFiberContext(p.C))
 		p.C.Status(fiber.StatusInternalServerError)
 
-		return p.C.SendString(fmt.Sprintf("Config reload failed: %v", err))
+		return ExecutionResult{Err: p.C.SendString(fmt.Sprintf("Config reload failed: %v", err))}
 	}
 
 	p.Ctx.GetLogger().Info("Action >> Reload Config Success", util.LazyFiberContext(p.C))
 	p.C.Status(fiber.StatusOK)
 
-	return p.C.SendString("Config reloaded successfully")
+	return ExecutionResult{Err: p.C.SendString("Config reloaded successfully")}
 }

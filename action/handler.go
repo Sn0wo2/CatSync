@@ -7,65 +7,31 @@ import (
 )
 
 type ProcessData struct {
-	Ctx     *params.Ctx
-	C       fiber.Ctx
-	Action  *config.Action
-	Payload config.ActionData
+	Ctx      *params.Ctx
+	C        fiber.Ctx
+	Action   *config.Action
+	Payload  config.ActionData
+	Reloader Reloader
+}
+
+type Reloader interface {
+	Reload() error
 }
 
 type Handler interface {
-	ProcessAction(data *ProcessData) error
-}
-type HookFunc func(*ProcessData) (*ProcessData, error)
-
-type HandlerWithHooks struct {
-	Handler
-	beforeHooks []HookFunc
-	afterHooks  []HookFunc
+	ProcessAction(data *ProcessData) ExecutionResult
 }
 
-func WrapHandlerWithHooks(h Handler) *HandlerWithHooks {
-	return &HandlerWithHooks{
-		Handler:     h,
-		beforeHooks: []HookFunc{},
-		afterHooks:  []HookFunc{},
-	}
-}
+type ExecutionStatus uint8
 
-func (h *HandlerWithHooks) Before(hook HookFunc) *HandlerWithHooks {
-	h.beforeHooks = append(h.beforeHooks, hook)
+const (
+	ExecutionCompleted    ExecutionStatus = 0
+	ExecutionFallbackNext ExecutionStatus = 2
+	ExecutionFallbackJump ExecutionStatus = 3
+)
 
-	return h
-}
-
-func (h *HandlerWithHooks) After(hook HookFunc) *HandlerWithHooks {
-	h.afterHooks = append(h.afterHooks, hook)
-
-	return h
-}
-
-func (h *HandlerWithHooks) ProcessAction(data *ProcessData) error {
-	for _, hook := range h.beforeHooks {
-		var err error
-
-		data, err = hook(data)
-		if err != nil {
-			return err
-		}
-	}
-
-	if err := h.Handler.ProcessAction(data); err != nil {
-		return err
-	}
-
-	for _, hook := range h.afterHooks {
-		var err error
-
-		data, err = hook(data)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+type ExecutionResult struct {
+	Status ExecutionStatus
+	Err    error
+	JumpTo int
 }
