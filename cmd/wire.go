@@ -4,27 +4,26 @@
 package main
 
 import (
-	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/framework"
-	"github.com/Sn0wo2/CatSync/params"
+	"github.com/Sn0wo2/CatSync/runtime"
 	"github.com/google/wire"
 	"go.uber.org/zap"
 )
 
-func InitializeApp() (*appContext, error) {
+func InitializeCatSync() (*catSync, error) {
 	wire.Build(
 		NewConfig,
 		NewLogger,
+		NewRuntime,
 		NewParams,
 		NewFramework,
-		wire.Struct(new(appContext), "*"),
+		wire.Struct(new(catSync), "*"),
 	)
 	return nil, nil
 }
 
-type appContext struct {
-	Cfg    *config.Config
-	Logger *zap.Logger
-	Params *params.Ctx
-	App    *framework.Framework
+type catSync struct {
+	Logger  *zap.Logger
+	Runtime *runtime.Manager
+	Server  *framework.Framework
 }

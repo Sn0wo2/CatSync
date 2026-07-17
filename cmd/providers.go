@@ -6,27 +6,33 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Sn0wo2/CatSync/action"
+	"github.com/Sn0wo2/CatSync/action/execute"
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/config/loader"
 	"github.com/Sn0wo2/CatSync/framework"
 	"github.com/Sn0wo2/CatSync/log"
 	"github.com/Sn0wo2/CatSync/params"
 	"github.com/Sn0wo2/CatSync/router"
+	"github.com/Sn0wo2/CatSync/runtime"
 	"go.uber.org/zap"
 )
 
-func NewConfig() (*config.Config, error) {
-	cfg, err := config.New(loader.NewYAMLLoader(), loader.NewJSONLoader())
+func NewConfig() (*config.LoadResult, error) {
+	result, err := config.Load(loader.NewYAMLLoader(), loader.NewJSONLoader())
 	if err != nil {
 		if errors.Is(err, config.ErrConfigNotFound) || errors.Is(err, os.ErrNotExist) {
-			cfg = config.GetDefaultConfig()
+			result.Config = config.GetDefaultConfig()
+			if err := result.Config.Validate(); err != nil {
+				return nil, err
+			}
 
-			savePath := config.Path
+			savePath := result.Path
 			switch strings.ToLower(filepath.Ext(savePath)) {
 			case ".json":
-				err = loader.NewJSONLoader().Save(cfg, savePath)
+				err = loader.NewJSONLoader().Save(result.Config, savePath)
 			default:
-				err = loader.NewYAMLLoader().Save(cfg, savePath)
+				err = loader.NewYAMLLoader().Save(result.Config, savePath)
 			}
 
 			if err != nil {
@@ -34,42 +40,50 @@ func NewConfig() (*config.Config, error) {
 			}
 
 			log.Writef("Using default config, saved to: %s", savePath)
-			config.SetCurrentConfig(cfg)
 
-			return cfg, nil
+			return result, nil
 		}
 
 		return nil, err
 	}
 
-	config.SetCurrentConfig(cfg)
-
-	return cfg, nil
+	return result, nil
 }
 
-func NewLogger(cfg *config.Config) *zap.Logger {
-	logger := log.NewLog(cfg.Log.Dir.Must(), cfg.Log.Level.Must(), cfg.Log.FileFormat.Must())
+func NewLogger(result *config.LoadResult) *zap.Logger {
+	logger := log.NewLog(result.Config.Log.Dir.Must(), result.Config.Log.Level.Must(), result.Config.Log.FileFormat.Must())
 	log.Flush(logger)
 
 	return logger
 }
 
-func NewParams(cfg *config.Config, logger *zap.Logger) *params.Ctx {
-	if err := cfg.Check(logger); err != nil {
-		logger.Fatal("Config check failed", zap.Error(err))
-	}
+func NewRuntime(result *config.LoadResult, logger *zap.Logger) (*runtime.Manager, error) {
+	result.Config.LogWarnings(logger)
 
+	return runtime.NewManager(
+		result,
+		logger,
+		[]config.Loader{loader.NewYAMLLoader(), loader.NewJSONLoader()},
+		execute.Builders{
+			Global:  action.BuildGlobalModifiers,
+			Action:  action.BuildActionModifiers,
+			Payload: action.BuildPayloadModifiers,
+		},
+	)
+}
+
+func NewParams(manager *runtime.Manager, logger *zap.Logger) *params.Ctx {
 	p := params.New()
-	p.SetConfig(cfg)
+	p.SetConfigSource(manager)
 	p.SetLogger(logger)
 
 	return p
 }
 
-func NewFramework(p *params.Ctx) *framework.Framework {
+func NewFramework(p *params.Ctx, manager *runtime.Manager) *framework.Framework {
 	fw := framework.NewFiber(p)
 	p.SetFramework(fw)
-	router.Init(p)
+	router.Init(p, manager)
 
 	return fw
 }

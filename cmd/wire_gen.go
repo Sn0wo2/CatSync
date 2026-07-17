@@ -7,36 +7,37 @@
 package main
 
 import (
-	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/framework"
-	"github.com/Sn0wo2/CatSync/params"
+	"github.com/Sn0wo2/CatSync/runtime"
 	"go.uber.org/zap"
 )
 
 // Injectors from wire.go:
 
-func InitializeApp() (*appContext, error) {
-	config, err := NewConfig()
+func InitializeCatSync() (*catSync, error) {
+	loadResult, err := NewConfig()
 	if err != nil {
 		return nil, err
 	}
-	logger := NewLogger(config)
-	ctx := NewParams(config, logger)
-	framework := NewFramework(ctx)
-	mainAppContext := &appContext{
-		Cfg:    config,
-		Logger: logger,
-		Params: ctx,
-		App:    framework,
+	logger := NewLogger(loadResult)
+	manager, err := NewRuntime(loadResult, logger)
+	if err != nil {
+		return nil, err
 	}
-	return mainAppContext, nil
+	ctx := NewParams(manager, logger)
+	framework := NewFramework(ctx, manager)
+	mainCatSync := &catSync{
+		Logger:  logger,
+		Runtime: manager,
+		Server:  framework,
+	}
+	return mainCatSync, nil
 }
 
 // wire.go:
 
-type appContext struct {
-	Cfg    *config.Config
-	Logger *zap.Logger
-	Params *params.Ctx
-	App    *framework.Framework
+type catSync struct {
+	Logger  *zap.Logger
+	Runtime *runtime.Manager
+	Server  *framework.Framework
 }

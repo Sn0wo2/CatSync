@@ -17,14 +17,13 @@ import (
 func main() {
 	cli.Execute()
 
-	appCtx, err := InitializeApp()
+	catSync, err := InitializeCatSync()
 	if err != nil {
 		panic(err)
 	}
 
-	cfg := appCtx.Cfg
-	logger := appCtx.Logger
-	app := appCtx.App
+	logger := catSync.Logger
+	server := catSync.Server
 
 	defer func() {
 		_ = logger.Sync()
@@ -38,9 +37,14 @@ func main() {
 	signal.Notify(shutdownChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
 	go func() {
-	addr := cfg.Server.Address.Must()
-	cert := cfg.Server.TLS.Cert.Must()
-	key := cfg.Server.TLS.Key.Must()
+		cfg := catSync.Runtime.CurrentConfig()
+		if cfg == nil {
+			logger.Fatal("Runtime config unavailable")
+		}
+
+		addr := cfg.Server.Address.Must()
+		cert := cfg.Server.TLS.Cert.Must()
+		key := cfg.Server.TLS.Key.Must()
 
 		protocol := "http"
 		if (cert != "" && key != "") || (cfg.Server.ACME != nil && cfg.Server.ACME.Enable) {
@@ -73,7 +77,7 @@ func main() {
 
 		logger.Info("Server listening on: " + strings.Join(logAddresses, ", "))
 
-		if err := app.StartFiber(); err != nil {
+		if err := server.StartFiber(); err != nil {
 			logger.Fatal("Server failed to start",
 				zap.Error(err),
 			)
@@ -83,7 +87,7 @@ func main() {
 	<-shutdownChan
 	logger.Info("Shutting down server...")
 
-	if err := app.Shutdown(); err != nil {
+	if err := server.Shutdown(); err != nil {
 		logger.Error("Server failed to shutdown",
 			zap.Error(err),
 		)
