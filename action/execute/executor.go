@@ -10,7 +10,6 @@ import (
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/Sn0wo2/CatSync/params"
-	"github.com/Sn0wo2/CatSync/version"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -55,7 +54,6 @@ type Executor struct {
 	cfg      *config.Config
 	builders Builders
 	entries  []actionEntry // prebuilt per-action, indexed same as cfg.Actions
-	exactMap map[string][]int
 }
 
 func New() *Executor {
@@ -74,37 +72,45 @@ func (e *Executor) WithBuilders(builders Builders) *Executor {
 	return e
 }
 
-func (e *Executor) Build() *Executor {
+func (e *Executor) Build() (*Executor, error) {
+	if e == nil || e.cfg == nil {
+		return nil, errors.New("nil executor or config")
+	}
+
 	actions := e.cfg.Actions
 	e.entries = make([]actionEntry, len(actions))
-	e.exactMap = make(map[string][]int, len(actions))
 
 	for i := range actions {
 		act := &actions[i]
 		entry := &e.entries[i]
 
-	route := act.Route.Must()
+		route, ok := act.Route.Literal()
+		if !ok {
+			return nil, fmt.Errorf("actions[%d].route must be a literal string", i)
+		}
+
 		switch {
 		case route == "":
 			entry.route.empty = true
 		case isExactRoute(route):
 			entry.route.exact = route
-			e.exactMap[route] = append(e.exactMap[route], i)
 		default:
 			re, err := util.GetCompiledRegexp(route)
-			if err == nil {
-				entry.route.re = re
+			if err != nil {
+				return nil, fmt.Errorf("invalid action route regexp at actions[%d].route (%q): %w", i, route, err)
 			}
+
+			entry.route.re = re
 		}
 
 		baseHandler, ok := action.HandlerRegistry[act.Type]
-		if !ok {
-			continue
+		if !ok || baseHandler == nil {
+			return nil, fmt.Errorf("unknown action handler at actions[%d]: %s", i, act.Type)
 		}
 
 		payload := act.GetPayload()
 		if payload == nil {
-			continue
+			return nil, fmt.Errorf("actions[%d] type=%s but payload is nil", i, act.Type)
 		}
 
 		entry.payload = payload
@@ -129,74 +135,19 @@ func (e *Executor) Build() *Executor {
 			add(e.builders.Payload(payload))
 		}
 
-		if gm := payload.GetGlobalModifier(); gm != nil && gm.ActionModifierVersion != nil {
-			if ph := gm.Placeholder.Must(); ph != "" {
-				h.WithModifier(action.NewPlaceholderModifier().WithPlaceholder(ph).WithValue(version.GetFormatVersion()))
-			}
-		}
-
-		entry.handler = h.Build()
+		entry.handler = h
 	}
 
-	return e
+	return e, nil
 }
 
 type RequestContext struct {
 	Ctx      *params.Ctx
 	FiberCtx fiber.Ctx
-}
-
-func (e *Executor) matchRoute(index int, path string) bool {
-	entry := &e.entries[index]
-
-	if entry.route.empty {
-		return false
-	}
-
-	if entry.route.exact != "" {
-		return entry.route.exact == path
-	}
-
-	if entry.route.re != nil {
-		return entry.route.re.MatchString(path)
-	}
-
-	return false
+	Reloader action.Reloader
 }
 
 const maxJumpDepth = 16
-
-func (e *Executor) executeOne(rc *RequestContext, index int, skipRoute bool) (Result, error) {
-	if index < 0 || index >= len(e.entries) {
-		return Result{}, fmt.Errorf("invalid action index: %d", index)
-	}
-
-	if !skipRoute && !e.matchRoute(index, rc.FiberCtx.Path()) {
-		return Result{Status: StatusNotMatched}, nil
-	}
-
-	entry := &e.entries[index]
-	if entry.handler == nil || entry.payload == nil {
-		return Result{Status: StatusNotMatched}, nil
-	}
-
-	act := e.cfg.Actions[index]
-
-	err := entry.handler.ProcessAction(&action.ProcessData{Ctx: rc.Ctx, C: rc.FiberCtx, Action: &act, Payload: entry.payload})
-	if err == nil {
-		return Result{Status: StatusMatched}, nil
-	}
-
-	if jumpErr, ok := errors.AsType[*action.AuthFallbackJumpError](err); ok {
-		return Result{Status: StatusJump, JumpTo: jumpErr.JumpTo}, nil
-	}
-
-	if _, ok := errors.AsType[*action.AuthFallbackNextError](err); ok {
-		return Result{Status: StatusNotMatched}, nil
-	}
-
-	return Result{Status: StatusMatched}, err
-}
 
 func (e *Executor) Dispatch(rc *RequestContext) (bool, error) {
 	if e == nil || e.cfg == nil {
@@ -290,4 +241,61 @@ func (e *Executor) Dispatch(rc *RequestContext) (bool, error) {
 	}
 
 	return lastRes.Status == StatusMatched, nil
+}
+
+func (e *Executor) matchRoute(index int, path string) bool {
+	entry := &e.entries[index]
+
+	if entry.route.empty {
+		return false
+	}
+
+	if entry.route.exact != "" {
+		return entry.route.exact == path
+	}
+
+	if entry.route.re != nil {
+		return entry.route.re.MatchString(path)
+	}
+
+	return false
+}
+
+func (e *Executor) executeOne(rc *RequestContext, index int, skipRoute bool) (Result, error) {
+	if index < 0 || index >= len(e.entries) {
+		return Result{}, fmt.Errorf("invalid action index: %d", index)
+	}
+
+	if !skipRoute && !e.matchRoute(index, rc.FiberCtx.Path()) {
+		return Result{Status: StatusNotMatched}, nil
+	}
+
+	entry := &e.entries[index]
+	if entry.handler == nil || entry.payload == nil {
+		return Result{Status: StatusNotMatched}, nil
+	}
+
+	act := e.cfg.Actions[index]
+
+	result := entry.handler.ProcessAction(&action.ProcessData{
+		Ctx:      rc.Ctx,
+		C:        rc.FiberCtx,
+		Action:   &act,
+		Payload:  entry.payload,
+		Reloader: rc.Reloader,
+	})
+	if result.Err != nil {
+		return Result{Status: StatusMatched}, result.Err
+	}
+
+	switch result.Status {
+	case action.ExecutionCompleted:
+		return Result{Status: StatusMatched}, nil
+	case action.ExecutionFallbackNext:
+		return Result{Status: StatusNotMatched}, nil
+	case action.ExecutionFallbackJump:
+		return Result{Status: StatusJump, JumpTo: result.JumpTo}, nil
+	default:
+		return Result{Status: StatusMatched}, fmt.Errorf("unsupported action execution status: %d", result.Status)
+	}
 }
