@@ -8,9 +8,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 
 	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/config/reader"
 	"github.com/invopop/jsonschema"
+	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
 func main() {
@@ -28,6 +31,36 @@ func main() {
 	reflector := jsonschema.Reflector{
 		AllowAdditionalProperties: false,
 		DoNotReference:            true,
+		Mapper: func(t reflect.Type) *jsonschema.Schema {
+			if t != reflect.TypeOf(reader.String{}) {
+				return nil
+			}
+
+			properties := orderedmap.New[string, *jsonschema.Schema]()
+			properties.Set("type", &jsonschema.Schema{
+				Type: "string",
+				Enum: []any{
+					reader.StringTypeAuto,
+					reader.StringTypeString,
+					reader.StringTypePath,
+					reader.StringTypeHTTP,
+				},
+			})
+			properties.Set("content", &jsonschema.Schema{Type: "string"})
+
+			return &jsonschema.Schema{
+				OneOf: []*jsonschema.Schema{
+					{Type: "string"},
+					{
+						Type:                 "object",
+						Properties:           properties,
+						AdditionalProperties: jsonschema.FalseSchema,
+						Required:             []string{"content"},
+					},
+					{Type: "null"},
+				},
+			}
+		},
 	}
 
 	schema := reflector.Reflect(&config.Config{})

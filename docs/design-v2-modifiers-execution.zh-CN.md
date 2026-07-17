@@ -89,7 +89,7 @@ v2 采用一个确定的约定：
 3. 将 handler 包装为 `action.ModifiableHandler`，依次注入运行时 modifiers。
 4. 构造 `action.ProcessData` 并执行 handler。
 
-运行时 modifiers 通过 `action.WrapHandlerWithHooks` 在 handler 前后挂 hook 来工作。
+运行时 modifiers 由单个 `action.ModifiableHandler` 按注册顺序执行 `Before`，执行 base handler 后按逆序执行 `After`。
 
 ### Version placeholder
 

@@ -59,7 +59,7 @@
 ## 数据流（请求路径）
 
 **A. 初始化态 (Init / Reload)**
-1. `cmd/main.go` -> `config.New()` 加载所有配置。
+1. `cmd/providers.go` -> `config.Load()` 定位并加载配置，返回配置与解析后的路径。
 2. 执行引擎预构建：`execute.New().WithConfig().Build()`。预分配所有的 Action Entry 和 Modifier 链，建立 O(1) 路由。
 
     **B. 运行态 (Request)**
