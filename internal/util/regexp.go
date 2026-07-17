@@ -3,13 +3,20 @@ package util
 import (
 	"fmt"
 	"regexp"
+	"sync"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
-var regexpCache, _ = lru.New[string, *regexp.Regexp](1024)
+var (
+	regexpCache, _ = lru.New[string, *regexp.Regexp](1024)
+	regexpMu       sync.Mutex
+)
 
 func GetCompiledRegexp(pattern string) (*regexp.Regexp, error) {
+	regexpMu.Lock()
+	defer regexpMu.Unlock()
+
 	if re, ok := regexpCache.Get(pattern); ok {
 		return re, nil
 	}

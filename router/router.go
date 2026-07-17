@@ -8,16 +8,16 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/recover"
 )
 
-func Init(c *params.Ctx) {
-	app := c.GetFramework()
-	if app == nil {
+func Init(c *params.Ctx, manager handler.Runtime) {
+	server := c.GetFramework()
+	if server == nil {
 		panic("framework not found")
 	}
 
-	app.Use(recover.New())
-	app.Use(compress.New(compress.Config{
+	server.Use(recover.New())
+	server.Use(compress.New(compress.Config{
 		Level: compress.LevelBestSpeed,
 	}), cors.New())
 
-	app.Get("*", handler.Actions(c))
+	server.Get("*", handler.Actions(c, manager))
 }

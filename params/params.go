@@ -7,9 +7,13 @@ import (
 )
 
 type Ctx struct {
-	cfg    *config.Config
-	logger *zap.Logger
-	fw     *framework.Framework
+	configSource ConfigSource
+	logger       *zap.Logger
+	fw           *framework.Framework
+}
+
+type ConfigSource interface {
+	CurrentConfig() *config.Config
 }
 
 func New() *Ctx {
@@ -17,11 +21,15 @@ func New() *Ctx {
 }
 
 func (c *Ctx) GetConfig() *config.Config {
-	return c.cfg
+	if c.configSource == nil {
+		return nil
+	}
+
+	return c.configSource.CurrentConfig()
 }
 
-func (c *Ctx) SetConfig(cfg *config.Config) *Ctx {
-	c.cfg = cfg
+func (c *Ctx) SetConfigSource(source ConfigSource) *Ctx {
+	c.configSource = source
 
 	return c
 }

@@ -4,19 +4,27 @@ import (
 	"github.com/Sn0wo2/CatSync/action"
 	"github.com/Sn0wo2/CatSync/action/execute"
 	"github.com/Sn0wo2/CatSync/params"
+	"github.com/Sn0wo2/CatSync/runtime"
 	"github.com/gofiber/fiber/v3"
 )
 
-func Actions(c *params.Ctx) fiber.Handler {
-	b := action.NewModifierBuilder()
+type Runtime interface {
+	action.Reloader
+	Current() *runtime.Snapshot
+}
 
-	exec := execute.New().
-		WithConfig(c.GetConfig()).
-		WithBuilders(execute.Builders{Global: b.BuildGlobal, Action: b.BuildAction, Payload: b.BuildPayload}).
-		Build()
-
+func Actions(c *params.Ctx, manager Runtime) fiber.Handler {
 	return func(ctx fiber.Ctx) error {
-		matched, err := exec.Dispatch(&execute.RequestContext{Ctx: c, FiberCtx: ctx})
+		snapshot := manager.Current()
+		if snapshot == nil || snapshot.Executor == nil {
+			return fiber.NewError(fiber.StatusInternalServerError, "runtime snapshot unavailable")
+		}
+
+		matched, err := snapshot.Executor.Dispatch(&execute.RequestContext{
+			Ctx:      c,
+			FiberCtx: ctx,
+			Reloader: manager,
+		})
 		if err != nil {
 			return err
 		}
