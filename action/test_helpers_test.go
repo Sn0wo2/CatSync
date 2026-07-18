@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Sn0wo2/CatSync/params"
+	"github.com/Sn0wo2/CatSync/internal/appctx"
 	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
@@ -13,10 +13,12 @@ import (
 func executeAction(t *testing.T, path string, process func(*ProcessData) ExecutionResult) *http.Response {
 	t.Helper()
 
+	ctx := appctx.New()
+	ctx.Logger = zap.NewNop()
 	app := fiber.New()
 	app.Use(func(c fiber.Ctx) error {
 		return process(&ProcessData{
-			Ctx: params.New().SetLogger(zap.NewNop()),
+			Ctx: ctx,
 			C:   c,
 		}).Err
 	})

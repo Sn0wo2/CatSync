@@ -37,7 +37,7 @@ func NewAuthModifier(auth config.ActionModifierAuth) *AuthModifier {
 }
 
 func (m *AuthModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
-	logger := p.Ctx.GetLogger()
+	logger := p.Ctx.Logger
 
 	m.reOnce.Do(m.initRegex)
 

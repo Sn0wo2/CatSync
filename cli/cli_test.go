@@ -35,16 +35,13 @@ func TestExecute_ShowsHelp(t *testing.T) {
 		t.Run(flag, func(t *testing.T) {
 			t.Parallel()
 
-			// Given: a help flag.
 			result := runExecuteProcess(t, flag)
 
-			// When: CatSync parses it.
-			// Then: the process exits successfully and prints its flag usage.
 			if result.exitCode != 0 {
 				t.Fatalf("exit code = %d, want 0; output: %s", result.exitCode, result.output)
 			}
 
-			if !strings.Contains(result.output, "Usage of CatSync:") {
+			if !strings.Contains(result.output, "CatSync - Sync the cat config backend server") {
 				t.Fatalf("help output = %q, want usage", result.output)
 			}
 		})
@@ -54,15 +51,12 @@ func TestExecute_ShowsHelp(t *testing.T) {
 func TestExecute_ShowsVersionForBothVersionFlags(t *testing.T) {
 	t.Parallel()
 
-	for _, flag := range []string{"-version", "-v"} {
+	for _, flag := range []string{"--version", "-v"} {
 		t.Run(flag, func(t *testing.T) {
 			t.Parallel()
 
-			// Given: a version flag.
 			result := runExecuteProcess(t, flag)
 
-			// When: CatSync parses it.
-			// Then: the process exits successfully and prints version metadata.
 			if result.exitCode != 0 {
 				t.Fatalf("exit code = %d, want 0; output: %s", result.exitCode, result.output)
 			}
@@ -77,13 +71,10 @@ func TestExecute_ShowsVersionForBothVersionFlags(t *testing.T) {
 func TestExecute_RejectsUnknownFlag(t *testing.T) {
 	t.Parallel()
 
-	// Given: an unknown flag.
 	result := runExecuteProcess(t, "-unknown")
 
-	// When: CatSync parses it.
-	// Then: the process exits with the flag parsing failure code.
-	if result.exitCode != 2 {
-		t.Fatalf("exit code = %d, want 2; output: %s", result.exitCode, result.output)
+	if result.exitCode != 1 {
+		t.Fatalf("exit code = %d, want 1; output: %s", result.exitCode, result.output)
 	}
 }
 

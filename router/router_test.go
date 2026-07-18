@@ -3,14 +3,14 @@ package router
 import (
 	"testing"
 
-	"github.com/Sn0wo2/CatSync/params"
+	"github.com/Sn0wo2/CatSync/internal/appctx"
 )
 
 func TestInit_PanicsWhenFrameworkIsNil(t *testing.T) {
 	t.Parallel()
 
 	// Given: a context without a framework.
-	ctx := params.New()
+	ctx := appctx.New()
 
 	// When: the router is initialized.
 	defer func() {

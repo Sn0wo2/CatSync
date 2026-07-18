@@ -8,8 +8,8 @@ import (
 
 	"github.com/Sn0wo2/CatSync/action"
 	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/internal/appctx"
 	"github.com/Sn0wo2/CatSync/internal/util"
-	"github.com/Sn0wo2/CatSync/params"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -51,13 +51,24 @@ func isExactRoute(pattern string) bool {
 }
 
 type Executor struct {
-	cfg      *config.Config
-	builders Builders
-	entries  []actionEntry // prebuilt per-action, indexed same as cfg.Actions
+	cfg              *config.Config
+	builders         Builders
+	registry         action.Registry
+	entries          []actionEntry // prebuilt per-action, indexed same as cfg.Actions
+	labelIndex       map[string]int
+	preResolvedJumps map[int]int // action index → resolved jumpTo index
 }
 
 func New() *Executor {
-	return &Executor{}
+	return NewWithRegistry(nil)
+}
+
+func NewWithRegistry(reg action.Registry) *Executor {
+	if reg == nil {
+		reg = action.NewRegistry()
+	}
+
+	return &Executor{registry: reg}
 }
 
 func (e *Executor) WithConfig(cfg *config.Config) *Executor {
@@ -79,6 +90,14 @@ func (e *Executor) Build() (*Executor, error) {
 
 	actions := e.cfg.Actions
 	e.entries = make([]actionEntry, len(actions))
+
+	// Build label index for jumpLabel resolution
+	e.labelIndex = make(map[string]int, len(actions))
+	for i := range actions {
+		if label := actions[i].Label; label != "" {
+			e.labelIndex[label] = i
+		}
+	}
 
 	for i := range actions {
 		act := &actions[i]
@@ -103,7 +122,7 @@ func (e *Executor) Build() (*Executor, error) {
 			entry.route.re = re
 		}
 
-		baseHandler, ok := action.HandlerRegistry[act.Type]
+		baseHandler, ok := e.registry[act.Type]
 		if !ok || baseHandler == nil {
 			return nil, fmt.Errorf("unknown action handler at actions[%d]: %s", i, act.Type)
 		}
@@ -138,16 +157,28 @@ func (e *Executor) Build() (*Executor, error) {
 		entry.handler = h
 	}
 
+	// Second pass: resolve auth fallback JumpLabel references
+	e.preResolvedJumps = make(map[int]int)
+
+	for i := range actions {
+		auth := actions[i].ActionModifierAuth
+		if auth == nil || auth.Fallback == nil || auth.Fallback.JumpLabel == "" {
+			continue
+		}
+
+		if idx, ok := e.labelIndex[auth.Fallback.JumpLabel]; ok {
+			e.preResolvedJumps[i] = idx
+		}
+	}
+
 	return e, nil
 }
 
 type RequestContext struct {
-	Ctx      *params.Ctx
+	Ctx      *appctx.Ctx
 	FiberCtx fiber.Ctx
 	Reloader action.Reloader
 }
-
-const maxJumpDepth = 16
 
 func (e *Executor) Dispatch(rc *RequestContext) (bool, error) {
 	if e == nil || e.cfg == nil {
@@ -163,35 +194,7 @@ func (e *Executor) Dispatch(rc *RequestContext) (bool, error) {
 		return false, nil
 	}
 
-	var (
-		visitedBits uint64
-		visitedMap  map[int]struct{}
-	)
-
-	markVisited := func(idx int) bool {
-		if n <= 64 {
-			bit := uint64(1) << idx
-			if visitedBits&bit != 0 {
-				return false
-			}
-
-			visitedBits |= bit
-
-			return true
-		}
-
-		if visitedMap == nil {
-			visitedMap = make(map[int]struct{}, maxJumpDepth)
-		}
-
-		if _, dup := visitedMap[idx]; dup {
-			return false
-		}
-
-		visitedMap[idx] = struct{}{}
-
-		return true
-	}
+	visited := make(map[int]struct{}, n)
 
 	for i := range n {
 		res, err := e.executeOne(rc, i, false)
@@ -208,14 +211,16 @@ func (e *Executor) Dispatch(rc *RequestContext) (bool, error) {
 
 		case StatusJump:
 			target := res.JumpTo
-			for range maxJumpDepth {
+			for {
 				if target < 0 || target >= n {
 					return false, fmt.Errorf("invalid auth fallback jumpTo index: %d", target)
 				}
 
-				if !markVisited(target) {
+				if _, dup := visited[target]; dup {
 					return false, fmt.Errorf("auth fallback jump loop detected at index: %d", target)
 				}
+
+				visited[target] = struct{}{}
 
 				jres, jerr := e.executeOne(rc, target, true)
 				if jerr != nil {
@@ -286,6 +291,11 @@ func (e *Executor) executeOne(rc *RequestContext, index int, skipRoute bool) (Re
 	})
 	if result.Err != nil {
 		return Result{Status: StatusMatched}, result.Err
+	}
+
+	// Override JumpTo with pre-resolved label-based index if available
+	if resolved, ok := e.preResolvedJumps[index]; ok {
+		result.JumpTo = resolved
 	}
 
 	switch result.Status {

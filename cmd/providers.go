@@ -11,8 +11,8 @@ import (
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/config/loader"
 	"github.com/Sn0wo2/CatSync/framework"
+	"github.com/Sn0wo2/CatSync/internal/appctx"
 	"github.com/Sn0wo2/CatSync/log"
-	"github.com/Sn0wo2/CatSync/params"
 	"github.com/Sn0wo2/CatSync/router"
 	"github.com/Sn0wo2/CatSync/runtime"
 	"go.uber.org/zap"
@@ -21,7 +21,7 @@ import (
 func NewConfig() (*config.LoadResult, error) {
 	result, err := config.Load(loader.NewYAMLLoader(), loader.NewJSONLoader())
 	if err != nil {
-		if errors.Is(err, config.ErrConfigNotFound) || errors.Is(err, os.ErrNotExist) {
+		if errors.Is(err, os.ErrNotExist) {
 			result.Config = config.GetDefaultConfig()
 			if err := result.Config.Validate(); err != nil {
 				return nil, err
@@ -72,17 +72,17 @@ func NewRuntime(result *config.LoadResult, logger *zap.Logger) (*runtime.Manager
 	)
 }
 
-func NewParams(manager *runtime.Manager, logger *zap.Logger) *params.Ctx {
-	p := params.New()
-	p.SetConfigSource(manager)
-	p.SetLogger(logger)
+func NewParams(manager *runtime.Manager, logger *zap.Logger) *appctx.Ctx {
+	p := appctx.New()
+	p.ConfigSource = manager
+	p.Logger = logger
 
 	return p
 }
 
-func NewFramework(p *params.Ctx, manager *runtime.Manager) *framework.Framework {
+func NewFramework(p *appctx.Ctx, manager *runtime.Manager) *framework.Framework {
 	fw := framework.NewFiber(p)
-	p.SetFramework(fw)
+	p.FW = fw
 	router.Init(p, manager)
 
 	return fw

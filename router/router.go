@@ -1,15 +1,15 @@
 package router
 
 import (
-	"github.com/Sn0wo2/CatSync/params"
+	"github.com/Sn0wo2/CatSync/internal/appctx"
 	"github.com/Sn0wo2/CatSync/router/handler"
 	"github.com/gofiber/fiber/v3/middleware/compress"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/recover"
 )
 
-func Init(c *params.Ctx, manager handler.Runtime) {
-	server := c.GetFramework()
+func Init(c *appctx.Ctx, manager handler.Runtime) {
+	server := c.FW
 	if server == nil {
 		panic("framework not found")
 	}
@@ -19,5 +19,5 @@ func Init(c *params.Ctx, manager handler.Runtime) {
 		Level: compress.LevelBestSpeed,
 	}), cors.New())
 
-	server.Get("*", handler.Actions(c, manager))
+	server.Use(handler.Actions(c, manager))
 }

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sn0wo2/CatSync/params"
+	"github.com/Sn0wo2/CatSync/internal/appctx"
 	"github.com/Sn0wo2/CatSync/runtime"
 	"github.com/gofiber/fiber/v3"
 )
@@ -72,7 +72,7 @@ func newUnavailableRuntimeApp(t *testing.T, runtime unavailableRuntime) *fiber.A
 	t.Helper()
 
 	app := fiber.New()
-	app.Get("*", Actions(params.New(), runtime))
+	app.Get("*", Actions(appctx.New(), runtime))
 
 	return app
 }

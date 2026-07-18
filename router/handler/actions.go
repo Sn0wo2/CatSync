@@ -3,7 +3,7 @@ package handler
 import (
 	"github.com/Sn0wo2/CatSync/action"
 	"github.com/Sn0wo2/CatSync/action/execute"
-	"github.com/Sn0wo2/CatSync/params"
+	"github.com/Sn0wo2/CatSync/internal/appctx"
 	"github.com/Sn0wo2/CatSync/runtime"
 	"github.com/gofiber/fiber/v3"
 )
@@ -13,7 +13,7 @@ type Runtime interface {
 	Current() *runtime.Snapshot
 }
 
-func Actions(c *params.Ctx, manager Runtime) fiber.Handler {
+func Actions(c *appctx.Ctx, manager Runtime) fiber.Handler {
 	return func(ctx fiber.Ctx) error {
 		snapshot := manager.Current()
 		if snapshot == nil || snapshot.Executor == nil {

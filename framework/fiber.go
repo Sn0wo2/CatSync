@@ -52,25 +52,28 @@ func (ctx *Framework) StartFiber() error {
 		httpServer := &httpServerToStd{TLSConfig: tlsCfg}
 
 		acmeCfg := cfg.Server.ACME
+
+		var acmeErr error
 		if acmeCfg.DNS01 != nil {
-			if err := startACMEDNS01(httpServer, acmeCfg, logger); err != nil {
-				return err
-			}
+			acmeErr = startACMEDNS01(httpServer, acmeCfg, logger)
 		} else {
-			if err := startACMEHTTP01(httpServer, cfg, acmeCfg, logger); err != nil {
-				return err
-			}
+			acmeErr = startACMEHTTP01(httpServer, cfg, acmeCfg, logger)
 		}
 
-		tlsLn := tls.NewListener(ln, tlsCfg)
+		if acmeErr == nil {
+			tlsLn := tls.NewListener(ln, tlsCfg)
 
-		logger.Info("TLS listening", zap.String("addr", addr))
+			logger.Info("TLS listening (ACME)", zap.String("addr", addr))
 
-		return ctx.Listener(tlsLn, fiber.ListenConfig{EnablePrefork: !debug.IsDebugging()})
+			return ctx.Listener(tlsLn, fiber.ListenConfig{EnablePrefork: !debug.IsDebugging()})
+		}
+
+		logger.Warn("ACME setup failed, falling back to HTTP", zap.Error(acmeErr))
+		ln.Close()
+		// Falls through to TLS cert / plain HTTP below
 	}
 
 	cert := cfg.Server.TLS.Cert.Must()
-
 	key := cfg.Server.TLS.Key.Must()
 
 	fl := fiber.ListenConfig{}

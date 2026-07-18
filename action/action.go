@@ -17,13 +17,6 @@ import (
 	"go.uber.org/zap"
 )
 
-func init() {
-	HandlerRegistry[config.ActionString] = NewString()
-	HandlerRegistry[config.ActionFile] = NewFile()
-	HandlerRegistry[config.ActionServer] = NewServer()
-	HandlerRegistry[config.ActionReload] = NewReload()
-}
-
 type StringHandler struct{}
 
 func NewString() Handler {
@@ -38,17 +31,19 @@ func (h *StringHandler) ProcessAction(p *ProcessData) ExecutionResult {
 
 	body := stringData.Content.Must()
 
-	p.Ctx.GetLogger().Info("Action >> Serve String", util.LazyFiberContext(p.C))
+	p.Ctx.Logger.Info("Action >> Serve String", util.LazyFiberContext(p.C))
 
 	return ExecutionResult{Err: p.C.SendString(body)}
 }
 
-var fileCache = filecache.New(time.Second)
-
-type FileHandler struct{}
+type FileHandler struct {
+	cache *filecache.Cache
+}
 
 func NewFile() Handler {
-	return &FileHandler{}
+	return &FileHandler{
+		cache: filecache.New(time.Second),
+	}
 }
 
 func (h *FileHandler) ProcessAction(p *ProcessData) ExecutionResult {
@@ -80,7 +75,7 @@ func (h *FileHandler) ProcessAction(p *ProcessData) ExecutionResult {
 		return ExecutionResult{Err: err}
 	}
 
-	entry, err := fileCache.Get(safePath, !fileData.DontSetContentType)
+	entry, err := h.cache.Get(safePath, !fileData.DontSetContentType)
 	if err != nil {
 		return ExecutionResult{Err: fmt.Errorf("failed to read file: %w", err)}
 	}
@@ -89,7 +84,7 @@ func (h *FileHandler) ProcessAction(p *ProcessData) ExecutionResult {
 		p.C.Set(fiber.HeaderContentType, entry.ContentType)
 	}
 
-	p.Ctx.GetLogger().Info("Action >> Serve File", zap.String("path", pathStr), util.LazyFiberContext(p.C))
+	p.Ctx.Logger.Info("Action >> Serve File", zap.String("path", pathStr), util.LazyFiberContext(p.C))
 
 	return ExecutionResult{Err: p.C.Send(entry.Content)}
 }
@@ -166,12 +161,7 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) ExecutionResult {
 		return ExecutionResult{Err: fmt.Errorf("directory must be under data/server: %s", dirStr)}
 	}
 
-	reqPath := p.C.Path()
-	if strings.Contains(reqPath, "..") {
-		return ExecutionResult{Err: fiber.NewError(fiber.StatusForbidden, "path traversal not allowed")}
-	}
-
-	reqPath = strings.TrimPrefix(reqPath, "/")
+	reqPath := strings.TrimPrefix(p.C.Path(), "/")
 
 	fullPath := filepath.Clean(filepath.Join(absBaseDir, reqPath))
 	if !strings.HasPrefix(fullPath, absBaseDirSep) && fullPath != absBaseDir {
@@ -196,7 +186,7 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) ExecutionResult {
 		fullPath = foundPath
 	}
 
-	p.Ctx.GetLogger().Info("Action >> Serve Server", zap.String("dir", dirStr), zap.String("file", reqPath), util.LazyFiberContext(p.C))
+	p.Ctx.Logger.Info("Action >> Serve Server", zap.String("dir", dirStr), zap.String("file", reqPath), util.LazyFiberContext(p.C))
 
 	return ExecutionResult{Err: p.C.SendFile(fullPath)}
 }
@@ -204,7 +194,7 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) ExecutionResult {
 func (h *ServerHandler) sendErrorPage(p *ProcessData, serverData *config.ActionServerData, status int, dir, file string) error {
 	p.C.Set(fiber.HeaderContentType, "text/html; charset=utf-8")
 	p.C.Status(status)
-	p.Ctx.GetLogger().Info("Action >> Serve Server", zap.String("dir", dir), zap.String("file", file), zap.String("status", strconv.Itoa(status)), util.LazyFiberContext(p.C))
+	p.Ctx.Logger.Info("Action >> Serve Server", zap.String("dir", dir), zap.String("file", file), zap.String("status", strconv.Itoa(status)), util.LazyFiberContext(p.C))
 
 	html := config.DefaultNotFoundHTML
 	if serverData.NotFoundHTML != nil {
@@ -253,13 +243,13 @@ func (h *ReloadHandler) ProcessAction(p *ProcessData) ExecutionResult {
 	}
 
 	if err := p.Reloader.Reload(); err != nil {
-		p.Ctx.GetLogger().Error("Action >> Reload Config Failed", zap.Error(err), util.LazyFiberContext(p.C))
+		p.Ctx.Logger.Error("Action >> Reload Config Failed", zap.Error(err), util.LazyFiberContext(p.C))
 		p.C.Status(fiber.StatusInternalServerError)
 
 		return ExecutionResult{Err: p.C.SendString(fmt.Sprintf("Config reload failed: %v", err))}
 	}
 
-	p.Ctx.GetLogger().Info("Action >> Reload Config Success", util.LazyFiberContext(p.C))
+	p.Ctx.Logger.Info("Action >> Reload Config Success", util.LazyFiberContext(p.C))
 	p.C.Status(fiber.StatusOK)
 
 	return ExecutionResult{Err: p.C.SendString("Config reloaded successfully")}

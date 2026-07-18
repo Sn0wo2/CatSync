@@ -5,13 +5,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/Sn0wo2/CatSync/action"
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/config/reader"
-	"github.com/Sn0wo2/CatSync/params"
+	"github.com/Sn0wo2/CatSync/internal/appctx"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -22,8 +21,6 @@ const (
 	testExactRoute      = "/health"
 	testNextOutcome     = "next"
 )
-
-var handlerRegistryMu sync.Mutex
 
 func (h statusHandler) ProcessAction(data *action.ProcessData) action.ExecutionResult {
 	stringData, ok := data.Payload.(*config.ActionStringData)
@@ -46,23 +43,12 @@ func stringAction(route, outcome string) config.Action {
 
 func buildExecutor(t *testing.T, actions []config.Action, handler action.Handler) *Executor {
 	t.Helper()
-	handlerRegistryMu.Lock()
-	t.Cleanup(handlerRegistryMu.Unlock)
 
-	original, registered := action.HandlerRegistry[config.ActionString]
-	action.HandlerRegistry[config.ActionString] = handler
+	reg := action.Registry{
+		config.ActionString: handler,
+	}
 
-	t.Cleanup(func() {
-		if registered {
-			action.HandlerRegistry[config.ActionString] = original
-
-			return
-		}
-
-		delete(action.HandlerRegistry, config.ActionString)
-	})
-
-	executor, err := New().WithConfig(&config.Config{Actions: actions}).Build()
+	executor, err := NewWithRegistry(reg).WithConfig(&config.Config{Actions: actions}).Build()
 	if err != nil {
 		t.Fatalf("Build() error = %v", err)
 	}
@@ -82,7 +68,7 @@ func dispatch(t *testing.T, executor *Executor, path string) (bool, error) {
 
 	app.Use(func(c fiber.Ctx) error {
 		matched, dispatchErr = executor.Dispatch(&RequestContext{
-			Ctx:      params.New(),
+			Ctx:      appctx.New(),
 			FiberCtx: c,
 		})
 
@@ -149,10 +135,10 @@ func TestBuildRejectsInvalidActionShapes(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			handlerRegistryMu.Lock()
-			t.Cleanup(handlerRegistryMu.Unlock)
 
-			_, err := New().WithConfig(&config.Config{Actions: []config.Action{test.action}}).Build()
+			reg := action.NewRegistry()
+
+			_, err := NewWithRegistry(reg).WithConfig(&config.Config{Actions: []config.Action{test.action}}).Build()
 			if err == nil || !strings.Contains(err.Error(), test.wantErr) {
 				t.Fatalf("Build() error = %v, want containing %q", err, test.wantErr)
 			}

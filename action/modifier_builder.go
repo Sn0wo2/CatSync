@@ -3,8 +3,8 @@ package action
 import (
 	"context"
 
+	"github.com/Sn0wo2/CatSync/cli"
 	"github.com/Sn0wo2/CatSync/config"
-	"github.com/Sn0wo2/CatSync/version"
 )
 
 func BuildGlobalModifiers(cfg *config.Config) []Modifier {
@@ -43,22 +43,20 @@ func buildModifiers(gm *config.GlobalModifier) []Modifier {
 
 	modifiers := make([]Modifier, 0, 4)
 
-	gm.Visit(config.GlobalModifierVisitor{
-		Status: func(status *config.ActionModifierStatus) {
-			upstream, _ := status.Upstream.ReadString(context.Background())
-			modifiers = append(modifiers, NewStatusModifier().WithStatus(status.Status).WithUpstream(upstream))
-		},
-		Auth: func(auth *config.ActionModifierAuth) {
-			modifiers = append(modifiers, NewAuthModifier(*auth))
-		},
-		ResponseHeader: func(header *config.ActionModifierResponseHeader) {
-			upstream, _ := header.Upstream.ReadString(context.Background())
-			modifiers = append(modifiers, NewResponseHeaderModifier().WithHeader(header.Header).WithUpstream(upstream))
-		},
-		Version: func(modifier *config.ActionModifierVersion) {
-			placeholder, _ := modifier.Placeholder.ReadString(context.Background())
-			modifiers = append(modifiers, NewPlaceholderModifier().WithPlaceholder(placeholder).WithValue(version.GetFormatVersion()))
-		},
+	gm.EachModifier(func(m any) {
+		switch mod := m.(type) {
+		case *config.ActionModifierStatus:
+			upstream, _ := mod.Upstream.ReadString(context.Background())
+			modifiers = append(modifiers, NewStatusModifier().WithStatus(mod.Status).WithUpstream(upstream))
+		case *config.ActionModifierAuth:
+			modifiers = append(modifiers, NewAuthModifier(*mod))
+		case *config.ActionModifierResponseHeader:
+			upstream, _ := mod.Upstream.ReadString(context.Background())
+			modifiers = append(modifiers, NewResponseHeaderModifier().WithHeader(mod.Header).WithUpstream(upstream))
+		case *config.ActionModifierVersion:
+			placeholder, _ := mod.Placeholder.ReadString(context.Background())
+			modifiers = append(modifiers, NewPlaceholderModifier().WithPlaceholder(placeholder).WithValue(cli.GetFormatVersion()))
+		}
 	})
 
 	return modifiers

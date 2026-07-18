@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -9,13 +10,24 @@ import (
 	"syscall"
 
 	"github.com/Sn0wo2/CatSync/cli"
-	"github.com/Sn0wo2/CatSync/version"
+	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/config/loader"
 	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
 func main() {
-	cli.Execute()
+	opts := cli.Execute()
+
+	if opts.ConfigPath != "" {
+		config.SetConfigPath(opts.ConfigPath)
+	}
+
+	if opts.CheckOnly {
+		runConfigCheck()
+
+		return
+	}
 
 	catSync, err := InitializeCatSync()
 	if err != nil {
@@ -30,7 +42,7 @@ func main() {
 	}()
 
 	if !fiber.IsChild() {
-		logger.Info("Starting CatSync...", zap.String("version", version.GetFormatVersion()))
+		logger.Info("Starting CatSync...", zap.String("version", cli.GetFormatVersion()))
 	}
 
 	shutdownChan := make(chan os.Signal, 1)
@@ -92,4 +104,19 @@ func main() {
 			zap.Error(err),
 		)
 	}
+}
+
+func runConfigCheck() {
+	result, err := config.Load(loader.NewYAMLLoader(), loader.NewJSONLoader())
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			fmt.Fprintf(os.Stderr, "CONFIGURATION ERROR: config file not found\n")
+		} else {
+			fmt.Fprintf(os.Stderr, "CONFIGURATION ERROR: %v\n", err)
+		}
+
+		os.Exit(1)
+	}
+
+	fmt.Printf("OK - %s\nConfiguration is valid\n", result.Path)
 }
