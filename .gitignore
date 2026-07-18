@@ -18,7 +18,7 @@ coverage.*
 profile.cov
 
 # Dependency directories (remove the comment below to include it)
-# vendor/
+vendor/
 
 # Go workspace file
 go.work
@@ -31,11 +31,13 @@ go.work.sum
 .idea/
 .vscode/
 
+# goreleaser
+dist/
+
 # CatSync
 data/
 docker/data/
 logs/
 
-# goreleaser
-dist/
-
+# Harness
+.omo/
