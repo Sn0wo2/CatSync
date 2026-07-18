@@ -19,7 +19,7 @@ func (y *YAMLLoader) GetTag() string {
 }
 
 func (y *YAMLLoader) Load(cfg *config.Config, fileName string) error {
-	file, err := os.ReadFile(fileName)
+	file, err := os.ReadFile(filepath.Clean(fileName))
 	if err != nil {
 		return err
 	}

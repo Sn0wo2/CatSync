@@ -19,7 +19,7 @@ func (j *JSONLoader) GetTag() string {
 }
 
 func (j *JSONLoader) Load(cfg *config.Config, fileName string) error {
-	file, err := os.ReadFile(fileName)
+	file, err := os.ReadFile(filepath.Clean(fileName))
 	if err != nil {
 		return err
 	}

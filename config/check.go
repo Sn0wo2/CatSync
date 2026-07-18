@@ -307,7 +307,7 @@ func (c *Config) LogWarnings(logger *zap.Logger) {
 	last := c.Actions[lastIndex]
 	logger.Info("Config >> notfound handler is the last action",
 		zap.Int("index", lastIndex),
-			zap.String("type", string(last.TypeName())),
+		zap.String("type", string(last.TypeName())),
 	)
 
 	if last.TypeName() == ActionFile {

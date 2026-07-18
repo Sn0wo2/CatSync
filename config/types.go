@@ -123,7 +123,6 @@ const (
 	ActionReload ActionType = "reload"
 )
 
-
 type ActionData interface {
 	action()
 	GetGlobalModifier() *GlobalModifier
@@ -183,7 +182,7 @@ type ActionModifierAuth struct {
 type ActionModifierAuthFallback struct {
 	Type ActionModifierAuthFallbackType `json:"type" yaml:"type"`
 
-	JumpTo    int    `json:"jumpTo,omitempty" optional:"true" yaml:"jumpTo,omitempty"`
+	JumpTo    int    `json:"jumpTo,omitempty"    optional:"true" yaml:"jumpTo,omitempty"`
 	JumpLabel string `json:"jumpLabel,omitempty" optional:"true" yaml:"jumpLabel,omitempty"`
 }
 
