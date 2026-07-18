@@ -143,6 +143,7 @@ func (r *String) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
+//nolint:nilnil // MarshalYAML returns nil for a nil receiver, which is the canonical YAML representation of null.
 func (r *String) MarshalYAML() (any, error) {
 	if r == nil {
 		return nil, nil
@@ -215,6 +216,7 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 	case StringTypeString:
 		r.value = content
 	case StringTypePath:
+		//nolint:gosec // This is an intended feature: reading file contents via user configuration.
 		b, err := os.ReadFile(content)
 		if err != nil {
 			return fail(err)
