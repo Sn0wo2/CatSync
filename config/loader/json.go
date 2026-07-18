@@ -1,5 +1,3 @@
-//go:build catsync_all || feature_config_json
-
 package loader
 
 import (
@@ -21,7 +19,7 @@ func (j *JSONLoader) GetTag() string {
 }
 
 func (j *JSONLoader) Load(cfg *config.Config, fileName string) error {
-	file, err := os.ReadFile(fileName) //nolint:gosec
+	file, err := os.ReadFile(fileName)
 	if err != nil {
 		return err
 	}

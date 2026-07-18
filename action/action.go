@@ -11,11 +11,99 @@ import (
 
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/config/reader"
+	"github.com/Sn0wo2/CatSync/internal/appctx"
 	"github.com/Sn0wo2/CatSync/internal/filecache"
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
+
+type ProcessData struct {
+	Ctx      *appctx.Ctx
+	C        fiber.Ctx
+	Action   *config.Action
+	Payload  config.ActionData
+	Reloader Reloader
+}
+
+type Reloader interface {
+	Reload() error
+}
+
+type Handler interface {
+	ProcessAction(data *ProcessData) ExecutionResult
+}
+
+type ExecutionStatus uint8
+
+const (
+	ExecutionCompleted    ExecutionStatus = 0
+	ExecutionFallbackNext ExecutionStatus = 2
+	ExecutionFallbackJump ExecutionStatus = 3
+)
+
+type ExecutionResult struct {
+	Status ExecutionStatus
+	Err    error
+	JumpTo int
+}
+
+type Registry map[config.ActionType]Handler
+
+func NewRegistry() Registry {
+	return Registry{
+		config.ActionString: NewString(),
+		config.ActionFile:   NewFile(),
+		config.ActionServer: NewServer(),
+		config.ActionReload: NewReload(),
+	}
+}
+
+type Modifier interface {
+	Before(data *ProcessData) (*ProcessData, ExecutionResult)
+	After(data *ProcessData) (*ProcessData, ExecutionResult)
+}
+
+type ModifiableHandler struct {
+	Handler
+	modifiers []Modifier
+}
+
+func WrapHandler(h Handler) *ModifiableHandler {
+	return &ModifiableHandler{Handler: h}
+}
+
+func (h *ModifiableHandler) WithModifier(m Modifier) *ModifiableHandler {
+	h.modifiers = append(h.modifiers, m)
+
+	return h
+}
+
+func (h *ModifiableHandler) ProcessAction(data *ProcessData) ExecutionResult {
+	for i := len(h.modifiers) - 1; i >= 0; i-- {
+		var result ExecutionResult
+
+		data, result = h.modifiers[i].Before(data)
+		if result.Err != nil || result.Status != ExecutionCompleted {
+			return result
+		}
+	}
+
+	if result := h.Handler.ProcessAction(data); result.Err != nil || result.Status != ExecutionCompleted {
+		return result
+	}
+
+	for _, modifier := range h.modifiers {
+		var result ExecutionResult
+
+		data, result = modifier.After(data)
+		if result.Err != nil || result.Status != ExecutionCompleted {
+			return result
+		}
+	}
+
+	return ExecutionResult{}
+}
 
 type StringHandler struct{}
 

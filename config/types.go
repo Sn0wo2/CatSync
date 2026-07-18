@@ -188,3 +188,11 @@ const (
 type ActionModifierVersion struct {
 	Placeholder *reader.String `json:"placeholder" yaml:"placeholder"`
 }
+
+
+type Loader interface {
+	GetTag() string
+	Load(cfg *Config, fileName string) error
+	Save(cfg *Config, fileName string) error
+	GetAllowFileExtensions() []string
+}
