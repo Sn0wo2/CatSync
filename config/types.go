@@ -73,7 +73,7 @@ type Action struct {
 
 	SkipGlobalModifiers bool `json:"skipGlobalModifiers,omitempty" optional:"true" yaml:"skipGlobalModifiers,omitempty"`
 
-	Type ActionType `json:"type" yaml:"type"`
+	Type *reader.String `json:"type" yaml:"type"`
 
 	GlobalModifier `yaml:",inline"`
 
@@ -84,7 +84,7 @@ type Action struct {
 }
 
 func (a *Action) GetPayload() ActionData {
-	switch a.Type {
+	switch a.TypeName() {
 	case ActionFile:
 		if a.ActionFile != nil {
 			return a.ActionFile
@@ -106,6 +106,14 @@ func (a *Action) GetPayload() ActionData {
 	return nil
 }
 
+func (a *Action) TypeName() ActionType {
+	if a.Type == nil {
+		return ""
+	}
+
+	return ActionType(a.Type.Must())
+}
+
 type ActionType string
 
 const (
@@ -114,6 +122,7 @@ const (
 	ActionServer ActionType = "server"
 	ActionReload ActionType = "reload"
 )
+
 
 type ActionData interface {
 	action()
@@ -188,7 +197,6 @@ const (
 type ActionModifierVersion struct {
 	Placeholder *reader.String `json:"placeholder" yaml:"placeholder"`
 }
-
 
 type Loader interface {
 	GetTag() string

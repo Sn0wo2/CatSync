@@ -65,7 +65,7 @@ func (c *Config) Validate() error {
 	}
 
 	for i := range c.Actions {
-		if c.Actions[i].Type == "" {
+		if c.Actions[i].TypeName() == "" {
 			addErr(fmt.Errorf("actions[%d].type is required", i))
 		}
 	}
@@ -109,12 +109,12 @@ func (c *Config) checkActions(add func(error)) {
 
 		payload := act.GetPayload()
 		if payload == nil {
-			add(fmt.Errorf("actions[%d] type=%s but payload is nil", i, act.Type))
+			add(fmt.Errorf("actions[%d] type=%s but payload is nil", i, act.TypeName()))
 
 			continue
 		}
 
-		switch act.Type {
+		switch act.TypeName() {
 		case ActionFile:
 			add(validateRequiredString(fmt.Sprintf("actions[%d].file.path", i), act.ActionFile.Path))
 		case ActionString:
@@ -128,7 +128,7 @@ func (c *Config) checkActions(add func(error)) {
 		case ActionReload:
 		}
 
-		c.validateModifier(fmt.Sprintf("actions[%d].%s", i, act.Type), payload.GetGlobalModifier(), actionCount, labelIndex, add)
+		c.validateModifier(fmt.Sprintf("actions[%d].%s", i, act.TypeName()), payload.GetGlobalModifier(), actionCount, labelIndex, add)
 	}
 }
 
@@ -298,7 +298,7 @@ func (c *Config) LogWarnings(logger *zap.Logger) {
 		if route == "" {
 			logger.Info("Config >> action route is empty; action is jump-only",
 				zap.Int("index", i),
-				zap.String("type", string(action.Type)),
+				zap.String("type", string(action.TypeName())),
 			)
 		}
 	}
@@ -307,13 +307,13 @@ func (c *Config) LogWarnings(logger *zap.Logger) {
 	last := c.Actions[lastIndex]
 	logger.Info("Config >> notfound handler is the last action",
 		zap.Int("index", lastIndex),
-		zap.String("type", string(last.Type)),
+			zap.String("type", string(last.TypeName())),
 	)
 
-	if last.Type == ActionFile {
+	if last.TypeName() == ActionFile {
 		logger.Warn("Config >> notfound handler is file action; may leak file contents",
 			zap.Int("index", lastIndex),
-			zap.String("type", string(last.Type)),
+			zap.String("type", string(last.TypeName())),
 		)
 	}
 }

@@ -122,14 +122,16 @@ func (e *Executor) Build() (*Executor, error) {
 			entry.route.re = re
 		}
 
-		baseHandler, ok := e.registry[act.Type]
+		baseHandler, ok := e.registry[act.TypeName()]
 		if !ok || baseHandler == nil {
+			return nil, fmt.Errorf("unknown action handler at actions[%d]: %s", i, act.TypeName())
+			return nil, fmt.Errorf("unknown action handler at actions[%d]: %s", i, act.TypeName())
 			return nil, fmt.Errorf("unknown action handler at actions[%d]: %s", i, act.Type)
 		}
 
 		payload := act.GetPayload()
 		if payload == nil {
-			return nil, fmt.Errorf("actions[%d] type=%s but payload is nil", i, act.Type)
+			return nil, fmt.Errorf("actions[%d] type=%s but payload is nil", i, act.TypeName())
 		}
 
 		entry.payload = payload

@@ -58,7 +58,7 @@ func GetDefaultConfig() *Config {
 		Actions: []Action{
 			{
 				Route: reader.Str("^/$"),
-				Type:  ActionServer,
+				Type:  reader.Str("server"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
 						Header: map[string][]string{contentTypeHeader: {htmlContentType}},
@@ -70,7 +70,7 @@ func GetDefaultConfig() *Config {
 			},
 			{
 				Route: reader.Str("^/string$"),
-				Type:  ActionString,
+				Type:  reader.Str("string"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
 						Header: map[string][]string{contentTypeHeader: {plainTextContentType}},
@@ -80,7 +80,7 @@ func GetDefaultConfig() *Config {
 			},
 			{
 				Route: reader.Str("^/file$"),
-				Type:  ActionFile,
+				Type:  reader.Str("file"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
 						Header: map[string][]string{"Cache-Control": {"public, max-age=60"}},
@@ -90,7 +90,7 @@ func GetDefaultConfig() *Config {
 			},
 			{
 				Route: reader.Str("^/status/200$"),
-				Type:  ActionString,
+				Type:  reader.Str("string"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 200},
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
@@ -101,7 +101,7 @@ func GetDefaultConfig() *Config {
 			},
 			{
 				Route: reader.Str("^/status/201$"),
-				Type:  ActionString,
+				Type:  reader.Str("string"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 201},
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
@@ -112,7 +112,7 @@ func GetDefaultConfig() *Config {
 			},
 			{
 				Route: reader.Str("^/status/204$"),
-				Type:  ActionString,
+				Type:  reader.Str("string"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 204},
 				},
@@ -120,7 +120,7 @@ func GetDefaultConfig() *Config {
 			},
 			{
 				Route: reader.Str("^/headers$"),
-				Type:  ActionString,
+				Type:  reader.Str("string"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
 						Header: map[string][]string{
@@ -140,7 +140,7 @@ func GetDefaultConfig() *Config {
 			},
 			{
 				Route: reader.Str("^/auth$"),
-				Type:  ActionString,
+				Type:  reader.Str("string"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierAuth: &ActionModifierAuth{
 						Header: map[string][]*reader.String{
@@ -156,7 +156,7 @@ func GetDefaultConfig() *Config {
 			},
 			{
 				Route: reader.Str("^/auth/jump$"),
-				Type:  ActionString,
+				Type:  reader.Str("string"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierAuth: &ActionModifierAuth{
 						Header: map[string][]*reader.String{
@@ -172,7 +172,7 @@ func GetDefaultConfig() *Config {
 			},
 			{
 				Route: reader.Str("^/auth/fallback$"),
-				Type:  ActionString,
+				Type:  reader.Str("string"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 401},
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
@@ -183,7 +183,7 @@ func GetDefaultConfig() *Config {
 			},
 			{
 				Route: reader.Str("^/reload$"),
-				Type:  ActionReload,
+				Type:  reader.Str("reload"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
 						Header: map[string][]string{contentTypeHeader: {plainTextContentType}},
@@ -193,7 +193,7 @@ func GetDefaultConfig() *Config {
 			},
 			{
 				Route: reader.Str(""),
-				Type:  ActionServer,
+				Type:  reader.Str("server"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 404},
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
