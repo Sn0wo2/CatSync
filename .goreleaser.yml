@@ -27,11 +27,11 @@ builds:
       - -tags=catsync_all
     ldflags:
       - -s -w
-      - -X github.com/Sn0wo2/{{ .ProjectName }}/version.version={{.Version}}
-      - -X github.com/Sn0wo2/{{ .ProjectName }}/version.commit={{.Commit}}
-      - -X github.com/Sn0wo2/{{ .ProjectName }}/version.date={{.Date}}
-      - -X github.com/Sn0wo2/{{ .ProjectName }}/version.os={{.Os}}
-      - -X github.com/Sn0wo2/{{ .ProjectName }}/version.arch={{.Arch}}{{.Amd64}}{{.Arm}}
+      - -X github.com/Sn0wo2/{{ .ProjectName }}/cli.version={{.Version}}
+      - -X github.com/Sn0wo2/{{ .ProjectName }}/cli.commit={{.Commit}}
+      - -X github.com/Sn0wo2/{{ .ProjectName }}/cli.date={{.Date}}
+      - -X github.com/Sn0wo2/{{ .ProjectName }}/cli.osName={{.Os}}
+      - -X github.com/Sn0wo2/{{ .ProjectName }}/cli.arch={{.Arch}}{{.Amd64}}{{.Arm}}
 
 dockers:
   - image_templates:

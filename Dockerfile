@@ -1,4 +1,8 @@
-FROM alpine:latest
+FROM alpine:latest AS certs
+RUN apk add --no-cache ca-certificates
+
+FROM scratch
+COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 LABEL org.opencontainers.image.title=CatSync
 LABEL org.opencontainers.image.description="Sync the「cat」config."
@@ -10,12 +14,6 @@ LABEL org.opencontainers.image.licenses=MIT
 LABEL org.opencontainers.image.license.name="MIT License"
 LABEL org.opencontainers.image.license.spdx=MIT
 
-RUN mkdir -p /app
-
-COPY CatSync /app/CatSync
-
+COPY CatSync /CatSync
 WORKDIR /app
-
-RUN chmod +x /app/CatSync
-
-ENTRYPOINT ["/app/CatSync"]
+ENTRYPOINT ["/CatSync"]
