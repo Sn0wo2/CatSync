@@ -1,13 +1,10 @@
 package config
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/Sn0wo2/CatSync/config/reader"
 )
-
-var ErrConfigNotFound = errors.New("no config file found in default search paths")
 
 type LoadResult struct {
 	Config *Config
@@ -41,32 +38,27 @@ type GlobalModifier struct {
 	*ActionModifierVersion        `json:"actionVersionModifier,omitempty"        optional:"true" yaml:"actionVersionModifier,omitempty"`
 }
 
-type GlobalModifierVisitor struct {
-	Status         func(*ActionModifierStatus)
-	Auth           func(*ActionModifierAuth)
-	ResponseHeader func(*ActionModifierResponseHeader)
-	Version        func(*ActionModifierVersion)
-}
-
-func (gm *GlobalModifier) Visit(visitor GlobalModifierVisitor) {
+// EachModifier calls fn for each non-nil modifier on this GlobalModifier.
+// fn receives the concrete modifier type.
+func (gm *GlobalModifier) EachModifier(fn func(any)) {
 	if gm == nil {
 		return
 	}
 
-	if gm.ActionModifierStatus != nil && visitor.Status != nil {
-		visitor.Status(gm.ActionModifierStatus)
+	if gm.ActionModifierStatus != nil {
+		fn(gm.ActionModifierStatus)
 	}
 
-	if gm.ActionModifierAuth != nil && visitor.Auth != nil {
-		visitor.Auth(gm.ActionModifierAuth)
+	if gm.ActionModifierAuth != nil {
+		fn(gm.ActionModifierAuth)
 	}
 
-	if gm.ActionModifierResponseHeader != nil && visitor.ResponseHeader != nil {
-		visitor.ResponseHeader(gm.ActionModifierResponseHeader)
+	if gm.ActionModifierResponseHeader != nil {
+		fn(gm.ActionModifierResponseHeader)
 	}
 
-	if gm.ActionModifierVersion != nil && visitor.Version != nil {
-		visitor.Version(gm.ActionModifierVersion)
+	if gm.ActionModifierVersion != nil {
+		fn(gm.ActionModifierVersion)
 	}
 }
 
@@ -99,6 +91,7 @@ type ServerACME struct {
 	DNS01  *ServerACMEDNS01  `json:"dns01,omitempty"  optional:"true" yaml:"dns01,omitempty"`
 }
 
+// ServerACMEHTTP01 configures HTTP-01 challenge.
 type ServerACMEHTTP01 struct {
 	HTTPAddress *reader.String `json:"httpAddress,omitempty" optional:"true" yaml:"httpAddress,omitempty"`
 }
@@ -107,8 +100,8 @@ type ServerACMEHTTP01 struct {
 //
 // This project uses lego under the hood for DNS-01.
 // Provider options:
-// - exec: run external commands to create/remove TXT records.
-// - cloudflare/dnspod/alidns/route53: use lego built-in providers (may require build tags).
+//   - exec: run external commands to create/remove TXT records.
+//   - cloudflare/dnspod/alidns/route53: use lego built-in providers (may require build tags).
 type ServerACMEDNS01 struct {
 	Provider *reader.String `json:"provider,omitempty" optional:"true" yaml:"provider,omitempty"`
 
@@ -122,6 +115,10 @@ type ServerACMEDNS01 struct {
 }
 
 type Action struct {
+	// Label is an optional unique name for this action.
+	// Used for label-based auth fallback jumps (jumpTo: "label").
+	Label string `json:"label,omitempty" optional:"true" yaml:"label,omitempty"`
+
 	Route *reader.String `json:"route" optional:"true" yaml:"route"`
 
 	// SkipGlobalModifiers disables config-level modifiers for this action.
@@ -229,8 +226,13 @@ type ActionModifierAuth struct {
 }
 
 type ActionModifierAuthFallback struct {
-	Type   ActionModifierAuthFallbackType `json:"type"             yaml:"type"`
-	JumpTo int                            `json:"jumpTo,omitempty" optional:"true" yaml:"jumpTo,omitempty"`
+	Type ActionModifierAuthFallbackType `json:"type" yaml:"type"`
+
+	// JumpTo is the action index to jump to (deprecated, use JumpLabel).
+	JumpTo int `json:"jumpTo,omitempty" optional:"true" yaml:"jumpTo,omitempty"`
+
+	// JumpLabel is the label of the target action (takes priority over JumpTo).
+	JumpLabel string `json:"jumpLabel,omitempty" optional:"true" yaml:"jumpLabel,omitempty"`
 }
 
 type ActionModifierAuthFallbackType string

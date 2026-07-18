@@ -79,7 +79,7 @@ func (c *Config) checkStatus(where string, modifier *ActionModifierStatus) error
 	return nil
 }
 
-func (c *Config) checkAuth(where string, auth *ActionModifierAuth, actionCount int) error {
+func (c *Config) checkAuth(where string, auth *ActionModifierAuth, actionCount int, labels map[string]int) error {
 	if auth == nil {
 		return nil
 	}
@@ -107,7 +107,11 @@ func (c *Config) checkAuth(where string, auth *ActionModifierAuth, actionCount i
 			return errors.Join(authErrs...)
 		}
 
-		if auth.Fallback.JumpTo < 0 || auth.Fallback.JumpTo >= actionCount {
+		if auth.Fallback.JumpLabel != "" {
+			if _, exists := labels[auth.Fallback.JumpLabel]; !exists {
+				addAuthErr(fmt.Errorf("auth fallback jumpLabel %q not found at %s", auth.Fallback.JumpLabel, where))
+			}
+		} else if auth.Fallback.JumpTo < 0 || auth.Fallback.JumpTo >= actionCount {
 			addAuthErr(fmt.Errorf("auth fallback jumpTo out of range at %s: %d", where, auth.Fallback.JumpTo))
 		}
 	default:
@@ -174,26 +178,33 @@ func (c *Config) checkAuth(where string, auth *ActionModifierAuth, actionCount i
 	return errors.Join(authErrs...)
 }
 
-func (c *Config) validateModifier(prefix string, modifier *GlobalModifier, actionCount int, add func(error)) {
-	modifier.Visit(GlobalModifierVisitor{
-		Status: func(status *ActionModifierStatus) {
-			add(c.checkStatus(prefix+".actionModifierStatus", status))
-		},
-		Auth: func(auth *ActionModifierAuth) {
-			add(c.checkAuth(prefix+".actionModifierAuth", auth, actionCount))
-		},
-		ResponseHeader: func(header *ActionModifierResponseHeader) {
-			add(validateOptionalString(prefix+".actionModifierResponseHeader.upstream", header.Upstream))
-		},
-		Version: func(version *ActionModifierVersion) {
-			add(validateRequiredString(prefix+".actionVersionModifier.placeholder", version.Placeholder))
-		},
+func (c *Config) validateModifier(prefix string, modifier *GlobalModifier, actionCount int, labels map[string]int, add func(error)) {
+	modifier.EachModifier(func(m any) {
+		switch mod := m.(type) {
+		case *ActionModifierStatus:
+			add(c.checkStatus(prefix+".actionModifierStatus", mod))
+		case *ActionModifierAuth:
+			add(c.checkAuth(prefix+".actionModifierAuth", mod, actionCount, labels))
+		case *ActionModifierResponseHeader:
+			add(validateOptionalString(prefix+".actionModifierResponseHeader.upstream", mod.Upstream))
+		case *ActionModifierVersion:
+			add(validateRequiredString(prefix+".actionVersionModifier.placeholder", mod.Placeholder))
+		}
 	})
 }
 
 func (c *Config) checkGlobalModifiers(add func(error)) {
 	actionCount := len(c.Actions)
+
+	labelIndex := make(map[string]int, actionCount)
+
+	for i, act := range c.Actions {
+		if act.Label != "" {
+			labelIndex[act.Label] = i
+		}
+	}
+
 	for i, gm := range c.Modifiers {
-		c.validateModifier(fmt.Sprintf("modifiers[%d]", i), &gm, actionCount, add)
+		c.validateModifier(fmt.Sprintf("modifiers[%d]", i), &gm, actionCount, labelIndex, add)
 	}
 }

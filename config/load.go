@@ -7,9 +7,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Sn0wo2/CatSync/debug"
 	"github.com/Sn0wo2/CatSync/log"
 )
+
+var cliConfigPath string
+
+// SetConfigPath sets a config file path from the CLI --config flag.
+// This overrides the default search paths.
+func SetConfigPath(path string) {
+	cliConfigPath = path
+}
 
 func Load(loaders ...Loader) (*LoadResult, error) {
 	loaderByExt, err := buildLoaderIndex(loaders)
@@ -21,7 +28,7 @@ func Load(loaders ...Loader) (*LoadResult, error) {
 
 	result, err := loadConfig(location.Path, loaders, loaderByExt)
 	if !location.Found && errors.Is(err, os.ErrNotExist) {
-		return result, ErrConfigNotFound
+		return result, err
 	}
 
 	return result, err
@@ -46,35 +53,31 @@ func loadConfig(configPath string, loaders []Loader, loaderByExt map[string]Load
 			return &LoadResult{Path: configPath}, fmt.Errorf("failed to load config file %s: %w", configPath, err)
 		}
 	} else {
-		var loadErr error
+		var loadErrs []error
 
 		loaded := false
 
-		for i, l := range loaders {
-			if i > 0 {
-				_, _ = fmt.Fprintf(os.Stderr, "retrying with next loader: %s %d/%d\n", l.GetTag(), i+1, len(loaders))
-			}
-
+		for _, l := range loaders {
 			if err := l.Load(fileCfg, configPath); err == nil {
 				loaded = true
 
 				break
 			} else {
-				loadErr = err
-				_, _ = fmt.Fprintf(os.Stderr, "loader %s failed to load config file %s: %v\n", l.GetTag(), configPath, err)
+				loadErrs = append(loadErrs, fmt.Errorf("loader %s: %w", l.GetTag(), err))
+				_, _ = fmt.Fprintf(os.Stderr, "loader %s failed for config file %s: %v\n", l.GetTag(), configPath, err)
 			}
 		}
 
 		if !loaded {
-			if loadErr == nil {
+			if len(loadErrs) == 0 {
 				return &LoadResult{Path: configPath}, fmt.Errorf("no loader found for config file %s", configPath)
 			}
 
-			return &LoadResult{Path: configPath}, fmt.Errorf("all loaders failed for config file %s, last error: %w", configPath, loadErr)
+			return &LoadResult{Path: configPath}, fmt.Errorf("all loaders failed for config file %s: %w", configPath, errors.Join(loadErrs...))
 		}
 	}
 
-	fileCfg.ApplyDefaults(GetDefaultConfig())
+	fileCfg = ApplyDefaults(fileCfg, GetDefaultConfig())
 
 	if err := fileCfg.Validate(); err != nil {
 		return &LoadResult{Path: configPath}, fmt.Errorf("validation failed for config file %s: %w", configPath, err)
@@ -107,33 +110,24 @@ func buildLoaderIndex(loaders []Loader) (map[string]Loader, error) {
 }
 
 func findConfigPath(loaderByExt map[string]Loader) configLocation {
-	configPath := os.Getenv("CONFIG_PATH")
-	if debug.IsDebugging() {
-		if p := os.Getenv("DEBUG_CONFIG_PATH"); p != "" {
-			configPath = p
-		}
-	}
-
-	if configPath != "" {
-		//nolint:gosec // CONFIG_PATH is an operator-controlled configuration path.
-		if _, err := os.Stat(configPath); err == nil {
-			return configLocation{Path: configPath, Found: true}
+	if cliConfigPath != "" {
+		if _, err := os.Stat(cliConfigPath); err == nil {
+			return configLocation{Path: cliConfigPath, Found: true}
 		}
 
-		base := strings.TrimSuffix(configPath, filepath.Ext(configPath))
+		base := strings.TrimSuffix(cliConfigPath, filepath.Ext(cliConfigPath))
 		for ext := range loaderByExt {
 			tryPath := base + ext
-			//nolint:gosec // The fallback keeps the operator-selected configuration path.
 			if _, err := os.Stat(tryPath); err == nil {
 				return configLocation{Path: tryPath, Found: true}
 			}
 		}
 
-		return configLocation{Path: configPath, Found: true}
+		return configLocation{Path: cliConfigPath, Found: true}
 	}
 
 	for ext := range loaderByExt {
-		configPath = filepath.Join("./data/", "config"+ext)
+		configPath := filepath.Join("./data/", "config"+ext)
 		if _, err := os.Stat(configPath); err == nil {
 			return configLocation{Path: configPath, Found: true}
 		}

@@ -19,7 +19,7 @@ func TestApplyDefaultsFillsEmptyFieldsAndPreservesConfiguredFields(t *testing.T)
 	configuredActions := []Action{}
 	config := &Config{Log: configuredLog, Server: configuredServer, Actions: configuredActions}
 
-	config.ApplyDefaults(defaults)
+	config = ApplyDefaults(config, defaults)
 
 	if config.Log != configuredLog {
 		t.Error("ApplyDefaults replaced a configured log")
@@ -33,8 +33,7 @@ func TestApplyDefaultsFillsEmptyFieldsAndPreservesConfiguredFields(t *testing.T)
 		t.Error("ApplyDefaults replaced a configured empty actions slice")
 	}
 
-	config = &Config{}
-	config.ApplyDefaults(defaults)
+	config = ApplyDefaults(&Config{}, defaults)
 
 	if config.Log != defaults.Log || config.Server != defaults.Server || len(config.Actions) != len(defaults.Actions) {
 		t.Error("ApplyDefaults did not fill empty config fields")
@@ -128,17 +127,17 @@ func TestActionPayloadAndModifierVisitorRespectTypeAndCallbacks(t *testing.T) {
 		ActionModifierStatus:         &ActionModifierStatus{Status: 204},
 		ActionModifierResponseHeader: &ActionModifierResponseHeader{},
 	}
-	modifier.Visit(GlobalModifierVisitor{
-		Status: func(status *ActionModifierStatus) {
-			statusCalled = status.Status == 204
-		},
-		ResponseHeader: func(*ActionModifierResponseHeader) {
+	modifier.EachModifier(func(m any) {
+		switch mod := m.(type) {
+		case *ActionModifierStatus:
+			statusCalled = mod.Status == 204
+		case *ActionModifierResponseHeader:
 			headerCalled = true
-		},
+		}
 	})
 
 	if !statusCalled || !headerCalled {
-		t.Errorf("Visit() callbacks called: status=%t header=%t, want both true", statusCalled, headerCalled)
+		t.Errorf("EachModifier callbacks called: status=%t header=%t, want both true", statusCalled, headerCalled)
 	}
 }
 
@@ -163,7 +162,8 @@ func TestLoaderIndexAndConfiguredPathFallback(t *testing.T) {
 		t.Fatalf("write fallback config: %v", err)
 	}
 
-	t.Setenv("CONFIG_PATH", filepath.Join(directory, "config.json"))
+	SetConfigPath(filepath.Join(directory, "config.json"))
+	t.Cleanup(func() { SetConfigPath("") })
 
 	location := findConfigPath(index)
 	if !location.Found || location.Path != path {

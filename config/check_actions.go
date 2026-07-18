@@ -8,6 +8,19 @@ import (
 
 func (c *Config) checkActions(add func(error)) {
 	actionCount := len(c.Actions)
+
+	labelIndex := make(map[string]int, actionCount)
+
+	for i, act := range c.Actions {
+		if act.Label != "" {
+			if _, dup := labelIndex[act.Label]; dup {
+				add(fmt.Errorf("duplicate action label at actions[%d]: %q", i, act.Label))
+			} else {
+				labelIndex[act.Label] = i
+			}
+		}
+	}
+
 	for i, act := range c.Actions {
 		route, ok := act.Route.LiteralTrim()
 		if !ok {
@@ -22,7 +35,7 @@ func (c *Config) checkActions(add func(error)) {
 			}
 		}
 
-		c.validateModifier(fmt.Sprintf("actions[%d]", i), &act.GlobalModifier, actionCount, add)
+		c.validateModifier(fmt.Sprintf("actions[%d]", i), &act.GlobalModifier, actionCount, labelIndex, add)
 
 		payload := act.GetPayload()
 		if payload == nil {
@@ -45,6 +58,6 @@ func (c *Config) checkActions(add func(error)) {
 		case ActionReload:
 		}
 
-		c.validateModifier(fmt.Sprintf("actions[%d].%s", i, act.Type), payload.GetGlobalModifier(), actionCount, add)
+		c.validateModifier(fmt.Sprintf("actions[%d].%s", i, act.Type), payload.GetGlobalModifier(), actionCount, labelIndex, add)
 	}
 }
