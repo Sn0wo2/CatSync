@@ -22,7 +22,7 @@
 - [X] `Fallback action`支持自定义`action`而不是`404 not found`(最后一个 action 作为 notfound handler)
 - [ ] 添加 `Action Type`: page
 - [ ] 添加 `Action Type` proxy: 反向代理Action(Rewrite: header、body, 健康检查)
-- [ ] 可选的`CORS`配置
+- [X] 可选的`CORS`配置
 
 ---
 
