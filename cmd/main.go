@@ -59,10 +59,10 @@ func main() {
 		key := cfg.Server.TLS.Key.Must()
 
 		protocol := "http"
-		if (cert != "" && key != "") || (cfg.Server.ACME != nil && cfg.Server.ACME.Enable) {
+		if cert != "" && key != "" {
 			protocol = "https"
 		} else {
-			logger.Warn("TLS is not enabled (no cert/key and acme disabled)")
+			logger.Warn("TLS is not enabled (no cert/key)")
 		}
 
 		host, port, err := net.SplitHostPort(addr)

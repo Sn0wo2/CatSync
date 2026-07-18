@@ -1,8 +1,6 @@
 package framework
 
 import (
-	"crypto/tls"
-	"net"
 	"time"
 
 	"github.com/Sn0wo2/CatSync/config"
@@ -42,37 +40,6 @@ func (ctx *Framework) StartFiber() error {
 	logger := ctx.GetLogger()
 	addr := cfg.Server.Address.Must()
 
-	if cfg.Server.ACME != nil && cfg.Server.ACME.Enable {
-		ln, err := net.Listen("tcp", addr)
-		if err != nil {
-			return err
-		}
-
-		tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12}
-		httpServer := &httpServerToStd{TLSConfig: tlsCfg}
-
-		acmeCfg := cfg.Server.ACME
-
-		var acmeErr error
-		if acmeCfg.DNS01 != nil {
-			acmeErr = startACMEDNS01(httpServer, acmeCfg, logger)
-		} else {
-			acmeErr = startACMEHTTP01(httpServer, cfg, acmeCfg, logger)
-		}
-
-		if acmeErr == nil {
-			tlsLn := tls.NewListener(ln, tlsCfg)
-
-			logger.Info("TLS listening (ACME)", zap.String("addr", addr))
-
-			return ctx.Listener(tlsLn, fiber.ListenConfig{EnablePrefork: !debug.IsDebugging()})
-		}
-
-		logger.Warn("ACME setup failed, falling back to HTTP", zap.Error(acmeErr))
-		ln.Close()
-		// Falls through to TLS cert / plain HTTP below
-	}
-
 	cert := cfg.Server.TLS.Cert.Must()
 	key := cfg.Server.TLS.Key.Must()
 
@@ -94,12 +61,4 @@ func (ctx *Framework) StartFiber() error {
 	logger.Info("HTTP listening", zap.String("addr", addr))
 
 	return ctx.Listen(addr, fl)
-}
-
-type httpServerToStd struct {
-	TLSConfig *tls.Config
-}
-
-func (s *httpServerToStd) SetTLSConfig(cfg *tls.Config) {
-	s.TLSConfig = cfg
 }

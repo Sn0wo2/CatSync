@@ -28,7 +28,6 @@ type Server struct {
 	Address *reader.String `json:"address"           yaml:"address"`
 	Prefork bool           `json:"prefork,omitempty" optional:"true" yaml:"prefork,omitempty"`
 	TLS     ServerTLS      `json:"tls"               optional:"true" yaml:"tls"`
-	ACME    *ServerACME    `json:"acme,omitempty"    optional:"true" yaml:"acme,omitempty"`
 }
 
 type GlobalModifier struct {
@@ -38,8 +37,6 @@ type GlobalModifier struct {
 	*ActionModifierVersion        `json:"actionVersionModifier,omitempty"        optional:"true" yaml:"actionVersionModifier,omitempty"`
 }
 
-// EachModifier calls fn for each non-nil modifier on this GlobalModifier.
-// fn receives the concrete modifier type.
 func (gm *GlobalModifier) EachModifier(fn func(any)) {
 	if gm == nil {
 		return
@@ -67,64 +64,13 @@ func (gm *GlobalModifier) GetGlobalModifier() *GlobalModifier { return gm }
 type ServerTLS struct {
 	Cert *reader.String `json:"cert" yaml:"cert"`
 	Key  *reader.String `json:"key"  yaml:"key"`
-
-	// RedirectHTTP controls whether non-challenge HTTP requests are redirected to https.
-	// When omitted, the default is true (only meaningful for ACME http-01).
-	RedirectHTTP *bool `json:"redirectHttp,omitempty" optional:"true" yaml:"redirectHttp,omitempty"`
-}
-
-// ServerACME enables automatic TLS certificates via ACME (e.g. Let's Encrypt).
-//
-// Note: HTTP-01 challenge usually requires binding an HTTP address (default :80).
-// If you run behind a reverse proxy, you can disable httpAddress and terminate
-// the challenge upstream.
-type ServerACME struct {
-	Enable       bool           `json:"enable,omitempty"       optional:"true" yaml:"enable,omitempty"`
-	Email        *reader.String `json:"email,omitempty"        optional:"true" yaml:"email,omitempty"`
-	CacheDir     *reader.String `json:"cacheDir,omitempty"     optional:"true" yaml:"cacheDir,omitempty"`
-	Hosts        []string       `json:"hosts,omitempty"        optional:"true" yaml:"hosts,omitempty"`
-	DirectoryURL *reader.String `json:"directoryURL,omitempty" optional:"true" yaml:"directoryURL,omitempty"`
-
-	// HTTP01 and DNS01 are mutually exclusive.
-	// If both are nil, HTTP-01 is used with defaults.
-	HTTP01 *ServerACMEHTTP01 `json:"http01,omitempty" optional:"true" yaml:"http01,omitempty"`
-	DNS01  *ServerACMEDNS01  `json:"dns01,omitempty"  optional:"true" yaml:"dns01,omitempty"`
-}
-
-// ServerACMEHTTP01 configures HTTP-01 challenge.
-type ServerACMEHTTP01 struct {
-	HTTPAddress *reader.String `json:"httpAddress,omitempty" optional:"true" yaml:"httpAddress,omitempty"`
-}
-
-// ServerACMEDNS01 configures DNS-01 challenge.
-//
-// This project uses lego under the hood for DNS-01.
-// Provider options:
-//   - exec: run external commands to create/remove TXT records.
-//   - cloudflare/dnspod/alidns/route53: use lego built-in providers (may require build tags).
-type ServerACMEDNS01 struct {
-	Provider *reader.String `json:"provider,omitempty" optional:"true" yaml:"provider,omitempty"`
-
-	// exec provider: command array (argv style). Supported placeholders:
-	// {DOMAIN} {FQDN} {VALUE} {TOKEN} {KEYAUTH}
-	PresentCmd []string `json:"presentCmd,omitempty" optional:"true" yaml:"presentCmd,omitempty"`
-	CleanUpCmd []string `json:"cleanupCmd,omitempty" optional:"true" yaml:"cleanupCmd,omitempty"`
-
-	PropagationTimeoutSeconds int `json:"propagationTimeoutSeconds,omitempty" optional:"true" yaml:"propagationTimeoutSeconds,omitempty"`
-	PollingIntervalSeconds    int `json:"pollingIntervalSeconds,omitempty"    optional:"true" yaml:"pollingIntervalSeconds,omitempty"`
 }
 
 type Action struct {
-	// Label is an optional unique name for this action.
-	// Used for label-based auth fallback jumps (jumpTo: "label").
 	Label string `json:"label,omitempty" optional:"true" yaml:"label,omitempty"`
 
 	Route *reader.String `json:"route" optional:"true" yaml:"route"`
 
-	// SkipGlobalModifiers disables config-level modifiers for this action.
-	//
-	// Some endpoints need to be isolated from defaults like global auth/headers,
-	// while still benefiting from the per-action modifier pipeline.
 	SkipGlobalModifiers bool `json:"skipGlobalModifiers,omitempty" optional:"true" yaml:"skipGlobalModifiers,omitempty"`
 
 	Type ActionType `json:"type" yaml:"type"`
@@ -228,10 +174,7 @@ type ActionModifierAuth struct {
 type ActionModifierAuthFallback struct {
 	Type ActionModifierAuthFallbackType `json:"type" yaml:"type"`
 
-	// JumpTo is the action index to jump to (deprecated, use JumpLabel).
-	JumpTo int `json:"jumpTo,omitempty" optional:"true" yaml:"jumpTo,omitempty"`
-
-	// JumpLabel is the label of the target action (takes priority over JumpTo).
+	JumpTo    int    `json:"jumpTo,omitempty" optional:"true" yaml:"jumpTo,omitempty"`
 	JumpLabel string `json:"jumpLabel,omitempty" optional:"true" yaml:"jumpLabel,omitempty"`
 }
 

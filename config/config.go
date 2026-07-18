@@ -9,8 +9,7 @@ func (l Log) IsZero() bool {
 func (s Server) IsZero() bool {
 	return s.Address == nil &&
 		!s.Prefork &&
-		s.TLS.Cert == nil && s.TLS.Key == nil && s.TLS.RedirectHTTP == nil &&
-		s.ACME == nil
+		s.TLS.Cert == nil && s.TLS.Key == nil
 }
 
 func ApplyDefaults(cfg *Config, defaults *Config) *Config {
