@@ -5,6 +5,7 @@ go 1.26.5
 require (
 	github.com/Sn0wo2/go-common v0.0.0-20251204153924-3a4985f7ff6e
 	github.com/go-acme/lego/v4 v4.35.2
+	github.com/go-acme/lego/v5 v5.2.2
 	github.com/gofiber/fiber/v3 v3.4.0
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.7.0
