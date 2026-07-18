@@ -127,11 +127,11 @@ func findConfigPath(loaderByExt map[string]Loader) configLocation {
 	}
 
 	for ext := range loaderByExt {
-		configPath := filepath.Join("./data/", "config"+ext)
+		configPath := filepath.Join("./.data/", "config"+ext)
 		if _, err := os.Stat(configPath); err == nil {
 			return configLocation{Path: configPath, Found: true}
 		}
 	}
 
-	return configLocation{Path: "./data/config.yml"}
+	return configLocation{Path: "./.data/config.yml"}
 }

@@ -64,7 +64,7 @@ func (h *FileHandler) ProcessAction(p *ProcessData) ExecutionResult {
 		return ExecutionResult{Err: fmt.Errorf("failed to get working directory: %w", err)}
 	}
 
-	absDataDir, _ := filepath.Abs(filepath.Join(wd, "data"))
+	absDataDir, _ := filepath.Abs(filepath.Join(wd, ".data"))
 
 	dataDirWithSep := absDataDir + string(filepath.Separator)
 	if safePath != absDataDir && !strings.HasPrefix(safePath, dataDirWithSep) {
@@ -142,7 +142,7 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) ExecutionResult {
 		return ExecutionResult{Err: fmt.Errorf("failed to get working directory: %w", err)}
 	}
 
-	baseDir := filepath.Join(wd, "data", dirStr)
+	baseDir := filepath.Join(wd, ".data", dirStr)
 
 	absBaseDir, err := filepath.Abs(filepath.Clean(baseDir))
 	if err != nil {
@@ -150,11 +150,11 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) ExecutionResult {
 	}
 
 	absBaseDirSep := absBaseDir + string(filepath.Separator)
-	absServerDir, _ := filepath.Abs(filepath.Join(wd, "data", "server"))
+	absServerDir, _ := filepath.Abs(filepath.Join(wd, ".data", "server"))
 
 	serverDirWithSep := absServerDir + string(filepath.Separator)
 	if absBaseDir == absServerDir {
-		return ExecutionResult{Err: fmt.Errorf("directory cannot be server itself, must be a subdirectory under data/server: %s", dirStr)}
+		return ExecutionResult{Err: fmt.Errorf("directory cannot be server itself, must be a subdirectory under .data/server: %s", dirStr)}
 	}
 
 	if !strings.HasPrefix(absBaseDir, serverDirWithSep) {
