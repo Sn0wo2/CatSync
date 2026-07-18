@@ -4,7 +4,7 @@ func (l Log) IsZero() bool {
 	return l.Dir == nil && l.Level == nil && l.FileFormat == nil
 }
 
-// Note: Prefork=false cannot distinguish "not set" from "set to false",
+// IsZero Prefork=false cannot distinguish "not set" from "set to false",
 // so a Server with only Prefork set is treated as zero.
 func (s Server) IsZero() bool {
 	return s.Address == nil &&
@@ -12,7 +12,7 @@ func (s Server) IsZero() bool {
 		s.TLS.Cert == nil && s.TLS.Key == nil
 }
 
-func ApplyDefaults(cfg *Config, defaults *Config) *Config {
+func ApplyDefaults(cfg, defaults *Config) *Config {
 	if cfg == nil || defaults == nil {
 		return cfg
 	}
