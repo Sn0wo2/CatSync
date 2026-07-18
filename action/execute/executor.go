@@ -125,8 +125,6 @@ func (e *Executor) Build() (*Executor, error) {
 		baseHandler, ok := e.registry[act.TypeName()]
 		if !ok || baseHandler == nil {
 			return nil, fmt.Errorf("unknown action handler at actions[%d]: %s", i, act.TypeName())
-			return nil, fmt.Errorf("unknown action handler at actions[%d]: %s", i, act.TypeName())
-			return nil, fmt.Errorf("unknown action handler at actions[%d]: %s", i, act.Type)
 		}
 
 		payload := act.GetPayload()
