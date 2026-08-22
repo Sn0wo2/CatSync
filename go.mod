@@ -14,6 +14,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-colorable v0.1.15
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	go.uber.org/zap v1.28.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -28,6 +29,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/gofiber/schema v1.8.4 // indirect
 	github.com/gofiber/utils/v2 v2.4.1 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.19.2 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect

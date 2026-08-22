@@ -1,11 +1,9 @@
 package cli
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/Sn0wo2/CatSync/config"
-	"github.com/spf13/pflag"
+	"github.com/spf13/cobra"
 )
 
 type Options struct {
@@ -14,64 +12,34 @@ type Options struct {
 }
 
 func Execute() *Options {
-	args := preprocessArgs(os.Args[1:])
+	var opts Options
+	ran := false
 
-	fs := pflag.NewFlagSet("CatSync", pflag.ContinueOnError)
-	fs.Usage = func() {
-		fmt.Fprintf(os.Stderr, "CatSync - Sync the cat config backend server\n\nUsage:\n  CatSync [flags]\n\nFlags:\n")
-		fs.PrintDefaults()
+	root := &cobra.Command{
+		Use:     "CatSync",
+		Short:   "Sync the cat config backend server",
+		Version: GetCLIVersion(),
+		Run: func(cmd *cobra.Command, _ []string) {
+			ran = true
+			opts.ConfigPath, _ = cmd.Flags().GetString("config")
+			opts.CheckOnly, _ = cmd.Flags().GetBool("check")
+		},
 	}
+	root.SetVersionTemplate("{{.Version}}\n")
 
-	configPath := fs.String("config", "", "Path to the configuration file")
-	check := fs.BoolP("check", "c", false, "Validate configuration and exit")
-	version := fs.BoolP("version", "v", false, "Print version information")
-	help := fs.BoolP("help", "h", false, "help for CatSync")
+	flags := root.Flags()
 
-	if err := fs.Parse(args); err != nil {
+	flags.StringP("config", "cfg", "", "Path to the configuration file")
+	flags.BoolP("check", "c", false, "Validate configuration and exit")
+	_ = root.MarkFlagFilename("config", "yaml", "yml", "json")
+
+	if err := root.Execute(); err != nil {
 		os.Exit(1)
 	}
 
-	if *help {
-		fs.Usage()
-		os.Exit(0)
+	if !ran {
+		return nil
 	}
 
-	if *version {
-		fmt.Println(GetCLIVersion())
-		os.Exit(0)
-	}
-
-	if *configPath != "" {
-		config.SetConfigPath(*configPath)
-	}
-
-	return &Options{
-		ConfigPath: *configPath,
-		CheckOnly:  *check,
-	}
-}
-
-// preprocessArgs converts non-standard short flags before pflag parsing.
-//
-//	-cfg -> --config  (user-friendly shorthand)
-func preprocessArgs(args []string) []string {
-	result := make([]string, 0, len(args))
-	for i := range args {
-		arg := args[i]
-		if arg == "-cfg" {
-			result = append(result, "--config")
-
-			continue
-		}
-
-		if arg == "--cfg" { // normalize --cfg to --config
-			result = append(result, "--config")
-
-			continue
-		}
-
-		result = append(result, arg)
-	}
-
-	return result
+	return &opts
 }
