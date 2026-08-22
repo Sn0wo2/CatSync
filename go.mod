@@ -3,6 +3,7 @@ module github.com/Sn0wo2/CatSync
 go 1.27.0
 
 require (
+	filippo.io/age v1.3.1
 	github.com/Sn0wo2/go-common v0.0.0-20251204153924-3a4985f7ff6e
 	github.com/gofiber/fiber/v3 v3.5.0
 	github.com/google/uuid v1.6.0
@@ -20,6 +21,7 @@ require (
 )
 
 require (
+	filippo.io/hpke v0.4.0 // indirect
 	github.com/andybalholm/brotli v1.2.2 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.6.1 // indirect
