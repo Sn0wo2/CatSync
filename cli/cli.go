@@ -13,6 +13,7 @@ type Options struct {
 
 func Execute() *Options {
 	var opts Options
+
 	ran := false
 
 	root := &cobra.Command{
@@ -31,6 +32,7 @@ func Execute() *Options {
 
 	flags.StringP("config", "cfg", "", "Path to the configuration file")
 	flags.BoolP("check", "c", false, "Validate configuration and exit")
+
 	_ = root.MarkFlagFilename("config", "yaml", "yml", "json")
 
 	if err := root.Execute(); err != nil {
