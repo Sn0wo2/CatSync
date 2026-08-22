@@ -50,7 +50,7 @@ func (v *StatusModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) 
 		return nil, ExecutionResult{Err: fmt.Errorf("invalid status code: %d", status)}
 	}
 
-	p.C.Status(int(status))
+	p.FCtx.Status(int(status))
 
 	return p, ExecutionResult{}
 }

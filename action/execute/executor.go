@@ -8,7 +8,7 @@ import (
 
 	"github.com/Sn0wo2/CatSync/action"
 	"github.com/Sn0wo2/CatSync/config"
-	"github.com/Sn0wo2/CatSync/internal/appctx"
+	"github.com/Sn0wo2/CatSync/internal/cstx"
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/gofiber/fiber/v3"
 )
@@ -27,81 +27,61 @@ type Result struct {
 }
 
 type Builders struct {
-	Global  func(*config.Config) []action.Modifier
-	Action  func(*config.Action) []action.Modifier
-	Payload func(config.ActionData) []action.Modifier
+	Global  func(*config.Config) ([]action.Modifier, error)
+	Action  func(*config.Action) ([]action.Modifier, error)
+	Payload func(config.ActionData) ([]action.Modifier, error)
 }
 
-type routeEntry struct {
-	empty bool
-	exact string
-	re    *regexp.Regexp
-}
-
-type actionEntry struct {
-	route   routeEntry
-	handler action.Handler
-	payload config.ActionData
-}
-
-const regexMetaChars = `.*+?()[]{}|\^$`
-
-func isExactRoute(pattern string) bool {
-	return !strings.ContainsAny(pattern, regexMetaChars)
+type ActionEntry struct {
+	Exact   string
+	Re      *regexp.Regexp
+	Handler action.Handler
+	Payload config.ActionData
 }
 
 type Executor struct {
-	cfg              *config.Config
-	builders         Builders
-	registry         action.Registry
-	entries          []actionEntry // prebuilt per-action, indexed same as cfg.Actions
-	labelIndex       map[string]int
-	preResolvedJumps map[int]int // action index → resolved jumpTo index
+	Cfg              *config.Config
+	Builders         Builders
+	Registry         action.Registry
+	Entries          []ActionEntry
+	LabelIndex       map[string]int
+	PreResolvedJumps map[int]int
 }
 
 func New() *Executor {
-	return NewWithRegistry(nil)
-}
-
-func NewWithRegistry(reg action.Registry) *Executor {
-	if reg == nil {
-		reg = action.NewRegistry()
-	}
-
-	return &Executor{registry: reg}
+	return &Executor{Registry: action.NewRegistry()}
 }
 
 func (e *Executor) WithConfig(cfg *config.Config) *Executor {
-	e.cfg = cfg
+	e.Cfg = cfg
 
 	return e
 }
 
 func (e *Executor) WithBuilders(builders Builders) *Executor {
-	e.builders = builders
+	e.Builders = builders
 
 	return e
 }
 
 func (e *Executor) Build() (*Executor, error) {
-	if e == nil || e.cfg == nil {
+	if e == nil || e.Cfg == nil {
 		return nil, errors.New("nil executor or config")
 	}
 
-	actions := e.cfg.Actions
-	e.entries = make([]actionEntry, len(actions))
+	actions := e.Cfg.Actions
+	e.Entries = make([]ActionEntry, len(actions))
 
-	// Build label index for jumpLabel resolution
-	e.labelIndex = make(map[string]int, len(actions))
+	e.LabelIndex = make(map[string]int, len(actions))
 	for i := range actions {
 		if label := actions[i].Label; label != "" {
-			e.labelIndex[label] = i
+			e.LabelIndex[label] = i
 		}
 	}
 
 	for i := range actions {
 		act := &actions[i]
-		entry := &e.entries[i]
+		entry := &e.Entries[i]
 
 		route, ok := act.Route.Literal()
 		if !ok {
@@ -110,19 +90,18 @@ func (e *Executor) Build() (*Executor, error) {
 
 		switch {
 		case route == "":
-			entry.route.empty = true
-		case isExactRoute(route):
-			entry.route.exact = route
-		default:
+		case strings.ContainsAny(route, `.*+?()[]{}|\^$`):
 			re, err := util.GetCompiledRegexp(route)
 			if err != nil {
 				return nil, fmt.Errorf("invalid action route regexp at actions[%d].route (%q): %w", i, route, err)
 			}
 
-			entry.route.re = re
+			entry.Re = re
+		default:
+			entry.Exact = route
 		}
 
-		baseHandler, ok := e.registry[act.TypeName()]
+		baseHandler, ok := e.Registry[act.TypeName()]
 		if !ok || baseHandler == nil {
 			return nil, fmt.Errorf("unknown action handler at actions[%d]: %s", i, act.TypeName())
 		}
@@ -132,33 +111,47 @@ func (e *Executor) Build() (*Executor, error) {
 			return nil, fmt.Errorf("actions[%d] type=%s but payload is nil", i, act.TypeName())
 		}
 
-		entry.payload = payload
+		entry.Payload = payload
 
 		h := action.WrapHandler(baseHandler)
 
-		add := func(ms []action.Modifier) {
-			for _, m := range ms {
+		add := func(source string, mods []action.Modifier, err error) error {
+			if err != nil {
+				return fmt.Errorf("build %s modifiers at actions[%d]: %w", source, i, err)
+			}
+
+			for _, m := range mods {
 				h.WithModifier(m)
+			}
+
+			return nil
+		}
+
+		if !act.SkipGlobalModifiers && e.Builders.Global != nil {
+			mods, err := e.Builders.Global(e.Cfg)
+			if err := add("global", mods, err); err != nil {
+				return nil, err
 			}
 		}
 
-		if !act.SkipGlobalModifiers && e.builders.Global != nil {
-			add(e.builders.Global(e.cfg))
+		if e.Builders.Action != nil {
+			mods, err := e.Builders.Action(act)
+			if err := add("action", mods, err); err != nil {
+				return nil, err
+			}
 		}
 
-		if e.builders.Action != nil {
-			add(e.builders.Action(act))
+		if e.Builders.Payload != nil {
+			mods, err := e.Builders.Payload(payload)
+			if err := add("payload", mods, err); err != nil {
+				return nil, err
+			}
 		}
 
-		if e.builders.Payload != nil {
-			add(e.builders.Payload(payload))
-		}
-
-		entry.handler = h
+		entry.Handler = h
 	}
 
-	// Second pass: resolve auth fallback JumpLabel references
-	e.preResolvedJumps = make(map[int]int)
+	e.PreResolvedJumps = make(map[int]int)
 
 	for i := range actions {
 		auth := actions[i].ActionModifierAuth
@@ -166,8 +159,8 @@ func (e *Executor) Build() (*Executor, error) {
 			continue
 		}
 
-		if idx, ok := e.labelIndex[auth.Fallback.JumpLabel]; ok {
-			e.preResolvedJumps[i] = idx
+		if idx, ok := e.LabelIndex[auth.Fallback.JumpLabel]; ok {
+			e.PreResolvedJumps[i] = idx
 		}
 	}
 
@@ -175,13 +168,13 @@ func (e *Executor) Build() (*Executor, error) {
 }
 
 type RequestContext struct {
-	Ctx      *appctx.Ctx
+	Ctx      *cstx.Ctx
 	FiberCtx fiber.Ctx
 	Reloader action.Reloader
 }
 
 func (e *Executor) Dispatch(rc *RequestContext) (bool, error) {
-	if e == nil || e.cfg == nil {
+	if e == nil || e.Cfg == nil {
 		return false, errors.New("nil executor or config")
 	}
 
@@ -189,7 +182,7 @@ func (e *Executor) Dispatch(rc *RequestContext) (bool, error) {
 		return false, errors.New("nil request context")
 	}
 
-	n := len(e.cfg.Actions)
+	n := len(e.Cfg.Actions)
 	if n == 0 {
 		return false, nil
 	}
@@ -197,7 +190,7 @@ func (e *Executor) Dispatch(rc *RequestContext) (bool, error) {
 	visited := make(map[int]struct{}, n)
 
 	for i := range n {
-		res, err := e.executeOne(rc, i, false)
+		res, err := e.ExecuteOne(rc, i, false)
 		if err != nil {
 			return false, err
 		}
@@ -222,7 +215,7 @@ func (e *Executor) Dispatch(rc *RequestContext) (bool, error) {
 
 				visited[target] = struct{}{}
 
-				jres, jerr := e.executeOne(rc, target, true)
+				jres, jerr := e.ExecuteOne(rc, target, true)
 				if jerr != nil {
 					return false, jerr
 				}
@@ -240,7 +233,7 @@ func (e *Executor) Dispatch(rc *RequestContext) (bool, error) {
 		}
 	}
 
-	lastRes, lastErr := e.executeOne(rc, n-1, true)
+	lastRes, lastErr := e.ExecuteOne(rc, n-1, true)
 	if lastErr != nil {
 		return false, lastErr
 	}
@@ -248,53 +241,39 @@ func (e *Executor) Dispatch(rc *RequestContext) (bool, error) {
 	return lastRes.Status == StatusMatched, nil
 }
 
-func (e *Executor) matchRoute(index int, path string) bool {
-	entry := &e.entries[index]
-
-	if entry.route.empty {
-		return false
-	}
-
-	if entry.route.exact != "" {
-		return entry.route.exact == path
-	}
-
-	if entry.route.re != nil {
-		return entry.route.re.MatchString(path)
-	}
-
-	return false
-}
-
-func (e *Executor) executeOne(rc *RequestContext, index int, skipRoute bool) (Result, error) {
-	if index < 0 || index >= len(e.entries) {
+func (e *Executor) ExecuteOne(rc *RequestContext, index int, skipRoute bool) (Result, error) {
+	if index < 0 || index >= len(e.Entries) {
 		return Result{}, fmt.Errorf("invalid action index: %d", index)
 	}
 
-	if !skipRoute && !e.matchRoute(index, rc.FiberCtx.Path()) {
+	entry := &e.Entries[index]
+	path := rc.FiberCtx.Path()
+
+	if !skipRoute {
+		if entry.Exact != "" {
+			if entry.Exact != path {
+				return Result{Status: StatusNotMatched}, nil
+			}
+		} else if entry.Re == nil || !entry.Re.MatchString(path) {
+			return Result{Status: StatusNotMatched}, nil
+		}
+	}
+
+	if entry.Handler == nil || entry.Payload == nil {
 		return Result{Status: StatusNotMatched}, nil
 	}
 
-	entry := &e.entries[index]
-	if entry.handler == nil || entry.payload == nil {
-		return Result{Status: StatusNotMatched}, nil
-	}
-
-	act := e.cfg.Actions[index]
-
-	result := entry.handler.ProcessAction(&action.ProcessData{
-		Ctx:      rc.Ctx,
-		C:        rc.FiberCtx,
-		Action:   &act,
-		Payload:  entry.payload,
+	result := entry.Handler.ProcessAction(&action.ProcessData{
+		CStx:     rc.Ctx,
+		FCtx:     rc.FiberCtx,
+		Payload:  entry.Payload,
 		Reloader: rc.Reloader,
 	})
 	if result.Err != nil {
 		return Result{Status: StatusMatched}, result.Err
 	}
 
-	// Override JumpTo with pre-resolved label-based index if available
-	if resolved, ok := e.preResolvedJumps[index]; ok {
+	if resolved, ok := e.PreResolvedJumps[index]; ok {
 		result.JumpTo = resolved
 	}
 

@@ -56,10 +56,10 @@ func (m *ResponseHeaderModifier) Before(p *ProcessData) (*ProcessData, Execution
 			}
 
 			for _, val := range upstreamMap[kLower] {
-				p.C.Append(k, val)
+				p.FCtx.Append(k, val)
 			}
 		} else {
-			p.C.Append(k, v...)
+			p.FCtx.Append(k, v...)
 		}
 	}
 

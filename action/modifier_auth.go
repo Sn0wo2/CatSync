@@ -1,86 +1,82 @@
 package action
 
 import (
-	"context"
-	"errors"
+	"fmt"
 	"net/netip"
 	"regexp"
 	"slices"
 	"strings"
-	"sync"
 
-	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"go.uber.org/zap"
 )
 
+type AuthFallbackPolicy uint8
+
+const (
+	AuthFallbackPolicyNext AuthFallbackPolicy = iota
+	AuthFallbackPolicyJump
+)
+
 type AuthModifier struct {
-	auth config.ActionModifierAuth
-
-	reOnce   sync.Once
-	headerRE map[string][]*regexp.Regexp
-	queryRE  map[string]*regexp.Regexp
-	reErr    error
-
-	ipOnce sync.Once
-	ipWL   *ipAllowlist
-	ipErr  error
+	headerRules  map[string][]*regexp.Regexp
+	queryRules   map[string]*regexp.Regexp
+	ipWhiteList  *IPWhiteList
+	fallback     AuthFallbackPolicy
+	fallbackJump int
 }
 
-type ipAllowlist struct {
-	addrs    []netip.Addr
-	prefixes []netip.Prefix
+func NewAuthModifier() *AuthModifier {
+	return &AuthModifier{}
 }
 
-func NewAuthModifier(auth config.ActionModifierAuth) *AuthModifier {
-	return &AuthModifier{auth: auth}
+func (m *AuthModifier) WithHeaderRules(rules map[string][]*regexp.Regexp) *AuthModifier {
+	m.headerRules = rules
+
+	return m
+}
+
+func (m *AuthModifier) WithQueryRules(rules map[string]*regexp.Regexp) *AuthModifier {
+	m.queryRules = rules
+
+	return m
+}
+
+func (m *AuthModifier) WithIPWhiteList(wl *IPWhiteList) *AuthModifier {
+	m.ipWhiteList = wl
+
+	return m
+}
+
+func (m *AuthModifier) WithFallback(policy AuthFallbackPolicy, jumpTo int) *AuthModifier {
+	m.fallback = policy
+	m.fallbackJump = jumpTo
+
+	return m
 }
 
 func (m *AuthModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
-	logger := p.Ctx.Logger
+	logger := p.CStx.Logger
 
-	m.reOnce.Do(m.initRegex)
-
-	if m.reErr != nil {
-		logger.Warn("Auth >> Failed to init auth regex",
-			zap.Error(m.reErr),
-			util.LazyFiberContext(p.C),
-		)
-
-		return p, m.handleFallback()
-	}
-
-	m.ipOnce.Do(func() { m.initIPAllowlist(logger) })
-
-	if m.ipErr != nil {
-		logger.Warn("Auth >> Failed to init ip allowlist",
-			zap.Error(m.ipErr),
-			util.LazyFiberContext(p.C),
-		)
-
-		return p, m.handleFallback()
-	}
-
-	if m.ipWL != nil {
-		ips := p.C.IPs()
+	if m.ipWhiteList != nil {
+		ips := p.FCtx.IPs()
 		if len(ips) == 0 {
-			ips = []string{p.C.IP()}
+			ips = []string{p.FCtx.IP()}
 		}
 
-		if !m.ipWL.allowAny(ips) {
+		if !m.ipWhiteList.IsAllow(ips) {
 			logger.Info("Auth >> IP not allowed",
-				zap.Any("allowed", m.auth.IPAllow),
 				zap.Strings("actual", ips),
-				util.LazyFiberContext(p.C),
+				util.LazyFiberContext(p.FCtx),
 			)
 
-			return p, m.handleFallback()
+			return p, m.HandleFallback()
 		}
 	}
 
-	reqHeaders := p.C.GetReqHeaders()
+	reqHeaders := p.FCtx.GetReqHeaders()
 
-	for k, res := range m.headerRE {
+	for k, rules := range m.headerRules {
 		var values []string
 
 		for hk, hv := range reqHeaders {
@@ -92,33 +88,48 @@ func (m *AuthModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
 		}
 
 		if len(values) == 0 {
-			logger.Info("Auth >> Header missing", zap.String("header", k), util.LazyFiberContext(p.C))
+			logger.Info("Auth >> Header missing", zap.String("header", k), util.LazyFiberContext(p.FCtx))
 
-			return p, m.handleFallback()
+			return p, m.HandleFallback()
 		}
 
-		if !m.matchHeaderValues(values, res) {
+		if !slices.ContainsFunc(values, func(v string) bool {
+			for _, re := range rules {
+				if re.MatchString(v) {
+					return true
+				}
+			}
+
+			return false
+		}) {
+			patterns := make([]string, 0, len(rules))
+			for _, re := range rules {
+				patterns = append(patterns, re.String())
+			}
+
 			logger.Info("Auth >> Header value not matched",
 				zap.String("header", k),
-				zap.Any("patterns", m.auth.Header[k]),
-				zap.Any("actual", values),
-				util.LazyFiberContext(p.C),
+				zap.Strings("patterns", patterns),
+				zap.Strings("actual", values),
+				util.LazyFiberContext(p.FCtx),
 			)
 
-			return p, m.handleFallback()
+			return p, m.HandleFallback()
 		}
 	}
 
-	for k, re := range m.queryRE {
-		if !re.MatchString(p.C.Query(k)) {
+	for k, rule := range m.queryRules {
+		actual := p.FCtx.Query(k)
+
+		if !rule.MatchString(actual) {
 			logger.Info("Auth >> Query value not matched",
 				zap.String("key", k),
-				zap.Any("pattern", m.auth.Query[k]),
-				zap.String("actual", p.C.Query(k)),
-				util.LazyFiberContext(p.C),
+				zap.String("pattern", rule.String()),
+				zap.String("actual", actual),
+				util.LazyFiberContext(p.FCtx),
 			)
 
-			return p, m.handleFallback()
+			return p, m.HandleFallback()
 		}
 	}
 
@@ -129,140 +140,51 @@ func (m *AuthModifier) After(p *ProcessData) (*ProcessData, ExecutionResult) {
 	return p, ExecutionResult{}
 }
 
-func (m *AuthModifier) matchHeaderValues(values []string, res []*regexp.Regexp) bool {
-	for _, v := range values {
-		for _, re := range res {
-			if re.MatchString(v) {
-				return true
-			}
-		}
+func (m *AuthModifier) HandleFallback() ExecutionResult {
+	if m.fallback == AuthFallbackPolicyJump {
+		return ExecutionResult{Status: ExecutionFallbackJump, JumpTo: m.fallbackJump}
 	}
 
-	return false
+	return ExecutionResult{Status: ExecutionFallbackNext}
 }
 
-func (m *AuthModifier) initRegex() {
-	if len(m.auth.Header) > 0 {
-		m.headerRE = make(map[string][]*regexp.Regexp, len(m.auth.Header))
-		for k, patterns := range m.auth.Header {
-			out := make([]*regexp.Regexp, 0, len(patterns))
-			for _, p := range patterns {
-				pat, ok := p.LiteralTrim()
-				if !ok {
-					m.reErr = errors.New("auth.header pattern must be literal string")
-
-					return
-				}
-
-				re, err := util.GetCompiledRegexp(pat)
-				if err != nil {
-					m.reErr = err
-
-					return
-				}
-
-				out = append(out, re)
-			}
-
-			m.headerRE[k] = out
-		}
-	}
-
-	if len(m.auth.Query) > 0 {
-		m.queryRE = make(map[string]*regexp.Regexp, len(m.auth.Query))
-		for k, p := range m.auth.Query {
-			pat, ok := p.LiteralTrim()
-			if !ok {
-				m.reErr = errors.New("auth.query pattern must be literal string")
-
-				return
-			}
-
-			re, err := util.GetCompiledRegexp(pat)
-			if err != nil {
-				m.reErr = err
-
-				return
-			}
-
-			m.queryRE[k] = re
-		}
-	}
+type IPWhiteList struct {
+	addrs    []netip.Addr
+	prefixes []netip.Prefix
 }
 
-func (m *AuthModifier) initIPAllowlist(logger *zap.Logger) {
-	if len(m.auth.IPAllow) == 0 && m.auth.IPFile == nil {
-		m.ipWL = nil
-		m.ipErr = nil
+func ParseIPWhiteList(entries []string) (*IPWhiteList, error) {
+	wl := &IPWhiteList{}
 
-		return
-	}
-
-	wl := &ipAllowlist{}
-
-	add := func(raw string) error {
+	for i, raw := range entries {
 		s := strings.TrimSpace(raw)
 		if s == "" || strings.HasPrefix(s, "#") {
-			return nil
+			continue
 		}
 
 		if strings.Contains(s, "/") {
 			prefix, err := netip.ParsePrefix(s)
 			if err != nil {
-				return err
+				return nil, fmt.Errorf("entry %d %q: %w", i, raw, err)
 			}
 
 			wl.prefixes = append(wl.prefixes, prefix)
 
-			return nil
+			continue
 		}
 
 		addr, err := netip.ParseAddr(s)
 		if err != nil {
-			return err
+			return nil, fmt.Errorf("entry %d %q: %w", i, raw, err)
 		}
 
 		wl.addrs = append(wl.addrs, addr)
-
-		return nil
 	}
 
-	for _, raw := range m.auth.IPAllow {
-		if err := add(raw); err != nil {
-			m.ipErr = err
-
-			return
-		}
-	}
-
-	if m.auth.IPFile != nil {
-		lines, err := m.auth.IPFile.ReadLines(context.Background())
-		if err != nil {
-			m.ipErr = err
-
-			return
-		}
-
-		for i, line := range lines {
-			if err := add(line); err != nil {
-				m.ipErr = err
-				if logger != nil {
-					logger.Warn("Auth >> Invalid ipAllowlistFile entry",
-						zap.Int("line", i+1),
-						zap.String("value", strings.TrimSpace(line)),
-						zap.Error(err),
-					)
-				}
-
-				return
-			}
-		}
-	}
-
-	m.ipWL = wl
+	return wl, nil
 }
 
-func (wl *ipAllowlist) allowAny(ips []string) bool {
+func (wl *IPWhiteList) IsAllow(ips []string) bool {
 	for _, raw := range ips {
 		ipStr := strings.TrimSpace(raw)
 		if ipStr == "" {
@@ -286,19 +208,4 @@ func (wl *ipAllowlist) allowAny(ips []string) bool {
 	}
 
 	return false
-}
-
-func (m *AuthModifier) handleFallback() ExecutionResult {
-	if m.auth.Fallback == nil || m.auth.Fallback.Type == "" {
-		return ExecutionResult{Status: ExecutionFallbackNext}
-	}
-
-	switch m.auth.Fallback.Type {
-	case config.AuthFallbackJump:
-		return ExecutionResult{Status: ExecutionFallbackJump, JumpTo: m.auth.Fallback.JumpTo}
-	case config.AuthFallbackNext:
-		return ExecutionResult{Status: ExecutionFallbackNext}
-	default:
-		return ExecutionResult{Status: ExecutionFallbackNext}
-	}
 }

@@ -28,7 +28,7 @@ func (p *PlaceholderModifier) Before(pd *ProcessData) (*ProcessData, ExecutionRe
 }
 
 func (p *PlaceholderModifier) After(pd *ProcessData) (*ProcessData, ExecutionResult) {
-	for k, vals := range pd.C.GetRespHeaders() {
+	for k, vals := range pd.FCtx.GetRespHeaders() {
 		found := false
 
 		for _, vv := range vals {
@@ -43,7 +43,7 @@ func (p *PlaceholderModifier) After(pd *ProcessData) (*ProcessData, ExecutionRes
 			continue
 		}
 
-		pd.C.Response().Header.Del(k)
+		pd.FCtx.Response().Header.Del(k)
 
 		out := vals[:0]
 		for _, vv := range vals {
@@ -54,7 +54,7 @@ func (p *PlaceholderModifier) After(pd *ProcessData) (*ProcessData, ExecutionRes
 			}
 		}
 
-		pd.C.Append(k, out...)
+		pd.FCtx.Append(k, out...)
 	}
 
 	return pd, ExecutionResult{}
