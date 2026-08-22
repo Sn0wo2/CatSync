@@ -18,13 +18,27 @@ import (
 
 func main() {
 	opts := cli.Execute()
+	if opts == nil { // help/version already printed
+		return
+	}
 
 	if opts.ConfigPath != "" {
-		config.SetConfigPath(opts.ConfigPath)
+		config.CLIConfigPath = opts.ConfigPath
 	}
 
 	if opts.CheckOnly {
-		runConfigCheck()
+		_, path, err := config.LoadConfig("", loader.NewYAMLLoader(), loader.NewJSONLoader())
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				fmt.Fprintf(os.Stderr, "CONFIGURATION ERROR: config file not found\n")
+			} else {
+				fmt.Fprintf(os.Stderr, "CONFIGURATION ERROR: %v\n", err)
+			}
+
+			os.Exit(1)
+		}
+
+		fmt.Printf("OK - %s\nConfiguration is valid\n", path)
 
 		return
 	}
@@ -104,19 +118,4 @@ func main() {
 			zap.Error(err),
 		)
 	}
-}
-
-func runConfigCheck() {
-	result, err := config.Load(loader.NewYAMLLoader(), loader.NewJSONLoader())
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			fmt.Fprintf(os.Stderr, "CONFIGURATION ERROR: config file not found\n")
-		} else {
-			fmt.Fprintf(os.Stderr, "CONFIGURATION ERROR: %v\n", err)
-		}
-
-		os.Exit(1)
-	}
-
-	fmt.Printf("OK - %s\nConfiguration is valid\n", result.Path)
 }

@@ -38,12 +38,12 @@ const DefaultNotFoundHTML = `<!DOCTYPE html>
 func GetDefaultConfig() *Config {
 	return &Config{
 		Log: Log{
-			Level:      reader.Str("debug"),
-			Dir:        reader.Str("./logs"),
-			FileFormat: reader.Str("2006-01-02.log"),
+			Level:      reader.NewStr("debug"),
+			Dir:        reader.NewStr("./logs"),
+			FileFormat: reader.NewStr("2006-01-02.log"),
 		},
 		Server: Server{
-			Address: reader.Str(":3000"),
+			Address: reader.NewStr(":3000"),
 		},
 		Modifiers: []GlobalModifier{
 			{
@@ -57,70 +57,70 @@ func GetDefaultConfig() *Config {
 		},
 		Actions: []Action{
 			{
-				Route: reader.Str("^/$"),
-				Type:  reader.Str("server"),
+				Route: reader.NewStr("^/$"),
+				Type:  reader.NewStr("server"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
 						Header: map[string][]string{contentTypeHeader: {htmlContentType}},
 					},
 				},
 				ActionServer: &ActionServerData{
-					Directory: reader.Str("server/welcome"),
+					Directory: reader.NewStr("server/welcome"),
 				},
 			},
 			{
-				Route: reader.Str("^/string$"),
-				Type:  reader.Str("string"),
+				Route: reader.NewStr("^/string$"),
+				Type:  reader.NewStr("string"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
 						Header: map[string][]string{contentTypeHeader: {plainTextContentType}},
 					},
 				},
-				ActionString: &ActionStringData{Content: reader.Str("ActionString: plain text response\n")},
+				ActionString: &ActionStringData{Content: reader.NewStr("ActionString: plain text response\n")},
 			},
 			{
-				Route: reader.Str("^/file$"),
-				Type:  reader.Str("file"),
+				Route: reader.NewStr("^/file$"),
+				Type:  reader.NewStr("file"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
 						Header: map[string][]string{"Cache-Control": {"public, max-age=60"}},
 					},
 				},
-				ActionFile: &ActionFileData{Path: reader.Str("./data/hello.txt")},
+				ActionFile: &ActionFileData{Path: reader.NewStr("./data/hello.txt")},
 			},
 			{
-				Route: reader.Str("^/status/200$"),
-				Type:  reader.Str("string"),
+				Route: reader.NewStr("^/status/200$"),
+				Type:  reader.NewStr("string"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 200},
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
 						Header: map[string][]string{contentTypeHeader: {plainTextContentType}},
 					},
 				},
-				ActionString: &ActionStringData{Content: reader.Str("Status: 200 OK\n")},
+				ActionString: &ActionStringData{Content: reader.NewStr("Status: 200 OK\n")},
 			},
 			{
-				Route: reader.Str("^/status/201$"),
-				Type:  reader.Str("string"),
+				Route: reader.NewStr("^/status/201$"),
+				Type:  reader.NewStr("string"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 201},
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
 						Header: map[string][]string{contentTypeHeader: {plainTextContentType}},
 					},
 				},
-				ActionString: &ActionStringData{Content: reader.Str("Status: 201 Created\n")},
+				ActionString: &ActionStringData{Content: reader.NewStr("Status: 201 Created\n")},
 			},
 			{
-				Route: reader.Str("^/status/204$"),
-				Type:  reader.Str("string"),
+				Route: reader.NewStr("^/status/204$"),
+				Type:  reader.NewStr("string"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 204},
 				},
 				ActionString: &ActionStringData{},
 			},
 			{
-				Route: reader.Str("^/headers$"),
-				Type:  reader.Str("string"),
+				Route: reader.NewStr("^/headers$"),
+				Type:  reader.NewStr("string"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
 						Header: map[string][]string{
@@ -135,16 +135,16 @@ func GetDefaultConfig() *Config {
 							Header: map[string][]string{"X-Payload": {"from-payload"}},
 						},
 					},
-					Content: reader.Str("Headers demo - check response headers:\n- X-Global: from-global-modifier\n- X-Payload: from-payload\n"),
+					Content: reader.NewStr("Headers demo - check response headers:\n- X-Global: from-global-modifier\n- X-Payload: from-payload\n"),
 				},
 			},
 			{
-				Route: reader.Str("^/auth$"),
-				Type:  reader.Str("string"),
+				Route: reader.NewStr("^/auth$"),
+				Type:  reader.NewStr("string"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierAuth: &ActionModifierAuth{
 						Header: map[string][]*reader.String{
-							"X-Token": {reader.Str("^secret$")},
+							"X-Token": {reader.NewStr("^secret$")},
 						},
 						Fallback: &ActionModifierAuthFallback{Type: AuthFallbackNext},
 					},
@@ -152,15 +152,15 @@ func GetDefaultConfig() *Config {
 						Header: map[string][]string{contentTypeHeader: {plainTextContentType}},
 					},
 				},
-				ActionString: &ActionStringData{Content: reader.Str("Auth success! (X-Token: secret)\n")},
+				ActionString: &ActionStringData{Content: reader.NewStr("Auth success! (X-Token: secret)\n")},
 			},
 			{
-				Route: reader.Str("^/auth/jump$"),
-				Type:  reader.Str("string"),
+				Route: reader.NewStr("^/auth/jump$"),
+				Type:  reader.NewStr("string"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierAuth: &ActionModifierAuth{
 						Header: map[string][]*reader.String{
-							"X-Token": {reader.Str("^secret$")},
+							"X-Token": {reader.NewStr("^secret$")},
 						},
 						Fallback: &ActionModifierAuthFallback{Type: AuthFallbackJump, JumpTo: 10},
 					},
@@ -168,22 +168,22 @@ func GetDefaultConfig() *Config {
 						Header: map[string][]string{contentTypeHeader: {plainTextContentType}},
 					},
 				},
-				ActionString: &ActionStringData{Content: reader.Str("Auth success with jump!\n")},
+				ActionString: &ActionStringData{Content: reader.NewStr("Auth success with jump!\n")},
 			},
 			{
-				Route: reader.Str("^/auth/fallback$"),
-				Type:  reader.Str("string"),
+				Route: reader.NewStr("^/auth/fallback$"),
+				Type:  reader.NewStr("string"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 401},
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
 						Header: map[string][]string{contentTypeHeader: {plainTextContentType}},
 					},
 				},
-				ActionString: &ActionStringData{Content: reader.Str("Auth failed - jumped to fallback\n")},
+				ActionString: &ActionStringData{Content: reader.NewStr("Auth failed - jumped to fallback\n")},
 			},
 			{
-				Route: reader.Str("^/reload$"),
-				Type:  reader.Str("reload"),
+				Route: reader.NewStr("^/reload$"),
+				Type:  reader.NewStr("reload"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
 						Header: map[string][]string{contentTypeHeader: {plainTextContentType}},
@@ -192,8 +192,8 @@ func GetDefaultConfig() *Config {
 				ActionReload: &ActionReloadData{},
 			},
 			{
-				Route: reader.Str(""),
-				Type:  reader.Str("server"),
+				Route: reader.NewStr(""),
+				Type:  reader.NewStr("server"),
 				GlobalModifier: GlobalModifier{
 					ActionModifierStatus: &ActionModifierStatus{Status: 404},
 					ActionModifierResponseHeader: &ActionModifierResponseHeader{
@@ -201,8 +201,8 @@ func GetDefaultConfig() *Config {
 					},
 				},
 				ActionServer: &ActionServerData{
-					Directory:    reader.Str("server/welcome"),
-					NotFoundHTML: reader.Str(DefaultNotFoundHTML),
+					Directory:    reader.NewStr("server/welcome"),
+					NotFoundHTML: reader.NewStr(DefaultNotFoundHTML),
 				},
 			},
 		},

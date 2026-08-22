@@ -4,8 +4,6 @@ func (l Log) IsZero() bool {
 	return l.Dir == nil && l.Level == nil && l.FileFormat == nil
 }
 
-// IsZero Prefork=false cannot distinguish "not set" from "set to false",
-// so a Server with only Prefork set is treated as zero.
 func (s Server) IsZero() bool {
 	return s.Address == nil &&
 		!s.Prefork &&

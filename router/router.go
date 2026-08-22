@@ -3,7 +3,7 @@ package router
 import (
 	"github.com/Sn0wo2/CatSync/action"
 	"github.com/Sn0wo2/CatSync/action/execute"
-	"github.com/Sn0wo2/CatSync/internal/appctx"
+	"github.com/Sn0wo2/CatSync/internal/cstx"
 	"github.com/Sn0wo2/CatSync/runtime"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/compress"
@@ -15,7 +15,7 @@ type Runtime interface {
 	Current() *runtime.Snapshot
 }
 
-func Init(c *appctx.Ctx, manager Runtime) {
+func Init(c *cstx.Ctx, manager Runtime) {
 	server := c.FW
 	if server == nil {
 		panic("framework not found")
@@ -29,7 +29,7 @@ func Init(c *appctx.Ctx, manager Runtime) {
 	server.Use(Actions(c, manager))
 }
 
-func Actions(c *appctx.Ctx, manager Runtime) fiber.Handler {
+func Actions(c *cstx.Ctx, manager Runtime) fiber.Handler {
 	return func(ctx fiber.Ctx) error {
 		snapshot := manager.Current()
 		if snapshot == nil || snapshot.Executor == nil {

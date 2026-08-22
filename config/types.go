@@ -35,6 +35,7 @@ type GlobalModifier struct {
 	*ActionModifierStatus         `json:"actionModifierStatus,omitempty"         optional:"true" yaml:"actionModifierStatus,omitempty"`
 	*ActionModifierAuth           `json:"actionModifierAuth,omitempty"           optional:"true" yaml:"actionModifierAuth,omitempty"`
 	*ActionModifierVersion        `json:"actionVersionModifier,omitempty"        optional:"true" yaml:"actionVersionModifier,omitempty"`
+	*ActionModifierAge            `json:"actionModifierAge,omitempty"            optional:"true" yaml:"actionModifierAge,omitempty"`
 }
 
 func (gm *GlobalModifier) EachModifier(fn func(any)) {
@@ -57,6 +58,10 @@ func (gm *GlobalModifier) EachModifier(fn func(any)) {
 	if gm.ActionModifierVersion != nil {
 		fn(gm.ActionModifierVersion)
 	}
+
+	if gm.ActionModifierAge != nil {
+		fn(gm.ActionModifierAge)
+	}
 }
 
 func (gm *GlobalModifier) GetGlobalModifier() *GlobalModifier { return gm }
@@ -67,9 +72,9 @@ type ServerTLS struct {
 }
 
 type Action struct {
-	Label string `json:"label,omitempty" optional:"true" yaml:"label,omitempty"`
-
 	Route *reader.String `json:"route" optional:"true" yaml:"route"`
+
+	Label string `json:"label,omitempty" optional:"true" yaml:"label,omitempty"`
 
 	SkipGlobalModifiers bool `json:"skipGlobalModifiers,omitempty" optional:"true" yaml:"skipGlobalModifiers,omitempty"`
 
@@ -172,11 +177,12 @@ type ActionModifierStatus struct {
 }
 
 type ActionModifierAuth struct {
-	Header   map[string][]*reader.String `json:"header,omitempty"          optional:"true" yaml:"header,omitempty"`
-	Query    map[string]*reader.String   `json:"query,omitempty"           optional:"true" yaml:"query,omitempty"`
-	IPAllow  []string                    `json:"ipAllowlist,omitempty"     optional:"true" yaml:"ipAllowlist,omitempty"`
-	IPFile   *reader.String              `json:"ipAllowlistFile,omitempty" optional:"true" yaml:"ipAllowlistFile,omitempty"`
-	Fallback *ActionModifierAuthFallback `json:"fallback,omitempty"        optional:"true" yaml:"fallback,omitempty"`
+	// TODO: Mode OR|AND
+	Header      map[string][]*reader.String `json:"header,omitempty"          optional:"true" yaml:"header,omitempty"`
+	Query       map[string]*reader.String   `json:"query,omitempty"           optional:"true" yaml:"query,omitempty"`
+	IPWhiteList []string                    `json:"IPWhiteListlist,omitempty" optional:"true" yaml:"IPWhiteListlist,omitempty"`
+	IPFile      *reader.String              `json:"ipAllowlistFile,omitempty" optional:"true" yaml:"ipAllowlistFile,omitempty"`
+	Fallback    *ActionModifierAuthFallback `json:"fallback,omitempty"        optional:"true" yaml:"fallback,omitempty"`
 }
 
 type ActionModifierAuthFallback struct {
@@ -195,6 +201,13 @@ const (
 
 type ActionModifierVersion struct {
 	Placeholder *reader.String `json:"placeholder" yaml:"placeholder"`
+}
+
+type ActionModifierAge struct {
+	// Recipients are age public keys (x25519 "age1..." from `mihomo age keygen`, or ssh public keys)
+	Recipients []*reader.String `json:"recipients" yaml:"recipients"`
+	// Armor outputs PEM-style age armor format, defaults to true
+	Armor *bool `json:"armor,omitempty" optional:"true" yaml:"armor,omitempty"`
 }
 
 type Loader interface {

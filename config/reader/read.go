@@ -101,9 +101,9 @@ func (r *String) Reset() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.loaded = false
 	r.value = ""
 	r.err = nil
+	r.loaded = false
 }
 
 func (r *String) ReadLines(ctx context.Context) ([]string, error) {

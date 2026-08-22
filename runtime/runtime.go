@@ -16,12 +16,12 @@ type Snapshot struct {
 }
 
 type Manager struct {
-	current    atomic.Pointer[Snapshot]
-	reloadMu   sync.Mutex
-	logger     *zap.Logger
-	loaders    []config.Loader
-	builders   execute.Builders
-	configPath string
+	CurrentSnapshot atomic.Pointer[Snapshot]
+	ReloadMu        sync.Mutex
+	Logger          *zap.Logger
+	Loaders         []config.Loader
+	Builders        execute.Builders
+	ConfigPath      string
 }
 
 func NewManager(initial *config.LoadResult, logger *zap.Logger, loaders []config.Loader, builders execute.Builders) (*Manager, error) {
@@ -43,12 +43,12 @@ func NewManager(initial *config.LoadResult, logger *zap.Logger, loaders []config
 	}
 
 	manager := &Manager{
-		logger:     logger,
-		loaders:    loaders,
-		builders:   builders,
-		configPath: initial.Path,
+		Logger:     logger,
+		Loaders:    loaders,
+		Builders:   builders,
+		ConfigPath: initial.Path,
 	}
-	manager.current.Store(&Snapshot{Config: initial.Config, Executor: executor})
+	manager.CurrentSnapshot.Store(&Snapshot{Config: initial.Config, Executor: executor})
 
 	return manager, nil
 }
@@ -58,7 +58,7 @@ func (m *Manager) Current() *Snapshot {
 		return nil
 	}
 
-	return m.current.Load()
+	return m.CurrentSnapshot.Load()
 }
 
 func (m *Manager) CurrentConfig() *config.Config {
@@ -75,23 +75,22 @@ func (m *Manager) Reload() error {
 		return errors.New("nil runtime manager")
 	}
 
-	m.reloadMu.Lock()
-	defer m.reloadMu.Unlock()
+	m.ReloadMu.Lock()
+	defer m.ReloadMu.Unlock()
 
-	result, err := config.LoadConfig(m.configPath, m.loaders...)
+	cfg, _, err := config.LoadConfig(m.ConfigPath, m.Loaders...)
 	if err != nil {
 		return err
 	}
 
-	candidate := result.Config
-	candidate.LogWarnings(m.logger)
+	cfg.LogWarnings(m.Logger)
 
-	executor, err := execute.New().WithConfig(candidate).WithBuilders(m.builders).Build()
+	executor, err := execute.New().WithConfig(cfg).WithBuilders(m.Builders).Build()
 	if err != nil {
 		return err
 	}
 
-	m.current.Store(&Snapshot{Config: candidate, Executor: executor})
+	m.CurrentSnapshot.Store(&Snapshot{Config: cfg, Executor: executor})
 
 	return nil
 }

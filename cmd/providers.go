@@ -11,7 +11,7 @@ import (
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/config/loader"
 	"github.com/Sn0wo2/CatSync/framework"
-	"github.com/Sn0wo2/CatSync/internal/appctx"
+	"github.com/Sn0wo2/CatSync/internal/cstx"
 	"github.com/Sn0wo2/CatSync/log"
 	"github.com/Sn0wo2/CatSync/router"
 	"github.com/Sn0wo2/CatSync/runtime"
@@ -19,20 +19,20 @@ import (
 )
 
 func NewConfig() (*config.LoadResult, error) {
-	result, err := config.Load(loader.NewYAMLLoader(), loader.NewJSONLoader())
+	cfg, path, err := config.LoadConfig("", loader.NewYAMLLoader(), loader.NewJSONLoader())
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			result.Config = config.GetDefaultConfig()
-			if err := result.Config.Validate(); err != nil {
+			cfg = config.GetDefaultConfig()
+			if err := cfg.Validate(); err != nil {
 				return nil, err
 			}
 
-			savePath := result.Path
+			savePath := path
 			switch strings.ToLower(filepath.Ext(savePath)) {
 			case ".json":
-				err = loader.NewJSONLoader().Save(result.Config, savePath)
+				err = loader.NewJSONLoader().Save(cfg, savePath)
 			default:
-				err = loader.NewYAMLLoader().Save(result.Config, savePath)
+				err = loader.NewYAMLLoader().Save(cfg, savePath)
 			}
 
 			if err != nil {
@@ -41,13 +41,13 @@ func NewConfig() (*config.LoadResult, error) {
 
 			log.Writef("Using default config, saved to: %s", savePath)
 
-			return result, nil
+			return &config.LoadResult{Config: cfg, Path: savePath}, nil
 		}
 
 		return nil, err
 	}
 
-	return result, nil
+	return &config.LoadResult{Config: cfg, Path: path}, nil
 }
 
 func NewLogger(result *config.LoadResult) *zap.Logger {
@@ -72,15 +72,15 @@ func NewRuntime(result *config.LoadResult, logger *zap.Logger) (*runtime.Manager
 	)
 }
 
-func NewParams(manager *runtime.Manager, logger *zap.Logger) *appctx.Ctx {
-	p := appctx.New()
+func NewParams(manager *runtime.Manager, logger *zap.Logger) *cstx.Ctx {
+	p := cstx.New()
 	p.ConfigSource = manager
 	p.Logger = logger
 
 	return p
 }
 
-func NewFramework(p *appctx.Ctx, manager *runtime.Manager) *framework.Framework {
+func NewFramework(p *cstx.Ctx, manager *runtime.Manager) *framework.FB {
 	fw := framework.NewFiber(p)
 	p.FW = fw
 	router.Init(p, manager)

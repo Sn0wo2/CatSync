@@ -1,4 +1,4 @@
-package appctx
+package cstx
 
 import (
 	"github.com/Sn0wo2/CatSync/config"
@@ -9,7 +9,7 @@ import (
 type Ctx struct {
 	ConfigSource ConfigSource
 	Logger       *zap.Logger
-	FW           *framework.Framework
+	FW           *framework.FB
 }
 
 type ConfigSource interface {

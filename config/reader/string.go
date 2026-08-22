@@ -19,27 +19,31 @@ const (
 
 type String struct {
 	Type    StringType `json:"type,omitempty" optional:"true" yaml:"type,omitempty"`
-	Content string     `json:"content"        yaml:"content"`
-	loaded  bool
+	Content string     `json:"content"        yaml:"content"` // 从config解析出来的原始内容
 	value   string
 	err     error
+	loaded  bool
 	mu      sync.RWMutex
 }
 
-func Str(s string) *String {
+func NewAuto(s string) *String {
+	return &String{Type: StringTypeAuto, Content: s}
+}
+
+func NewStr(s string) *String {
 	return &String{Type: StringTypeString, Content: s}
 }
 
-func (r *String) Get() (string, error) {
-	if r == nil {
-		return "", nil
-	}
+func NewPath(path string) *String {
+	return &String{Type: StringTypePath, Content: path}
+}
 
-	return r.ReadString(context.Background())
+func NewHTTP(s string) *String {
+	return &String{Type: StringTypeHTTP, Content: s}
 }
 
 func (r *String) Must() string {
-	s, _ := r.Get()
+	s, _ := r.ReadString(context.Background())
 
 	return s
 }

@@ -25,5 +25,5 @@ func InitializeCatSync() (*catSync, error) {
 type catSync struct {
 	Logger  *zap.Logger
 	Runtime *runtime.Manager
-	Server  *framework.Framework
+	Server  *framework.FB
 }

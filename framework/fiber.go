@@ -15,13 +15,13 @@ type Provider interface {
 	GetConfig() *config.Config
 }
 
-type Framework struct {
+type FB struct {
 	Provider
 	*fiber.App
 }
 
-func NewFiber(p Provider) *Framework {
-	return &Framework{
+func NewFiber(p Provider) *FB {
+	return &FB{
 		Provider: p,
 		App: fiber.New(fiber.Config{
 			AppName:       "CatSync",
@@ -35,9 +35,9 @@ func NewFiber(p Provider) *Framework {
 	}
 }
 
-func (ctx *Framework) StartFiber() error {
-	cfg := ctx.GetConfig()
-	logger := ctx.GetLogger()
+func (fb *FB) StartFiber() error {
+	cfg := fb.GetConfig()
+	logger := fb.GetLogger()
 	addr := cfg.Server.Address.Must()
 
 	cert := cfg.Server.TLS.Cert.Must()
@@ -55,10 +55,10 @@ func (ctx *Framework) StartFiber() error {
 		fl.CertFile = cert
 		fl.CertKeyFile = key
 
-		return ctx.Listen(addr, fl)
+		return fb.Listen(addr, fl)
 	}
 
 	logger.Info("HTTP listening", zap.String("addr", addr))
 
-	return ctx.Listen(addr, fl)
+	return fb.Listen(addr, fl)
 }
