@@ -138,24 +138,28 @@ func (c *Config) validateModifier(prefix string, modifier *GlobalModifier, actio
 
 			if err := validateOptionalString(where+".upstream", mod.Upstream); err != nil {
 				add(err)
+
 				return
 			}
 
 			if modifier.Status == 0 {
 				if err := validateRequiredString(where+".upstream", mod.Upstream); err != nil {
 					add(fmt.Errorf("status or valid upstream is required at %s: %w", where, err))
+
 					return
 				}
 			}
 
 			if modifier.Status != 0 && (modifier.Status < 100 || modifier.Status > 599) {
 				add(fmt.Errorf("invalid status code at %s: %d", where, modifier.Status))
+
 				return
 			}
 		case *ActionModifierAuth:
 			where := prefix + ".actionModifierAuth"
 			if mod.Fallback == nil || mod.Fallback.Type == "" {
 				add(fmt.Errorf("auth fallback is required at %s", where))
+
 				return
 			}
 
