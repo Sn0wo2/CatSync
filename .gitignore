@@ -31,12 +31,8 @@ go.work.sum
 .idea/
 .vscode/
 
+# CatSync
 # goreleaser
 dist/
-
-# CatSync
-docker/.data/
+docker/data/
 logs/
-
-# Harness
-.omo/
