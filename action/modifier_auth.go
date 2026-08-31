@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/Sn0wo2/CatSync/internal/util"
-	"go.uber.org/zap"
 )
 
 type AuthFallbackPolicy uint8
@@ -66,8 +65,8 @@ func (m *AuthModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
 
 		if !m.ipWhiteList.IsAllow(ips) {
 			logger.Info("Auth >> IP not allowed",
-				zap.Strings("actual", ips),
-				util.LazyFiberContext(p.FCtx),
+				"actual", ips,
+				"ctx", util.LazyFiberContext(p.FCtx),
 			)
 
 			return p, m.HandleFallback()
@@ -88,7 +87,7 @@ func (m *AuthModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
 		}
 
 		if len(values) == 0 {
-			logger.Info("Auth >> Header missing", zap.String("header", k), util.LazyFiberContext(p.FCtx))
+			logger.Info("Auth >> Header missing", "header", k, "ctx", util.LazyFiberContext(p.FCtx))
 
 			return p, m.HandleFallback()
 		}
@@ -108,10 +107,10 @@ func (m *AuthModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
 			}
 
 			logger.Info("Auth >> Header value not matched",
-				zap.String("header", k),
-				zap.Strings("patterns", patterns),
-				zap.Strings("actual", values),
-				util.LazyFiberContext(p.FCtx),
+				"header", k,
+				"patterns", patterns,
+				"actual", values,
+				"ctx", util.LazyFiberContext(p.FCtx),
 			)
 
 			return p, m.HandleFallback()
@@ -123,10 +122,10 @@ func (m *AuthModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
 
 		if !rule.MatchString(actual) {
 			logger.Info("Auth >> Query value not matched",
-				zap.String("key", k),
-				zap.String("pattern", rule.String()),
-				zap.String("actual", actual),
-				util.LazyFiberContext(p.FCtx),
+				"key", k,
+				"pattern", rule.String(),
+				"actual", actual,
+				"ctx", util.LazyFiberContext(p.FCtx),
 			)
 
 			return p, m.HandleFallback()

@@ -1,17 +1,17 @@
 package framework
 
 import (
+	"log/slog"
 	"time"
 
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/debug"
 	"github.com/Sn0wo2/CatSync/router/errorhandler"
 	"github.com/gofiber/fiber/v3"
-	"go.uber.org/zap"
 )
 
 type Provider interface {
-	GetLogger() *zap.Logger
+	GetLogger() *slog.Logger
 	GetConfig() *config.Config
 }
 
@@ -50,7 +50,7 @@ func (fb *FB) StartFiber() error {
 	}
 
 	if cert != "" && key != "" {
-		logger.Info("TLS listening", zap.String("addr", addr))
+		logger.Info("TLS listening", "addr", addr)
 
 		fl.CertFile = cert
 		fl.CertKeyFile = key
@@ -58,7 +58,7 @@ func (fb *FB) StartFiber() error {
 		return fb.Listen(addr, fl)
 	}
 
-	logger.Info("HTTP listening", zap.String("addr", addr))
+	logger.Info("HTTP listening", "addr", addr)
 
 	return fb.Listen(addr, fl)
 }

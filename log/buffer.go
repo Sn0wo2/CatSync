@@ -3,9 +3,8 @@ package log
 import (
 	"bytes"
 	"fmt"
+	"log/slog"
 	"sync"
-
-	"go.uber.org/zap"
 )
 
 type Buffer struct {
@@ -23,7 +22,7 @@ func Writef(format string, args ...interface{}) {
 	buf.buf.WriteString("\n")
 }
 
-func Flush(logger *zap.Logger) {
+func Flush(logger *slog.Logger) {
 	buf.mu.Lock()
 	defer buf.mu.Unlock()
 

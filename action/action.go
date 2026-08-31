@@ -15,7 +15,6 @@ import (
 	"github.com/Sn0wo2/CatSync/internal/filecache"
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/gofiber/fiber/v3"
-	"go.uber.org/zap"
 )
 
 type ProcessData struct {
@@ -118,7 +117,7 @@ func (h *StringHandler) ProcessAction(p *ProcessData) ExecutionResult {
 
 	body := stringData.Content.Must()
 
-	p.CStx.Logger.Info("Action >> Serve String", util.LazyFiberContext(p.FCtx))
+	p.CStx.Logger.Info("Action >> Serve String", "ctx", util.LazyFiberContext(p.FCtx))
 
 	return ExecutionResult{Err: p.FCtx.SendString(body)}
 }
@@ -151,7 +150,7 @@ func (h *FileHandler) ProcessAction(p *ProcessData) ExecutionResult {
 		return ExecutionResult{Err: fmt.Errorf("failed to get working directory: %w", err)}
 	}
 
-	absDataDir, _ := filepath.Abs(filepath.Join(wd, ".data"))
+	absDataDir, _ := filepath.Abs(filepath.Join(wd, "data"))
 
 	dataDirWithSep := absDataDir + string(filepath.Separator)
 	if safePath != absDataDir && !strings.HasPrefix(safePath, dataDirWithSep) {
@@ -171,7 +170,7 @@ func (h *FileHandler) ProcessAction(p *ProcessData) ExecutionResult {
 		p.FCtx.Set(fiber.HeaderContentType, entry.ContentType)
 	}
 
-	p.CStx.Logger.Info("Action >> Serve File", zap.String("path", pathStr), util.LazyFiberContext(p.FCtx))
+	p.CStx.Logger.Info("Action >> Serve File", "path", pathStr, "ctx", util.LazyFiberContext(p.FCtx))
 
 	return ExecutionResult{Err: p.FCtx.Send(entry.Content)}
 }
@@ -229,7 +228,7 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) ExecutionResult {
 		return ExecutionResult{Err: fmt.Errorf("failed to get working directory: %w", err)}
 	}
 
-	baseDir := filepath.Join(wd, ".data", dirStr)
+	baseDir := filepath.Join(wd, "data", dirStr)
 
 	absBaseDir, err := filepath.Abs(filepath.Clean(baseDir))
 	if err != nil {
@@ -237,11 +236,11 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) ExecutionResult {
 	}
 
 	absBaseDirSep := absBaseDir + string(filepath.Separator)
-	absServerDir, _ := filepath.Abs(filepath.Join(wd, ".data", "server"))
+	absServerDir, _ := filepath.Abs(filepath.Join(wd, "data", "server"))
 
 	serverDirWithSep := absServerDir + string(filepath.Separator)
 	if absBaseDir == absServerDir {
-		return ExecutionResult{Err: fmt.Errorf("directory cannot be server itself, must be a subdirectory under .data/server: %s", dirStr)}
+		return ExecutionResult{Err: fmt.Errorf("directory cannot be server itself, must be a subdirectory under data/server: %s", dirStr)}
 	}
 
 	if !strings.HasPrefix(absBaseDir, serverDirWithSep) {
@@ -273,7 +272,7 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) ExecutionResult {
 		fullPath = foundPath
 	}
 
-	p.CStx.Logger.Info("Action >> Serve Server", zap.String("dir", dirStr), zap.String("file", reqPath), util.LazyFiberContext(p.FCtx))
+	p.CStx.Logger.Info("Action >> Serve Server", "dir", dirStr, "file", reqPath, "ctx", util.LazyFiberContext(p.FCtx))
 
 	return ExecutionResult{Err: p.FCtx.SendFile(fullPath)}
 }
@@ -281,7 +280,7 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) ExecutionResult {
 func (h *ServerHandler) sendErrorPage(p *ProcessData, serverData *config.ActionServerData, status int, dir, file string) error {
 	p.FCtx.Set(fiber.HeaderContentType, "text/html; charset=utf-8")
 	p.FCtx.Status(status)
-	p.CStx.Logger.Info("Action >> Serve Server", zap.String("dir", dir), zap.String("file", file), zap.String("status", strconv.Itoa(status)), util.LazyFiberContext(p.FCtx))
+	p.CStx.Logger.Info("Action >> Serve Server", "dir", dir, "file", file, "status", strconv.Itoa(status), "ctx", util.LazyFiberContext(p.FCtx))
 
 	html := config.DefaultNotFoundHTML
 	if serverData.NotFoundHTML != nil {
@@ -330,13 +329,13 @@ func (h *ReloadHandler) ProcessAction(p *ProcessData) ExecutionResult {
 	}
 
 	if err := p.Reloader.Reload(); err != nil {
-		p.CStx.Logger.Error("Action >> Reload Config Failed", zap.Error(err), util.LazyFiberContext(p.FCtx))
+		p.CStx.Logger.Error("Action >> Reload Config Failed", "error", err, "stack", util.LazyStack(), "ctx", util.LazyFiberContext(p.FCtx))
 		p.FCtx.Status(fiber.StatusInternalServerError)
 
 		return ExecutionResult{Err: p.FCtx.SendString(fmt.Sprintf("Config reload failed: %v", err))}
 	}
 
-	p.CStx.Logger.Info("Action >> Reload Config Success", util.LazyFiberContext(p.FCtx))
+	p.CStx.Logger.Info("Action >> Reload Config Success", "ctx", util.LazyFiberContext(p.FCtx))
 	p.FCtx.Status(fiber.StatusOK)
 
 	return ExecutionResult{Err: p.FCtx.SendString("Config reloaded successfully")}

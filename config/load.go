@@ -26,7 +26,7 @@ func LoadConfig(configPath string, loaders ...Loader) (*Config, string, error) {
 	}
 
 	if configPath == "" {
-		configPath = "./.data/config.yml"
+		configPath = "./data/config.yml"
 
 		if CLIConfigPath != "" {
 			if _, err := os.Stat(CLIConfigPath); err == nil {
@@ -35,37 +35,26 @@ func LoadConfig(configPath string, loaders ...Loader) (*Config, string, error) {
 				goto LOAD
 			}
 
-			base := strings.TrimSuffix(CLIConfigPath, filepath.Ext(CLIConfigPath))
+			base := filepath.Dir(CLIConfigPath)
 			for ext := range loaderByExt {
 				tryPath := base + ext
 				if _, err := os.Stat(tryPath); err == nil {
-					configPath = tryPath
+					configPath = tryPath // 完成寻找, 开始LOAD
 
 					goto LOAD
 				}
 			}
 
-			configPath = CLIConfigPath
+			configPath = CLIConfigPath // 找不到, 使用默认的开始LOAD吧
 
 			goto LOAD
-		}
-
-		for ext := range loaderByExt {
-			cfgPath := filepath.Join("./.data/", "config"+ext)
-			if _, err := os.Stat(cfgPath); err == nil {
-				configPath = cfgPath
-
-				goto LOAD
-			}
 		}
 	}
 
 LOAD:
 	fileCfg := &Config{}
 
-	ext := strings.ToLower(filepath.Ext(configPath))
-
-	loader, ok := loaderByExt[ext]
+	loader, ok := loaderByExt[strings.ToLower(filepath.Ext(configPath))]
 	if ok {
 		if err := loader.Load(fileCfg, configPath); err != nil {
 			return nil, configPath, fmt.Errorf("failed to load config file %s: %w", configPath, err)

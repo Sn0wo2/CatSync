@@ -6,8 +6,8 @@ package main
 import (
 	"github.com/Sn0wo2/CatSync/framework"
 	"github.com/Sn0wo2/CatSync/runtime"
+	"github.com/Sn0wo2/caelum"
 	"github.com/google/wire"
-	"go.uber.org/zap"
 )
 
 func InitializeCatSync() (*catSync, error) {
@@ -23,7 +23,7 @@ func InitializeCatSync() (*catSync, error) {
 }
 
 type catSync struct {
-	Logger  *zap.Logger
+	Logger  *caelum.Logger
 	Runtime *runtime.Manager
 	Server  *framework.FB
 }

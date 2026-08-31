@@ -9,7 +9,7 @@ package main
 import (
 	"github.com/Sn0wo2/CatSync/framework"
 	"github.com/Sn0wo2/CatSync/runtime"
-	"go.uber.org/zap"
+	"github.com/Sn0wo2/caelum"
 )
 
 // Injectors from wire.go:
@@ -25,11 +25,11 @@ func InitializeCatSync() (*catSync, error) {
 		return nil, err
 	}
 	ctx := NewParams(manager, logger)
-	framework := NewFramework(ctx, manager)
+	fb := NewFramework(ctx, manager)
 	mainCatSync := &catSync{
 		Logger:  logger,
 		Runtime: manager,
-		Server:  framework,
+		Server:  fb,
 	}
 	return mainCatSync, nil
 }
@@ -37,7 +37,7 @@ func InitializeCatSync() (*catSync, error) {
 // wire.go:
 
 type catSync struct {
-	Logger  *zap.Logger
+	Logger  *caelum.Logger
 	Runtime *runtime.Manager
 	Server  *framework.FB
 }

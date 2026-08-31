@@ -2,13 +2,13 @@ package util
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/Sn0wo2/go-common/helper"
 	"github.com/gofiber/fiber/v3"
-	"go.uber.org/zap"
 )
 
 func FiberContextString(ctx fiber.Ctx) string {
@@ -58,15 +58,15 @@ func FiberContextString(ctx fiber.Ctx) string {
 	return sb.String()
 }
 
-type lazyCtxStringer struct {
+type lazyCtxValue struct {
 	ctx fiber.Ctx
 }
 
-func (l lazyCtxStringer) String() string {
-	return FiberContextString(l.ctx)
+func (l lazyCtxValue) LogValue() slog.Value {
+	return slog.StringValue(FiberContextString(l.ctx))
 }
 
-// when the log entry is actually written (i.e., log level is enabled).
-func LazyFiberContext(ctx fiber.Ctx) zap.Field {
-	return zap.Stringer("ctx", lazyCtxStringer{ctx: ctx})
+// LazyFiberContext formats the request only when the log entry is written.
+func LazyFiberContext(ctx fiber.Ctx) slog.LogValuer {
+	return lazyCtxValue{ctx: ctx}
 }

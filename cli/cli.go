@@ -18,7 +18,7 @@ func Execute() *Options {
 
 	root := &cobra.Command{
 		Use:     "CatSync",
-		Short:   "Sync the cat config backend server",
+		Short:   "Sync the「cat」config",
 		Version: GetCLIVersion(),
 		Run: func(cmd *cobra.Command, _ []string) {
 			ran = true
@@ -30,7 +30,7 @@ func Execute() *Options {
 
 	flags := root.Flags()
 
-	flags.StringP("config", "cfg", "", "Path to the configuration file")
+	flags.String("config", "", "Path to the configuration file")
 	flags.BoolP("check", "c", false, "Validate configuration and exit")
 
 	_ = root.MarkFlagFilename("config", "yaml", "yml", "json")

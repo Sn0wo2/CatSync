@@ -15,7 +15,7 @@ import (
 	"github.com/Sn0wo2/CatSync/log"
 	"github.com/Sn0wo2/CatSync/router"
 	"github.com/Sn0wo2/CatSync/runtime"
-	"go.uber.org/zap"
+	"github.com/Sn0wo2/caelum"
 )
 
 func NewConfig() (*config.LoadResult, error) {
@@ -50,19 +50,19 @@ func NewConfig() (*config.LoadResult, error) {
 	return &config.LoadResult{Config: cfg, Path: path}, nil
 }
 
-func NewLogger(result *config.LoadResult) *zap.Logger {
+func NewLogger(result *config.LoadResult) *caelum.Logger {
 	logger := log.NewLog(result.Config.Log.Dir.Must(), result.Config.Log.Level.Must(), result.Config.Log.FileFormat.Must())
-	log.Flush(logger)
+	log.Flush(logger.Logger)
 
 	return logger
 }
 
-func NewRuntime(result *config.LoadResult, logger *zap.Logger) (*runtime.Manager, error) {
-	result.Config.LogWarnings(logger)
+func NewRuntime(result *config.LoadResult, logger *caelum.Logger) (*runtime.Manager, error) {
+	result.Config.LogWarnings(logger.Logger)
 
 	return runtime.NewManager(
 		result,
-		logger,
+		logger.Logger,
 		[]config.Loader{loader.NewYAMLLoader(), loader.NewJSONLoader()},
 		execute.Builders{
 			Global:  action.BuildGlobalModifiers,
@@ -72,10 +72,10 @@ func NewRuntime(result *config.LoadResult, logger *zap.Logger) (*runtime.Manager
 	)
 }
 
-func NewParams(manager *runtime.Manager, logger *zap.Logger) *cstx.Ctx {
+func NewParams(manager *runtime.Manager, logger *caelum.Logger) *cstx.Ctx {
 	p := cstx.New()
 	p.ConfigSource = manager
-	p.Logger = logger
+	p.Logger = logger.Logger
 
 	return p
 }

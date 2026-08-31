@@ -12,8 +12,8 @@ import (
 	"github.com/Sn0wo2/CatSync/cli"
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/config/loader"
+	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/gofiber/fiber/v3"
-	"go.uber.org/zap"
 )
 
 func main() {
@@ -52,11 +52,11 @@ func main() {
 	server := catSync.Server
 
 	defer func() {
-		_ = logger.Sync()
+		_ = logger.Close()
 	}()
 
 	if !fiber.IsChild() {
-		logger.Info("Starting CatSync...", zap.String("version", cli.GetFormatVersion()))
+		logger.Info("Starting CatSync...", "version", cli.GetFormatVersion())
 	}
 
 	shutdownChan := make(chan os.Signal, 1)
@@ -65,7 +65,10 @@ func main() {
 	go func() {
 		cfg := catSync.Runtime.CurrentConfig()
 		if cfg == nil {
-			logger.Fatal("Runtime config unavailable")
+			logger.Error("Runtime config unavailable", "stack", util.LazyStack())
+			_ = logger.Close()
+
+			os.Exit(1)
 		}
 
 		addr := cfg.Server.Address.Must()
@@ -104,9 +107,13 @@ func main() {
 		logger.Info("Server listening on: " + strings.Join(logAddresses, ", "))
 
 		if err := server.StartFiber(); err != nil {
-			logger.Fatal("Server failed to start",
-				zap.Error(err),
+			logger.Error("Server failed to start",
+				"error", err,
+				"stack", util.LazyStack(),
 			)
+			_ = logger.Close()
+
+			os.Exit(1)
 		}
 	}()
 
@@ -115,7 +122,8 @@ func main() {
 
 	if err := server.Shutdown(); err != nil {
 		logger.Error("Server failed to shutdown",
-			zap.Error(err),
+			"error", err,
+			"stack", util.LazyStack(),
 		)
 	}
 }

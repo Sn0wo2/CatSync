@@ -1,14 +1,15 @@
 package cstx
 
 import (
+	"log/slog"
+
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/framework"
-	"go.uber.org/zap"
 )
 
 type Ctx struct {
 	ConfigSource ConfigSource
-	Logger       *zap.Logger
+	Logger       *slog.Logger
 	FW           *framework.FB
 }
 
@@ -28,6 +29,6 @@ func (c *Ctx) GetConfig() *config.Config {
 	return c.ConfigSource.CurrentConfig()
 }
 
-func (c *Ctx) GetLogger() *zap.Logger {
+func (c *Ctx) GetLogger() *slog.Logger {
 	return c.Logger
 }

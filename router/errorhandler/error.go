@@ -2,11 +2,11 @@ package errorhandler
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 )
 
 type Response struct {
@@ -33,14 +33,14 @@ func (r *Response) Write(ctx fiber.Ctx, status ...int) error {
 	return ctx.JSON(r)
 }
 
-func Error(logger *zap.Logger) func(ctx fiber.Ctx, err error) error {
+func Error(logger *slog.Logger) func(ctx fiber.Ctx, err error) error {
 	return func(ctx fiber.Ctx, err error) error {
 		traceID := uuid.NewString()
 
 		logger.Error(fmt.Sprintf("EH >> %+v", err),
-			zap.String("traceID", traceID),
-			zap.Stack("stack"),
-			util.LazyFiberContext(ctx),
+			"traceID", traceID,
+			"stack", util.LazyStack(),
+			"ctx", util.LazyFiberContext(ctx),
 		)
 
 		return New("oops, something went wrong", fiber.Map{"traceID": traceID}).Write(ctx, fiber.StatusInternalServerError)

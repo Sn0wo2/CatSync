@@ -2,12 +2,12 @@ package runtime
 
 import (
 	"errors"
+	"log/slog"
 	"sync"
 	"sync/atomic"
 
 	"github.com/Sn0wo2/CatSync/action/execute"
 	"github.com/Sn0wo2/CatSync/config"
-	"go.uber.org/zap"
 )
 
 type Snapshot struct {
@@ -18,13 +18,13 @@ type Snapshot struct {
 type Manager struct {
 	CurrentSnapshot atomic.Pointer[Snapshot]
 	ReloadMu        sync.Mutex
-	Logger          *zap.Logger
+	Logger          *slog.Logger
 	Loaders         []config.Loader
 	Builders        execute.Builders
 	ConfigPath      string
 }
 
-func NewManager(initial *config.LoadResult, logger *zap.Logger, loaders []config.Loader, builders execute.Builders) (*Manager, error) {
+func NewManager(initial *config.LoadResult, logger *slog.Logger, loaders []config.Loader, builders execute.Builders) (*Manager, error) {
 	if initial == nil || initial.Config == nil {
 		return nil, errors.New("nil config")
 	}

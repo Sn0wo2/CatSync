@@ -3,12 +3,12 @@ package config
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/netip"
 	"strings"
 
 	"github.com/Sn0wo2/CatSync/config/reader"
 	"github.com/Sn0wo2/CatSync/internal/util"
-	"go.uber.org/zap"
 )
 
 func validateRequiredString(where string, value *reader.String) error {
@@ -259,7 +259,7 @@ func (c *Config) validateModifier(prefix string, modifier *GlobalModifier, actio
 	})
 }
 
-func (c *Config) LogWarnings(logger *zap.Logger) {
+func (c *Config) LogWarnings(logger *slog.Logger) {
 	if c == nil || logger == nil {
 		return
 	}
@@ -276,8 +276,8 @@ func (c *Config) LogWarnings(logger *zap.Logger) {
 		route, _ := action.Route.LiteralTrim()
 		if route == "" {
 			logger.Info("Config >> action route is empty; action is jump-only",
-				zap.Int("index", i),
-				zap.String("type", string(action.TypeName())),
+				"index", i,
+				"type", string(action.TypeName()),
 			)
 		}
 	}
@@ -285,14 +285,14 @@ func (c *Config) LogWarnings(logger *zap.Logger) {
 	lastIndex := len(c.Actions) - 1
 	last := c.Actions[lastIndex]
 	logger.Info("Config >> notfound handler is the last action",
-		zap.Int("index", lastIndex),
-		zap.String("type", string(last.TypeName())),
+		"index", lastIndex,
+		"type", string(last.TypeName()),
 	)
 
 	if last.TypeName() == ActionFile {
 		logger.Warn("Config >> notfound handler is file action; may leak file contents",
-			zap.Int("index", lastIndex),
-			zap.String("type", string(last.TypeName())),
+			"index", lastIndex,
+			"type", string(last.TypeName()),
 		)
 	}
 }
