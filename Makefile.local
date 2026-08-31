@@ -1,0 +1,4 @@
+.PHONY: run_local
+
+run_local:
+	cd docker && go run .. -tags catsync_all
