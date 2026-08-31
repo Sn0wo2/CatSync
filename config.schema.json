@@ -390,7 +390,7 @@
                 },
                 "type": "object"
               },
-              "ipAllowlist": {
+              "IPWhiteListlist": {
                 "items": {
                   "type": "string"
                 },
@@ -488,6 +488,52 @@
             "required": [
               "placeholder"
             ]
+          },
+          "actionModifierAge": {
+            "properties": {
+              "recipients": {
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "auto",
+                            "string",
+                            "path",
+                            "http"
+                          ]
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "content"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              "armor": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "recipients"
+            ]
           }
         },
         "additionalProperties": false,
@@ -498,9 +544,6 @@
     "actions": {
       "items": {
         "properties": {
-          "label": {
-            "type": "string"
-          },
           "route": {
             "oneOf": [
               {
@@ -531,6 +574,9 @@
                 "type": "null"
               }
             ]
+          },
+          "label": {
+            "type": "string"
           },
           "skipGlobalModifiers": {
             "type": "boolean"
@@ -731,7 +777,7 @@
                 },
                 "type": "object"
               },
-              "ipAllowlist": {
+              "IPWhiteListlist": {
                 "items": {
                   "type": "string"
                 },
@@ -828,6 +874,52 @@
             "type": "object",
             "required": [
               "placeholder"
+            ]
+          },
+          "actionModifierAge": {
+            "properties": {
+              "recipients": {
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "auto",
+                            "string",
+                            "path",
+                            "http"
+                          ]
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "content"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              "armor": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "recipients"
             ]
           },
           "file": {
@@ -997,7 +1089,7 @@
                     },
                     "type": "object"
                   },
-                  "ipAllowlist": {
+                  "IPWhiteListlist": {
                     "items": {
                       "type": "string"
                     },
@@ -1094,6 +1186,52 @@
                 "type": "object",
                 "required": [
                   "placeholder"
+                ]
+              },
+              "actionModifierAge": {
+                "properties": {
+                  "recipients": {
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "auto",
+                                "string",
+                                "path",
+                                "http"
+                              ]
+                            },
+                            "content": {
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "content"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "type": "array"
+                  },
+                  "armor": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "recipients"
                 ]
               },
               "path": {
@@ -1305,7 +1443,7 @@
                     },
                     "type": "object"
                   },
-                  "ipAllowlist": {
+                  "IPWhiteListlist": {
                     "items": {
                       "type": "string"
                     },
@@ -1402,6 +1540,52 @@
                 "type": "object",
                 "required": [
                   "placeholder"
+                ]
+              },
+              "actionModifierAge": {
+                "properties": {
+                  "recipients": {
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "auto",
+                                "string",
+                                "path",
+                                "http"
+                              ]
+                            },
+                            "content": {
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "content"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "type": "array"
+                  },
+                  "armor": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "recipients"
                 ]
               },
               "content": {
@@ -1609,7 +1793,7 @@
                     },
                     "type": "object"
                   },
-                  "ipAllowlist": {
+                  "IPWhiteListlist": {
                     "items": {
                       "type": "string"
                     },
@@ -1706,6 +1890,52 @@
                 "type": "object",
                 "required": [
                   "placeholder"
+                ]
+              },
+              "actionModifierAge": {
+                "properties": {
+                  "recipients": {
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "auto",
+                                "string",
+                                "path",
+                                "http"
+                              ]
+                            },
+                            "content": {
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "content"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "type": "array"
+                  },
+                  "armor": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "recipients"
                 ]
               },
               "directory": {
@@ -1978,7 +2208,7 @@
                     },
                     "type": "object"
                   },
-                  "ipAllowlist": {
+                  "IPWhiteListlist": {
                     "items": {
                       "type": "string"
                     },
@@ -2075,6 +2305,52 @@
                 "type": "object",
                 "required": [
                   "placeholder"
+                ]
+              },
+              "actionModifierAge": {
+                "properties": {
+                  "recipients": {
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "auto",
+                                "string",
+                                "path",
+                                "http"
+                              ]
+                            },
+                            "content": {
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "content"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "type": "array"
+                  },
+                  "armor": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "recipients"
                 ]
               }
             },
