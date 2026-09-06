@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	filippo.io/age v1.3.2
 	github.com/Sn0wo2/caelum v0.2.0
-	github.com/Sn0wo2/go-common v0.0.0-20251204153924-3a4985f7ff6e
+	github.com/Sn0wo2/go-common v0.0.0-20260906015713-15e8c0fde4b7
 	github.com/gofiber/fiber/v3 v3.5.0
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.7.0
