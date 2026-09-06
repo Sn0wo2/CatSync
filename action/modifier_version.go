@@ -7,22 +7,6 @@ type PlaceholderModifier struct {
 	value       string
 }
 
-func NewPlaceholderModifier() *PlaceholderModifier {
-	return &PlaceholderModifier{}
-}
-
-func (p *PlaceholderModifier) WithPlaceholder(placeholder string) *PlaceholderModifier {
-	p.placeholder = placeholder
-
-	return p
-}
-
-func (p *PlaceholderModifier) WithValue(value string) *PlaceholderModifier {
-	p.value = value
-
-	return p
-}
-
 func (p *PlaceholderModifier) Before(pd *ProcessData) (*ProcessData, ExecutionResult) {
 	return pd, ExecutionResult{}
 }

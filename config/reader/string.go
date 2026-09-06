@@ -22,8 +22,8 @@ type String struct {
 	Content string     `json:"content"        yaml:"content"` // 从config解析出来的原始内容
 	value   string
 	err     error
-	loaded  bool
-	mu      sync.RWMutex
+	once    sync.Once
+	mu      sync.Mutex
 }
 
 func NewAuto(s string) *String {

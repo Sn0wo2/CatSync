@@ -30,7 +30,6 @@ func main() {
 
 	reflector := jsonschema.Reflector{
 		AllowAdditionalProperties: false,
-		DoNotReference:            true,
 		Mapper: func(t reflect.Type) *jsonschema.Schema {
 			if t != reflect.TypeOf(reader.String{}) {
 				return nil

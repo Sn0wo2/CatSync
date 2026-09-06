@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -17,78 +18,72 @@ func (r *String) ReadString(ctx context.Context) (string, error) {
 		return "", nil
 	}
 
-	fail := func(err error) (string, error) {
-		r.err = err
-		r.loaded = true
-
-		return r.value, r.err
-	}
-
-	r.mu.RLock()
-
-	if r.loaded {
-		r.mu.RUnlock()
-
-		return r.value, r.err
-	}
-
-	r.mu.RUnlock()
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if r.loaded {
-		return r.value, r.err
-	}
-
-	t, content := resolve(r.Type, r.Content)
-	switch t {
-	case StringTypeAuto:
-		r.value = content
-	case StringTypeString:
-		r.value = content
-	case StringTypePath:
-		//nolint:gosec // This is an intended feature: reading file contents via user configuration.
-		b, err := os.ReadFile(content)
-		if err != nil {
-			return fail(err)
+	r.once.Do(func() {
+		fail := func(err error) {
+			r.err = err
 		}
 
-		r.value = string(b)
-	case StringTypeHTTP:
-		u, err := parseHTTPURL(content)
-		if err != nil {
-			return fail(err)
+		t, content := resolve(r.Type, r.Content)
+		switch t {
+		case StringTypeAuto, StringTypeString:
+			r.value = content
+		case StringTypePath:
+			//nolint:gosec // This is an intended feature: reading file contents via user configuration.
+			b, err := os.ReadFile(content)
+			if err != nil {
+				fail(err)
+
+				return
+			}
+
+			r.value = string(b)
+		case StringTypeHTTP:
+			u, err := parseHTTPURL(content)
+			if err != nil {
+				fail(err)
+
+				return
+			}
+
+			c := &http.Client{Timeout: 10 * time.Second}
+
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+			if err != nil {
+				fail(err)
+
+				return
+			}
+
+			resp, err := c.Do(req)
+			if err != nil {
+				fail(err)
+
+				return
+			}
+
+			defer func() { _ = resp.Body.Close() }()
+
+			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+				fail(fmt.Errorf("http status %d", resp.StatusCode))
+
+				return
+			}
+
+			b, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+			if err != nil {
+				fail(err)
+
+				return
+			}
+
+			r.value = string(b)
+		default:
+			fail(fmt.Errorf("unsupported type: %q", t))
 		}
-
-		c := &http.Client{Timeout: 10 * time.Second}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
-		if err != nil {
-			return fail(err)
-		}
-
-		resp, err := c.Do(req)
-		if err != nil {
-			return fail(err)
-		}
-
-		defer func() { _ = resp.Body.Close() }()
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return fail(fmt.Errorf("http status %d", resp.StatusCode))
-		}
-
-		b, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-		if err != nil {
-			return fail(err)
-		}
-
-		r.value = string(b)
-	default:
-		return fail(fmt.Errorf("unsupported type: %q", t))
-	}
-
-	r.loaded = true
+	})
 
 	return r.value, r.err
 }
@@ -103,7 +98,7 @@ func (r *String) Reset() {
 
 	r.value = ""
 	r.err = nil
-	r.loaded = false
+	r.once = sync.Once{}
 }
 
 func (r *String) ReadLines(ctx context.Context) ([]string, error) {

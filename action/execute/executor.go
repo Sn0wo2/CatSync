@@ -26,12 +26,6 @@ type Result struct {
 	JumpTo int
 }
 
-type Builders struct {
-	Global  func(*config.Config) ([]action.Modifier, error)
-	Action  func(*config.Action) ([]action.Modifier, error)
-	Payload func(config.ActionData) ([]action.Modifier, error)
-}
-
 type ActionEntry struct {
 	Exact   string
 	Re      *regexp.Regexp
@@ -41,7 +35,6 @@ type ActionEntry struct {
 
 type Executor struct {
 	Cfg              *config.Config
-	Builders         Builders
 	Registry         action.Registry
 	Entries          []ActionEntry
 	LabelIndex       map[string]int
@@ -54,12 +47,6 @@ func New() *Executor {
 
 func (e *Executor) WithConfig(cfg *config.Config) *Executor {
 	e.Cfg = cfg
-
-	return e
-}
-
-func (e *Executor) WithBuilders(builders Builders) *Executor {
-	e.Builders = builders
 
 	return e
 }
@@ -127,25 +114,21 @@ func (e *Executor) Build() (*Executor, error) {
 			return nil
 		}
 
-		if !act.SkipGlobalModifiers && e.Builders.Global != nil {
-			mods, err := e.Builders.Global(e.Cfg)
+		if !act.SkipGlobalModifiers {
+			mods, err := action.BuildGlobalModifiers(e.Cfg)
 			if err := add("global", mods, err); err != nil {
 				return nil, err
 			}
 		}
 
-		if e.Builders.Action != nil {
-			mods, err := e.Builders.Action(act)
-			if err := add("action", mods, err); err != nil {
-				return nil, err
-			}
+		mods, err := action.BuildModifiers(&act.GlobalModifier)
+		if err := add("action", mods, err); err != nil {
+			return nil, err
 		}
 
-		if e.Builders.Payload != nil {
-			mods, err := e.Builders.Payload(payload)
-			if err := add("payload", mods, err); err != nil {
-				return nil, err
-			}
+		mods, err = action.BuildModifiers(payload.GetGlobalModifier())
+		if err := add("payload", mods, err); err != nil {
+			return nil, err
 		}
 
 		entry.Handler = h

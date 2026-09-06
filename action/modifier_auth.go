@@ -25,35 +25,6 @@ type AuthModifier struct {
 	fallbackJump int
 }
 
-func NewAuthModifier() *AuthModifier {
-	return &AuthModifier{}
-}
-
-func (m *AuthModifier) WithHeaderRules(rules map[string][]*regexp.Regexp) *AuthModifier {
-	m.headerRules = rules
-
-	return m
-}
-
-func (m *AuthModifier) WithQueryRules(rules map[string]*regexp.Regexp) *AuthModifier {
-	m.queryRules = rules
-
-	return m
-}
-
-func (m *AuthModifier) WithIPWhiteList(wl *IPWhiteList) *AuthModifier {
-	m.ipWhiteList = wl
-
-	return m
-}
-
-func (m *AuthModifier) WithFallback(policy AuthFallbackPolicy, jumpTo int) *AuthModifier {
-	m.fallback = policy
-	m.fallbackJump = jumpTo
-
-	return m
-}
-
 func (m *AuthModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
 	logger := p.CStx.Logger
 

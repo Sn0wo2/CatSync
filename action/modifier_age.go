@@ -16,22 +16,6 @@ type AgeModifier struct {
 	armor      bool
 }
 
-func NewAgeModifier() *AgeModifier {
-	return &AgeModifier{armor: true}
-}
-
-func (m *AgeModifier) WithRecipients(recipients []age.Recipient) *AgeModifier {
-	m.recipients = recipients
-
-	return m
-}
-
-func (m *AgeModifier) WithArmor(armor bool) *AgeModifier {
-	m.armor = armor
-
-	return m
-}
-
 func (m *AgeModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
 	return p, ExecutionResult{}
 }

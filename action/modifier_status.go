@@ -11,22 +11,6 @@ type StatusModifier struct {
 	upstream string
 }
 
-func NewStatusModifier() *StatusModifier {
-	return &StatusModifier{}
-}
-
-func (v *StatusModifier) WithStatus(status uint16) *StatusModifier {
-	v.status = status
-
-	return v
-}
-
-func (v *StatusModifier) WithUpstream(upstream string) *StatusModifier {
-	v.upstream = upstream
-
-	return v
-}
-
 func (v *StatusModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
 	status := v.status
 	if v.upstream != "" {

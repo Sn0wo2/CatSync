@@ -209,10 +209,3 @@ type ActionModifierAge struct {
 	// Armor outputs PEM-style age armor format, defaults to true
 	Armor *bool `json:"armor,omitempty" optional:"true" yaml:"armor,omitempty"`
 }
-
-type Loader interface {
-	GetTag() string
-	Load(cfg *Config, fileName string) error
-	Save(cfg *Config, fileName string) error
-	GetAllowFileExtensions() []string
-}

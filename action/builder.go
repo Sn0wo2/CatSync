@@ -31,22 +31,6 @@ func BuildGlobalModifiers(cfg *config.Config) ([]Modifier, error) {
 	return modifiers, nil
 }
 
-func BuildActionModifiers(act *config.Action) ([]Modifier, error) {
-	if act == nil {
-		return nil, nil
-	}
-
-	return BuildModifiers(&act.GlobalModifier)
-}
-
-func BuildPayloadModifiers(data config.ActionData) ([]Modifier, error) {
-	if data == nil {
-		return nil, nil
-	}
-
-	return BuildModifiers(data.GetGlobalModifier())
-}
-
 func BuildModifiers(gm *config.GlobalModifier) ([]Modifier, error) {
 	if gm == nil {
 		return nil, nil
@@ -70,7 +54,7 @@ func BuildModifiers(gm *config.GlobalModifier) ([]Modifier, error) {
 				return
 			}
 
-			modifiers = append(modifiers, NewStatusModifier().WithStatus(mod.Status).WithUpstream(upstream))
+			modifiers = append(modifiers, &StatusModifier{status: mod.Status, upstream: upstream})
 		case *config.ActionModifierAuth:
 			m, err := buildAuthModifier(mod)
 			if err != nil {
@@ -88,7 +72,7 @@ func BuildModifiers(gm *config.GlobalModifier) ([]Modifier, error) {
 				return
 			}
 
-			modifiers = append(modifiers, NewResponseHeaderModifier().WithHeader(mod.Header).WithUpstream(upstream))
+			modifiers = append(modifiers, &ResponseHeaderModifier{header: mod.Header, upstream: upstream})
 		case *config.ActionModifierVersion:
 			if mod.Placeholder == nil {
 				buildErr = errors.New("actionVersionModifier.placeholder is required")
@@ -103,7 +87,7 @@ func BuildModifiers(gm *config.GlobalModifier) ([]Modifier, error) {
 				return
 			}
 
-			modifiers = append(modifiers, NewPlaceholderModifier().WithPlaceholder(placeholder).WithValue(cli.GetFormatVersion()))
+			modifiers = append(modifiers, &PlaceholderModifier{placeholder: placeholder, value: cli.GetFormatVersion()})
 		case *config.ActionModifierAge:
 			recipients := make([]age.Recipient, 0, len(mod.Recipients))
 
@@ -134,7 +118,7 @@ func BuildModifiers(gm *config.GlobalModifier) ([]Modifier, error) {
 				armorOut = *mod.Armor
 			}
 
-			modifiers = append(modifiers, NewAgeModifier().WithRecipients(recipients).WithArmor(armorOut))
+			modifiers = append(modifiers, &AgeModifier{recipients: recipients, armor: armorOut})
 		}
 	})
 
@@ -146,7 +130,7 @@ func BuildModifiers(gm *config.GlobalModifier) ([]Modifier, error) {
 }
 
 func buildAuthModifier(mod *config.ActionModifierAuth) (Modifier, error) {
-	m := NewAuthModifier()
+	m := &AuthModifier{}
 
 	if len(mod.Header) > 0 {
 		headerRules := make(map[string][]*regexp.Regexp, len(mod.Header))
@@ -171,7 +155,7 @@ func buildAuthModifier(mod *config.ActionModifierAuth) (Modifier, error) {
 			headerRules[k] = rules
 		}
 
-		m.WithHeaderRules(headerRules)
+		m.headerRules = headerRules
 	}
 
 	if len(mod.Query) > 0 {
@@ -191,7 +175,7 @@ func buildAuthModifier(mod *config.ActionModifierAuth) (Modifier, error) {
 			queryRules[k] = re
 		}
 
-		m.WithQueryRules(queryRules)
+		m.queryRules = queryRules
 	}
 
 	if len(mod.IPWhiteList) > 0 || mod.IPFile != nil {
@@ -211,7 +195,7 @@ func buildAuthModifier(mod *config.ActionModifierAuth) (Modifier, error) {
 			return nil, fmt.Errorf("ipAllowlist: %w", err)
 		}
 
-		m.WithIPWhiteList(wl)
+		m.ipWhiteList = wl
 	}
 
 	if mod.Fallback != nil {
@@ -223,7 +207,8 @@ func buildAuthModifier(mod *config.ActionModifierAuth) (Modifier, error) {
 			jumpTo = mod.Fallback.JumpTo
 		}
 
-		m.WithFallback(policy, jumpTo)
+		m.fallback = policy
+		m.fallbackJump = jumpTo
 	}
 
 	return m, nil

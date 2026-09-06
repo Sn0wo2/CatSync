@@ -14,25 +14,6 @@ type Response struct {
 	Data any    `json:"data,omitempty"`
 }
 
-func New(msg string, data ...any) *Response {
-	r := &Response{Msg: msg}
-	if len(data) == 1 {
-		r.Data = data[0]
-	} else if len(data) > 1 {
-		r.Data = data
-	}
-
-	return r
-}
-
-func (r *Response) Write(ctx fiber.Ctx, status ...int) error {
-	if len(status) > 0 {
-		ctx.Status(status[0])
-	}
-
-	return ctx.JSON(r)
-}
-
 func Error(logger *slog.Logger) func(ctx fiber.Ctx, err error) error {
 	return func(ctx fiber.Ctx, err error) error {
 		traceID := uuid.NewString()
@@ -43,6 +24,11 @@ func Error(logger *slog.Logger) func(ctx fiber.Ctx, err error) error {
 			"ctx", util.LazyFiberContext(ctx),
 		)
 
-		return New("oops, something went wrong", fiber.Map{"traceID": traceID}).Write(ctx, fiber.StatusInternalServerError)
+		ctx.Status(fiber.StatusInternalServerError)
+
+		return ctx.JSON(&Response{
+			Msg:  "oops, something went wrong",
+			Data: fiber.Map{"traceID": traceID},
+		})
 	}
 }

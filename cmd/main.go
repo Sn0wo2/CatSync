@@ -11,7 +11,6 @@ import (
 
 	"github.com/Sn0wo2/CatSync/cli"
 	"github.com/Sn0wo2/CatSync/config"
-	"github.com/Sn0wo2/CatSync/config/loader"
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/gofiber/fiber/v3"
 )
@@ -27,7 +26,7 @@ func main() {
 	}
 
 	if opts.CheckOnly {
-		_, path, err := config.LoadConfig("", loader.NewYAMLLoader(), loader.NewJSONLoader())
+		_, path, err := config.LoadConfig("")
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				fmt.Fprintf(os.Stderr, "CONFIGURATION ERROR: config file not found\n")

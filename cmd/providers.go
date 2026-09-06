@@ -3,13 +3,8 @@ package main
 import (
 	"errors"
 	"os"
-	"path/filepath"
-	"strings"
 
-	"github.com/Sn0wo2/CatSync/action"
-	"github.com/Sn0wo2/CatSync/action/execute"
 	"github.com/Sn0wo2/CatSync/config"
-	"github.com/Sn0wo2/CatSync/config/loader"
 	"github.com/Sn0wo2/CatSync/framework"
 	"github.com/Sn0wo2/CatSync/internal/cstx"
 	"github.com/Sn0wo2/CatSync/log"
@@ -19,7 +14,7 @@ import (
 )
 
 func NewConfig() (*config.LoadResult, error) {
-	cfg, path, err := config.LoadConfig("", loader.NewYAMLLoader(), loader.NewJSONLoader())
+	cfg, path, err := config.LoadConfig("")
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			cfg = config.GetDefaultConfig()
@@ -28,13 +23,8 @@ func NewConfig() (*config.LoadResult, error) {
 			}
 
 			savePath := path
-			switch strings.ToLower(filepath.Ext(savePath)) {
-			case ".json":
-				err = loader.NewJSONLoader().Save(cfg, savePath)
-			default:
-				err = loader.NewYAMLLoader().Save(cfg, savePath)
-			}
 
+			err = config.SaveConfig(cfg, savePath)
 			if err != nil {
 				return nil, err
 			}
@@ -60,16 +50,7 @@ func NewLogger(result *config.LoadResult) *caelum.Logger {
 func NewRuntime(result *config.LoadResult, logger *caelum.Logger) (*runtime.Manager, error) {
 	result.Config.LogWarnings(logger.Logger)
 
-	return runtime.NewManager(
-		result,
-		logger.Logger,
-		[]config.Loader{loader.NewYAMLLoader(), loader.NewJSONLoader()},
-		execute.Builders{
-			Global:  action.BuildGlobalModifiers,
-			Action:  action.BuildActionModifiers,
-			Payload: action.BuildPayloadModifiers,
-		},
-	)
+	return runtime.NewManager(result, logger.Logger)
 }
 
 func NewParams(manager *runtime.Manager, logger *caelum.Logger) *cstx.Ctx {

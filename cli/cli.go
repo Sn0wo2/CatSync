@@ -1,9 +1,10 @@
 package cli
 
 import (
+	"errors"
+	"flag"
+	"fmt"
 	"os"
-
-	"github.com/spf13/cobra"
 )
 
 type Options struct {
@@ -12,34 +13,35 @@ type Options struct {
 }
 
 func Execute() *Options {
-	var opts Options
+	flags := flag.NewFlagSet("CatSync", flag.ContinueOnError)
+	flags.SetOutput(os.Stdout)
+	flags.Usage = func() {
+		_, _ = fmt.Fprintln(os.Stdout, "Usage: CatSync [options]")
 
-	ran := false
-
-	root := &cobra.Command{
-		Use:     "CatSync",
-		Short:   "Sync the「cat」config",
-		Version: GetCLIVersion(),
-		Run: func(cmd *cobra.Command, _ []string) {
-			ran = true
-			opts.ConfigPath, _ = cmd.Flags().GetString("config")
-			opts.CheckOnly, _ = cmd.Flags().GetBool("check")
-		},
+		flags.PrintDefaults()
 	}
-	root.SetVersionTemplate("{{.Version}}\n")
 
-	flags := root.Flags()
+	var (
+		opts    Options
+		version bool
+	)
 
-	flags.String("config", "", "Path to the configuration file")
-	flags.BoolP("check", "c", false, "Validate configuration and exit")
+	flags.StringVar(&opts.ConfigPath, "config", "", "Path to the configuration file")
+	flags.BoolVar(&opts.CheckOnly, "check", false, "Validate configuration and exit")
+	flags.BoolVar(&opts.CheckOnly, "c", false, "Validate configuration and exit")
+	flags.BoolVar(&version, "version", false, "Print version and exit")
 
-	_ = root.MarkFlagFilename("config", "yaml", "yml", "json")
+	if err := flags.Parse(os.Args[1:]); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
 
-	if err := root.Execute(); err != nil {
 		os.Exit(1)
 	}
 
-	if !ran {
+	if version {
+		_, _ = fmt.Fprintln(os.Stdout, GetCLIVersion())
+
 		return nil
 	}
 

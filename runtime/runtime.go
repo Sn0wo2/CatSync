@@ -19,12 +19,10 @@ type Manager struct {
 	CurrentSnapshot atomic.Pointer[Snapshot]
 	ReloadMu        sync.Mutex
 	Logger          *slog.Logger
-	Loaders         []config.Loader
-	Builders        execute.Builders
 	ConfigPath      string
 }
 
-func NewManager(initial *config.LoadResult, logger *slog.Logger, loaders []config.Loader, builders execute.Builders) (*Manager, error) {
+func NewManager(initial *config.LoadResult, logger *slog.Logger) (*Manager, error) {
 	if initial == nil || initial.Config == nil {
 		return nil, errors.New("nil config")
 	}
@@ -33,19 +31,13 @@ func NewManager(initial *config.LoadResult, logger *slog.Logger, loaders []confi
 		return nil, errors.New("nil logger")
 	}
 
-	if len(loaders) == 0 {
-		return nil, errors.New("no config loaders")
-	}
-
-	executor, err := execute.New().WithConfig(initial.Config).WithBuilders(builders).Build()
+	executor, err := execute.New().WithConfig(initial.Config).Build()
 	if err != nil {
 		return nil, err
 	}
 
 	manager := &Manager{
 		Logger:     logger,
-		Loaders:    loaders,
-		Builders:   builders,
 		ConfigPath: initial.Path,
 	}
 	manager.CurrentSnapshot.Store(&Snapshot{Config: initial.Config, Executor: executor})
@@ -78,14 +70,14 @@ func (m *Manager) Reload() error {
 	m.ReloadMu.Lock()
 	defer m.ReloadMu.Unlock()
 
-	cfg, _, err := config.LoadConfig(m.ConfigPath, m.Loaders...)
+	cfg, _, err := config.LoadConfig(m.ConfigPath)
 	if err != nil {
 		return err
 	}
 
 	cfg.LogWarnings(m.Logger)
 
-	executor, err := execute.New().WithConfig(cfg).WithBuilders(m.Builders).Build()
+	executor, err := execute.New().WithConfig(cfg).Build()
 	if err != nil {
 		return err
 	}

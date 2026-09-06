@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -8,23 +9,14 @@ import (
 	"strings"
 
 	"github.com/Sn0wo2/CatSync/log"
+	"gopkg.in/yaml.v3"
 )
 
 var CLIConfigPath string
 
-func LoadConfig(configPath string, loaders ...Loader) (*Config, string, error) {
-	if len(loaders) == 0 {
-		return nil, CLIConfigPath, errors.New("no loaders provided")
-	}
+const configJSONExtension = ".json"
 
-	loaderByExt := make(map[string]Loader)
-
-	for _, loader := range loaders {
-		for _, ext := range loader.GetAllowFileExtensions() {
-			loaderByExt["."+strings.ToLower(ext)] = loader
-		}
-	}
-
+func LoadConfig(configPath string) (*Config, string, error) {
 	if configPath == "" {
 		configPath = "./data/config.yml"
 
@@ -36,7 +28,7 @@ func LoadConfig(configPath string, loaders ...Loader) (*Config, string, error) {
 			}
 
 			base := filepath.Dir(CLIConfigPath)
-			for ext := range loaderByExt {
+			for _, ext := range []string{".yml", ".yaml", configJSONExtension} {
 				tryPath := base + ext
 				if _, err := os.Stat(tryPath); err == nil {
 					configPath = tryPath // 完成寻找, 开始LOAD
@@ -54,34 +46,8 @@ func LoadConfig(configPath string, loaders ...Loader) (*Config, string, error) {
 LOAD:
 	fileCfg := &Config{}
 
-	loader, ok := loaderByExt[strings.ToLower(filepath.Ext(configPath))]
-	if ok {
-		if err := loader.Load(fileCfg, configPath); err != nil {
-			return nil, configPath, fmt.Errorf("failed to load config file %s: %w", configPath, err)
-		}
-	} else {
-		var loadErrs []error
-
-		loaded := false
-
-		for _, l := range loaders {
-			if err := l.Load(fileCfg, configPath); err == nil {
-				loaded = true
-
-				break
-			} else {
-				loadErrs = append(loadErrs, fmt.Errorf("loader %s: %w", l.GetTag(), err))
-				_, _ = fmt.Fprintf(os.Stderr, "loader %s failed for config file %s: %v\n", l.GetTag(), configPath, err)
-			}
-		}
-
-		if !loaded {
-			if len(loadErrs) == 0 {
-				return nil, "", fmt.Errorf("no loader found for config file %s", configPath)
-			}
-
-			return nil, configPath, fmt.Errorf("all loaders failed for config file %s: %w", configPath, errors.Join(loadErrs...))
-		}
+	if err := loadFile(fileCfg, configPath); err != nil {
+		return nil, configPath, fmt.Errorf("failed to load config file %s: %w", configPath, err)
 	}
 
 	fileCfg = ApplyDefaults(fileCfg, GetDefaultConfig())
@@ -93,4 +59,57 @@ LOAD:
 	log.Writef("Config loaded from file: %s", configPath)
 
 	return fileCfg, configPath, nil
+}
+
+func loadFile(cfg *Config, fileName string) error {
+	file, err := os.ReadFile(filepath.Clean(fileName))
+	if err != nil {
+		return err
+	}
+
+	switch strings.ToLower(filepath.Ext(fileName)) {
+	case configJSONExtension:
+		return json.Unmarshal(file, cfg)
+	case ".yaml", ".yml":
+		return yaml.Unmarshal(file, cfg)
+	}
+
+	var errs []error
+
+	if err := yaml.Unmarshal(file, cfg); err == nil {
+		return nil
+	} else {
+		errs = append(errs, fmt.Errorf("yaml: %w", err))
+	}
+
+	if err := json.Unmarshal(file, cfg); err == nil {
+		return nil
+	} else {
+		errs = append(errs, fmt.Errorf("json: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+func SaveConfig(cfg *Config, fileName string) error {
+	var (
+		file []byte
+		err  error
+	)
+
+	if strings.ToLower(filepath.Ext(fileName)) == configJSONExtension {
+		file, err = json.Marshal(cfg)
+	} else {
+		file, err = yaml.Marshal(cfg)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(fileName), 0o750); err != nil {
+		return err
+	}
+
+	return os.WriteFile(fileName, file, 0o600)
 }
