@@ -59,35 +59,26 @@ func (c *Config) Validate() error {
 		addErr(errors.New("actions is required"))
 	}
 
-	for i := range c.Actions {
-		if c.Actions[i].TypeName() == "" {
+	labelIndex := make(map[string]struct{}, len(c.Actions))
+	for i, act := range c.Actions {
+		if act.TypeName() == "" {
 			addErr(fmt.Errorf("actions[%d].type is required", i))
 		}
-	}
 
-	actionCount := len(c.Actions)
-
-	labelIndex := make(map[string]int, actionCount)
-
-	for i, act := range c.Actions {
 		if act.Label != "" {
-			labelIndex[act.Label] = i
+			if _, duplicate := labelIndex[act.Label]; duplicate {
+				addErr(fmt.Errorf("duplicate action label at actions[%d]: %q", i, act.Label))
+			}
+
+			labelIndex[act.Label] = struct{}{}
 		}
 	}
 
 	for i, gm := range c.Modifiers {
-		c.validateModifier(fmt.Sprintf("modifiers[%d]", i), &gm, actionCount, labelIndex, addErr)
+		validateModifier(fmt.Sprintf("modifiers[%d]", i), &gm, len(c.Actions), labelIndex, addErr)
 	}
 
 	for i, act := range c.Actions {
-		if act.Label != "" {
-			if _, dup := labelIndex[act.Label]; dup {
-				addErr(fmt.Errorf("duplicate action label at actions[%d]: %q", i, act.Label))
-			} else {
-				labelIndex[act.Label] = i
-			}
-		}
-
 		route, ok := act.Route.LiteralTrim()
 		if !ok {
 			addErr(fmt.Errorf("actions[%d].route must be a literal string (type=string)", i))
@@ -101,7 +92,7 @@ func (c *Config) Validate() error {
 			}
 		}
 
-		c.validateModifier(fmt.Sprintf("actions[%d]", i), &act.GlobalModifier, actionCount, labelIndex, addErr)
+		validateModifier(fmt.Sprintf("actions[%d]", i), &act.GlobalModifier, len(c.Actions), labelIndex, addErr)
 
 		payload := act.GetPayload()
 		if payload == nil {
@@ -124,13 +115,13 @@ func (c *Config) Validate() error {
 		case ActionReload:
 		}
 
-		c.validateModifier(fmt.Sprintf("actions[%d].%s", i, act.TypeName()), payload.GetGlobalModifier(), actionCount, labelIndex, addErr)
+		validateModifier(fmt.Sprintf("actions[%d].%s", i, act.TypeName()), payload.GetGlobalModifier(), len(c.Actions), labelIndex, addErr)
 	}
 
 	return errors.Join(ec...)
 }
 
-func (c *Config) validateModifier(prefix string, modifier *GlobalModifier, actionCount int, labels map[string]int, add func(error)) {
+func validateModifier(prefix string, modifier *GlobalModifier, actionCount int, labels map[string]struct{}, add func(error)) {
 	modifier.EachModifier(func(m any) {
 		switch mod := m.(type) {
 		case *ActionModifierStatus:
@@ -211,32 +202,28 @@ func (c *Config) validateModifier(prefix string, modifier *GlobalModifier, actio
 				}
 			}
 
-			if len(mod.IPWhiteList) > 0 {
-				for _, raw := range mod.IPWhiteList {
-					s := strings.TrimSpace(raw)
-					if s == "" {
-						continue
+			for _, raw := range mod.IPWhiteList {
+				s := strings.TrimSpace(raw)
+				if s == "" {
+					continue
+				}
+
+				if strings.Contains(s, "/") {
+					if _, err := netip.ParsePrefix(s); err != nil {
+						add(fmt.Errorf("invalid auth ipAllowlist CIDR at %s (value=%q): %w", where, raw, err))
 					}
 
-					if strings.Contains(s, "/") {
-						if _, err := netip.ParsePrefix(s); err != nil {
-							add(fmt.Errorf("invalid auth ipAllowlist CIDR at %s (value=%q): %w", where, raw, err))
-						}
+					continue
+				}
 
-						continue
-					}
-
-					if _, err := netip.ParseAddr(s); err != nil {
-						add(fmt.Errorf("invalid auth ipAllowlist ip at %s (value=%q): %w", where, raw, err))
-					}
+				if _, err := netip.ParseAddr(s); err != nil {
+					add(fmt.Errorf("invalid auth ipAllowlist ip at %s (value=%q): %w", where, raw, err))
 				}
 			}
 
 			if mod.IPFile != nil {
 				if err := mod.IPFile.ValidateNoIO(); err != nil {
 					add(fmt.Errorf("invalid auth ipAllowlistFile at %s: %w", where, err))
-
-					return
 				}
 			}
 		case *ActionModifierResponseHeader:
@@ -270,9 +257,7 @@ func (c *Config) LogWarnings(logger *slog.Logger) {
 		return
 	}
 
-	for i := range c.Actions {
-		action := &c.Actions[i]
-
+	for i, action := range c.Actions {
 		route, _ := action.Route.LiteralTrim()
 		if route == "" {
 			logger.Info("Config >> action route is empty; action is jump-only",
@@ -283,16 +268,16 @@ func (c *Config) LogWarnings(logger *slog.Logger) {
 	}
 
 	lastIndex := len(c.Actions) - 1
-	last := c.Actions[lastIndex]
+	lastType := c.Actions[lastIndex].TypeName()
 	logger.Info("Config >> notfound handler is the last action",
 		"index", lastIndex,
-		"type", string(last.TypeName()),
+		"type", string(lastType),
 	)
 
-	if last.TypeName() == ActionFile {
+	if lastType == ActionFile {
 		logger.Warn("Config >> notfound handler is file action; may leak file contents",
 			"index", lastIndex,
-			"type", string(last.TypeName()),
+			"type", string(lastType),
 		)
 	}
 }

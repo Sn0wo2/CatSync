@@ -3,12 +3,12 @@ package execute
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strings"
 
 	"github.com/Sn0wo2/CatSync/action"
 	"github.com/Sn0wo2/CatSync/config"
-	"github.com/Sn0wo2/CatSync/internal/cstx"
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/gofiber/fiber/v3"
 )
@@ -35,28 +35,19 @@ type ActionEntry struct {
 
 type Executor struct {
 	Cfg              *config.Config
-	Registry         action.Registry
+	Registry         map[config.ActionType]action.Handler
 	Entries          []ActionEntry
 	LabelIndex       map[string]int
 	PreResolvedJumps map[int]int
 }
 
-func New() *Executor {
-	return &Executor{Registry: action.NewRegistry()}
-}
-
-func (e *Executor) WithConfig(cfg *config.Config) *Executor {
-	e.Cfg = cfg
-
-	return e
-}
-
-func (e *Executor) Build() (*Executor, error) {
-	if e == nil || e.Cfg == nil {
+func Build(cfg *config.Config) (*Executor, error) {
+	if cfg == nil {
 		return nil, errors.New("nil executor or config")
 	}
 
-	actions := e.Cfg.Actions
+	e := &Executor{Cfg: cfg, Registry: action.NewRegistry()}
+	actions := cfg.Actions
 	e.Entries = make([]ActionEntry, len(actions))
 
 	e.LabelIndex = make(map[string]int, len(actions))
@@ -100,36 +91,35 @@ func (e *Executor) Build() (*Executor, error) {
 
 		entry.Payload = payload
 
-		h := action.WrapHandler(baseHandler)
-
-		add := func(source string, mods []action.Modifier, err error) error {
-			if err != nil {
-				return fmt.Errorf("build %s modifiers at actions[%d]: %w", source, i, err)
-			}
-
-			for _, m := range mods {
-				h.WithModifier(m)
-			}
-
-			return nil
-		}
+		h := &action.ModifiableHandler{Handler: baseHandler}
 
 		if !act.SkipGlobalModifiers {
-			mods, err := action.BuildGlobalModifiers(e.Cfg)
-			if err := add("global", mods, err); err != nil {
-				return nil, err
+			mods := make([]action.Modifier, 0, len(e.Cfg.Modifiers))
+			for j := range e.Cfg.Modifiers {
+				global, err := action.BuildModifiers(&e.Cfg.Modifiers[j])
+				if err != nil {
+					return nil, fmt.Errorf("build global modifiers at actions[%d]: modifiers[%d]: %w", i, j, err)
+				}
+
+				mods = append(mods, global...)
 			}
+
+			h.Modifiers = append(h.Modifiers, mods...)
 		}
 
 		mods, err := action.BuildModifiers(&act.GlobalModifier)
-		if err := add("action", mods, err); err != nil {
-			return nil, err
+		if err != nil {
+			return nil, fmt.Errorf("build action modifiers at actions[%d]: %w", i, err)
 		}
 
+		h.Modifiers = append(h.Modifiers, mods...)
+
 		mods, err = action.BuildModifiers(payload.GetGlobalModifier())
-		if err := add("payload", mods, err); err != nil {
-			return nil, err
+		if err != nil {
+			return nil, fmt.Errorf("build payload modifiers at actions[%d]: %w", i, err)
 		}
+
+		h.Modifiers = append(h.Modifiers, mods...)
 
 		entry.Handler = h
 	}
@@ -150,8 +140,14 @@ func (e *Executor) Build() (*Executor, error) {
 	return e, nil
 }
 
+func (e *Executor) Stop() {
+	if fileHandler, ok := e.Registry[config.ActionFile].(*action.FileHandler); ok {
+		fileHandler.Stop()
+	}
+}
+
 type RequestContext struct {
-	Ctx      *cstx.Ctx
+	Logger   *slog.Logger
 	FiberCtx fiber.Ctx
 	Reloader action.Reloader
 }
@@ -161,7 +157,7 @@ func (e *Executor) Dispatch(rc *RequestContext) (bool, error) {
 		return false, errors.New("nil executor or config")
 	}
 
-	if rc == nil || rc.Ctx == nil || rc.FiberCtx == nil {
+	if rc == nil || rc.Logger == nil || rc.FiberCtx == nil {
 		return false, errors.New("nil request context")
 	}
 
@@ -247,7 +243,7 @@ func (e *Executor) ExecuteOne(rc *RequestContext, index int, skipRoute bool) (Re
 	}
 
 	result := entry.Handler.ProcessAction(&action.ProcessData{
-		CStx:     rc.Ctx,
+		Logger:   rc.Logger,
 		FCtx:     rc.FiberCtx,
 		Payload:  entry.Payload,
 		Reloader: rc.Reloader,

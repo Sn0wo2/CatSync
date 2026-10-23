@@ -13,24 +13,6 @@ import (
 	"github.com/Sn0wo2/CatSync/internal/util"
 )
 
-func BuildGlobalModifiers(cfg *config.Config) ([]Modifier, error) {
-	if cfg == nil {
-		return nil, nil
-	}
-
-	modifiers := make([]Modifier, 0, len(cfg.Modifiers))
-	for i := range cfg.Modifiers {
-		mods, err := BuildModifiers(&cfg.Modifiers[i])
-		if err != nil {
-			return nil, fmt.Errorf("modifiers[%d]: %w", i, err)
-		}
-
-		modifiers = append(modifiers, mods...)
-	}
-
-	return modifiers, nil
-}
-
 func BuildModifiers(gm *config.GlobalModifier) ([]Modifier, error) {
 	if gm == nil {
 		return nil, nil
@@ -182,12 +164,16 @@ func buildAuthModifier(mod *config.ActionModifierAuth) (Modifier, error) {
 		entries := append([]string(nil), mod.IPWhiteList...)
 
 		if mod.IPFile != nil {
-			lines, err := mod.IPFile.ReadLines(context.Background())
+			contents, err := mod.IPFile.ReadString(context.Background())
 			if err != nil {
 				return nil, fmt.Errorf("ipAllowlistFile: %w", err)
 			}
 
-			entries = append(entries, lines...)
+			if contents != "" {
+				contents = strings.ReplaceAll(contents, "\r\n", "\n")
+				contents = strings.ReplaceAll(contents, "\r", "\n")
+				entries = append(entries, strings.Split(contents, "\n")...)
+			}
 		}
 
 		wl, err := ParseIPWhiteList(entries)

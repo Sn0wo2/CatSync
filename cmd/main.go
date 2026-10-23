@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -8,11 +9,18 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
+	"github.com/Sn0wo2/CatSync/action/execute"
 	"github.com/Sn0wo2/CatSync/cli"
 	"github.com/Sn0wo2/CatSync/config"
+	"github.com/Sn0wo2/CatSync/debug"
 	"github.com/Sn0wo2/CatSync/internal/util"
+	"github.com/Sn0wo2/CatSync/log"
+	"github.com/Sn0wo2/CatSync/router"
+	"github.com/Sn0wo2/CatSync/runtime"
 	"github.com/gofiber/fiber/v3"
+	"github.com/google/uuid"
 )
 
 func main() {
@@ -21,12 +29,10 @@ func main() {
 		return
 	}
 
-	if opts.ConfigPath != "" {
-		config.CLIConfigPath = opts.ConfigPath
-	}
+	config.CLIConfigPath = opts.ConfigPath
+	cfg, path, err := config.LoadConfig("")
 
 	if opts.CheckOnly {
-		_, path, err := config.LoadConfig("")
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				fmt.Fprintf(os.Stderr, "CONFIGURATION ERROR: config file not found\n")
@@ -42,41 +48,85 @@ func main() {
 		return
 	}
 
-	catSync, err := InitializeCatSync()
+	if errors.Is(err, os.ErrNotExist) {
+		cfg = config.GetDefaultConfig()
+		if err := cfg.Validate(); err != nil {
+			panic(err)
+		}
+
+		if err := config.SaveConfig(cfg, path); err != nil {
+			panic(err)
+		}
+
+		log.Writef("Using default config, saved to: %s", path)
+	} else if err != nil {
+		panic(err)
+	}
+
+	logger, logFile := log.NewLog(cfg.Log.Dir.Must(), cfg.Log.Level.Must(), cfg.Log.FileFormat.Must())
+	defer func() {
+		_ = logger.Flush()
+
+		if logFile != nil {
+			_ = logFile.Close()
+		}
+	}()
+
+	log.Flush(logger.Logger)
+	cfg.LogWarnings(logger.Logger)
+
+	executor, err := execute.Build(cfg)
 	if err != nil {
 		panic(err)
 	}
 
-	logger := catSync.Logger
-	server := catSync.Server
+	manager := &runtime.Manager{Logger: logger.Logger, ConfigPath: path}
+	manager.Executor.Store(executor)
 
-	defer func() {
-		_ = logger.Close()
-	}()
+	defer manager.Stop()
+
+	server := fiber.New(fiber.Config{
+		AppName:       "CatSync",
+		CaseSensitive: true,
+		ErrorHandler: func(ctx fiber.Ctx, err error) error {
+			traceID := uuid.NewString()
+			logger.Error(fmt.Sprintf("EH >> %+v", err),
+				"traceID", traceID,
+				"stack", util.LazyStack{},
+				"ctx", util.LazyFiberContext{Ctx: ctx},
+			)
+			ctx.Status(fiber.StatusInternalServerError)
+
+			return ctx.JSON(fiber.Map{
+				"msg":  "oops, something went wrong",
+				"data": fiber.Map{"traceID": traceID},
+			})
+		},
+		IdleTimeout:   5 * time.Second,
+		ReadTimeout:   10 * time.Second,
+		StrictRouting: true,
+		WriteTimeout:  10 * time.Second,
+	})
+	router.Init(server, manager)
 
 	if !fiber.IsChild() {
 		logger.Info("Starting CatSync...", "version", cli.GetFormatVersion())
 	}
 
-	shutdownChan := make(chan os.Signal, 1)
-	signal.Notify(shutdownChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+	shutdown, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	go func() {
-		cfg := catSync.Runtime.CurrentConfig()
-		if cfg == nil {
-			logger.Error("Runtime config unavailable", "stack", util.LazyStack())
-			_ = logger.Close()
-
-			os.Exit(1)
-		}
-
 		addr := cfg.Server.Address.Must()
 		cert := cfg.Server.TLS.Cert.Must()
 		key := cfg.Server.TLS.Key.Must()
+		listen := fiber.ListenConfig{EnablePrefork: cfg.Server.Prefork && !debug.Enabled}
 
 		protocol := "http"
 		if cert != "" && key != "" {
 			protocol = "https"
+			listen.CertFile = cert
+			listen.CertKeyFile = key
 		} else {
 			logger.Warn("TLS is not enabled (no cert/key)")
 		}
@@ -105,24 +155,34 @@ func main() {
 
 		logger.Info("Server listening on: " + strings.Join(logAddresses, ", "))
 
-		if err := server.StartFiber(); err != nil {
+		if listen.CertFile != "" {
+			logger.Info("TLS listening", "addr", addr)
+		} else {
+			logger.Info("HTTP listening", "addr", addr)
+		}
+
+		if err := server.Listen(addr, listen); err != nil {
 			logger.Error("Server failed to start",
 				"error", err,
-				"stack", util.LazyStack(),
+				"stack", util.LazyStack{},
 			)
-			_ = logger.Close()
+			_ = logger.Flush()
+
+			if logFile != nil {
+				_ = logFile.Close()
+			}
 
 			os.Exit(1)
 		}
 	}()
 
-	<-shutdownChan
+	<-shutdown.Done()
 	logger.Info("Shutting down server...")
 
 	if err := server.Shutdown(); err != nil {
 		logger.Error("Server failed to shutdown",
 			"error", err,
-			"stack", util.LazyStack(),
+			"stack", util.LazyStack{},
 		)
 	}
 }

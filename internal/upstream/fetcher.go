@@ -53,7 +53,3 @@ func (f *Fetcher) Fetch(url string) (*Response, error) {
 
 	return r, nil
 }
-
-func (f *Fetcher) Stop() {
-	f.cache.Stop()
-}

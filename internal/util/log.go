@@ -5,12 +5,8 @@ import (
 	"runtime/debug"
 )
 
-type lazyStack struct{}
+type LazyStack struct{}
 
-func (lazyStack) LogValue() slog.Value {
+func (LazyStack) LogValue() slog.Value {
 	return slog.StringValue(string(debug.Stack()))
-}
-
-func LazyStack() slog.LogValuer {
-	return lazyStack{}
 }

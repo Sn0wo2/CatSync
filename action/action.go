@@ -3,6 +3,7 @@ package action
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -11,14 +12,13 @@ import (
 
 	"github.com/Sn0wo2/CatSync/config"
 	"github.com/Sn0wo2/CatSync/config/reader"
-	"github.com/Sn0wo2/CatSync/internal/cstx"
 	"github.com/Sn0wo2/CatSync/internal/filecache"
 	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/gofiber/fiber/v3"
 )
 
 type ProcessData struct {
-	CStx     *cstx.Ctx
+	Logger   *slog.Logger
 	FCtx     fiber.Ctx
 	Payload  config.ActionData
 	Reloader Reloader
@@ -46,14 +46,12 @@ type ExecutionResult struct {
 	JumpTo int
 }
 
-type Registry map[config.ActionType]Handler
-
-func NewRegistry() Registry {
-	return Registry{
-		config.ActionString: NewString(),
-		config.ActionFile:   NewFile(),
-		config.ActionServer: NewServer(),
-		config.ActionReload: NewReload(),
+func NewRegistry() map[config.ActionType]Handler {
+	return map[config.ActionType]Handler{
+		config.ActionString: &StringHandler{},
+		config.ActionFile:   &FileHandler{cache: filecache.New(time.Second)},
+		config.ActionServer: &ServerHandler{},
+		config.ActionReload: &ReloadHandler{},
 	}
 }
 
@@ -64,24 +62,14 @@ type Modifier interface {
 
 type ModifiableHandler struct {
 	Handler
-	modifiers []Modifier
-}
-
-func WrapHandler(h Handler) *ModifiableHandler {
-	return &ModifiableHandler{Handler: h}
-}
-
-func (h *ModifiableHandler) WithModifier(m Modifier) *ModifiableHandler {
-	h.modifiers = append(h.modifiers, m)
-
-	return h
+	Modifiers []Modifier
 }
 
 func (h *ModifiableHandler) ProcessAction(data *ProcessData) ExecutionResult {
-	for i := len(h.modifiers) - 1; i >= 0; i-- {
+	for i := len(h.Modifiers) - 1; i >= 0; i-- {
 		var result ExecutionResult
 
-		data, result = h.modifiers[i].Before(data)
+		data, result = h.Modifiers[i].Before(data)
 		if result.Err != nil || result.Status != ExecutionCompleted {
 			return result
 		}
@@ -91,7 +79,7 @@ func (h *ModifiableHandler) ProcessAction(data *ProcessData) ExecutionResult {
 		return result
 	}
 
-	for _, modifier := range h.modifiers {
+	for _, modifier := range h.Modifiers {
 		var result ExecutionResult
 
 		data, result = modifier.After(data)
@@ -105,10 +93,6 @@ func (h *ModifiableHandler) ProcessAction(data *ProcessData) ExecutionResult {
 
 type StringHandler struct{}
 
-func NewString() Handler {
-	return &StringHandler{}
-}
-
 func (h *StringHandler) ProcessAction(p *ProcessData) ExecutionResult {
 	stringData, ok := p.Payload.(*config.ActionStringData)
 	if !ok {
@@ -117,7 +101,7 @@ func (h *StringHandler) ProcessAction(p *ProcessData) ExecutionResult {
 
 	body := stringData.Content.Must()
 
-	p.CStx.Logger.Info("Action >> Serve String", "ctx", util.LazyFiberContext(p.FCtx))
+	p.Logger.Info("Action >> Serve String", "ctx", util.LazyFiberContext{Ctx: p.FCtx})
 
 	return ExecutionResult{Err: p.FCtx.SendString(body)}
 }
@@ -126,10 +110,8 @@ type FileHandler struct {
 	cache *filecache.Cache
 }
 
-func NewFile() Handler {
-	return &FileHandler{
-		cache: filecache.New(time.Second),
-	}
+func (h *FileHandler) Stop() {
+	h.cache.Stop()
 }
 
 func (h *FileHandler) ProcessAction(p *ProcessData) ExecutionResult {
@@ -140,7 +122,7 @@ func (h *FileHandler) ProcessAction(p *ProcessData) ExecutionResult {
 
 	pathStr := fileData.Path.Must()
 
-	safePath, err := filepath.Abs(filepath.Clean(pathStr))
+	safePath, err := filepath.Abs(pathStr)
 	if err != nil {
 		return ExecutionResult{Err: fmt.Errorf("failed to get absolute path: %w", err)}
 	}
@@ -157,8 +139,24 @@ func (h *FileHandler) ProcessAction(p *ProcessData) ExecutionResult {
 		return ExecutionResult{Err: fmt.Errorf("file path is not in data directory: %s", safePath)}
 	}
 
-	if err := h.ensureFile(safePath); err != nil {
-		return ExecutionResult{Err: err}
+	info, err := os.Stat(safePath)
+	switch {
+	case errors.Is(err, os.ErrNotExist):
+		if err := os.MkdirAll(filepath.Dir(safePath), 0o750); err != nil {
+			return ExecutionResult{Err: fmt.Errorf("failed to create data directory: %w", err)}
+		}
+
+		if err := os.WriteFile(safePath, []byte("CatSync!\n"), 0o600); err != nil {
+			return ExecutionResult{Err: fmt.Errorf("failed to create default file: %w", err)}
+		}
+	case err != nil:
+		return ExecutionResult{Err: fmt.Errorf("failed to access file: %w", err)}
+	case info.IsDir():
+		return ExecutionResult{Err: fmt.Errorf("cannot read directory: %s", safePath)}
+	case info.Size() == 0:
+		if err := os.WriteFile(safePath, []byte("CatSync!\n"), 0o600); err != nil {
+			return ExecutionResult{Err: fmt.Errorf("failed to write default file content: %w", err)}
+		}
 	}
 
 	entry, err := h.cache.Get(safePath, !fileData.DontSetContentType)
@@ -170,47 +168,12 @@ func (h *FileHandler) ProcessAction(p *ProcessData) ExecutionResult {
 		p.FCtx.Set(fiber.HeaderContentType, entry.ContentType)
 	}
 
-	p.CStx.Logger.Info("Action >> Serve File", "path", pathStr, "ctx", util.LazyFiberContext(p.FCtx))
+	p.Logger.Info("Action >> Serve File", "path", pathStr, "ctx", util.LazyFiberContext{Ctx: p.FCtx})
 
 	return ExecutionResult{Err: p.FCtx.Send(entry.Content)}
 }
 
-func (h *FileHandler) ensureFile(safePath string) error {
-	info, err := os.Stat(safePath)
-	if err == nil {
-		if info.IsDir() {
-			return fmt.Errorf("cannot read directory: %s", safePath)
-		}
-
-		if info.Size() == 0 {
-			if err := os.WriteFile(filepath.Clean(safePath), []byte("CatSync!\n"), 0o600); err != nil {
-				return fmt.Errorf("failed to write default file content: %w", err)
-			}
-		}
-
-		return nil
-	}
-
-	if !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("failed to access file: %w", err)
-	}
-
-	if err := os.MkdirAll(filepath.Dir(safePath), 0o750); err != nil {
-		return fmt.Errorf("failed to create data directory: %w", err)
-	}
-
-	if err := os.WriteFile(filepath.Clean(safePath), []byte("CatSync!\n"), 0o600); err != nil {
-		return fmt.Errorf("failed to create default file: %w", err)
-	}
-
-	return nil
-}
-
 type ServerHandler struct{}
-
-func NewServer() Handler {
-	return &ServerHandler{}
-}
 
 func (h *ServerHandler) ProcessAction(p *ProcessData) ExecutionResult {
 	serverData, ok := p.Payload.(*config.ActionServerData)
@@ -230,7 +193,7 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) ExecutionResult {
 
 	baseDir := filepath.Join(wd, "data", dirStr)
 
-	absBaseDir, err := filepath.Abs(filepath.Clean(baseDir))
+	absBaseDir, err := filepath.Abs(baseDir)
 	if err != nil {
 		return ExecutionResult{Err: fmt.Errorf("failed to get absolute base directory: %w", err)}
 	}
@@ -249,7 +212,7 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) ExecutionResult {
 
 	reqPath := strings.TrimPrefix(p.FCtx.Path(), "/")
 
-	fullPath := filepath.Clean(filepath.Join(absBaseDir, reqPath))
+	fullPath := filepath.Join(absBaseDir, reqPath)
 	if !strings.HasPrefix(fullPath, absBaseDirSep) && fullPath != absBaseDir {
 		return ExecutionResult{Err: fiber.NewError(fiber.StatusForbidden, "access denied")}
 	}
@@ -264,15 +227,33 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) ExecutionResult {
 	}
 
 	if fileInfo.IsDir() {
-		foundPath := h.findIndexFile(fullPath, serverData.IndexFiles)
-		if foundPath == "" {
-			return ExecutionResult{Err: h.sendErrorPage(p, serverData, fiber.StatusForbidden, dirStr, reqPath)}
+		indexFiles := serverData.IndexFiles
+		if len(indexFiles) == 0 {
+			indexFiles = []*reader.String{{Content: "index.html"}, {Content: "index.htm"}}
 		}
 
-		fullPath = foundPath
+		found := false
+
+		for _, sf := range indexFiles {
+			if sf == nil {
+				continue
+			}
+
+			indexPath := filepath.Join(fullPath, sf.Must())
+			if _, err := os.Stat(indexPath); err == nil {
+				fullPath = indexPath
+				found = true
+
+				break
+			}
+		}
+
+		if !found {
+			return ExecutionResult{Err: h.sendErrorPage(p, serverData, fiber.StatusForbidden, dirStr, reqPath)}
+		}
 	}
 
-	p.CStx.Logger.Info("Action >> Serve Server", "dir", dirStr, "file", reqPath, "ctx", util.LazyFiberContext(p.FCtx))
+	p.Logger.Info("Action >> Serve Server", "dir", dirStr, "file", reqPath, "ctx", util.LazyFiberContext{Ctx: p.FCtx})
 
 	return ExecutionResult{Err: p.FCtx.SendFile(fullPath)}
 }
@@ -280,7 +261,7 @@ func (h *ServerHandler) ProcessAction(p *ProcessData) ExecutionResult {
 func (h *ServerHandler) sendErrorPage(p *ProcessData, serverData *config.ActionServerData, status int, dir, file string) error {
 	p.FCtx.Set(fiber.HeaderContentType, "text/html; charset=utf-8")
 	p.FCtx.Status(status)
-	p.CStx.Logger.Info("Action >> Serve Server", "dir", dir, "file", file, "status", strconv.Itoa(status), "ctx", util.LazyFiberContext(p.FCtx))
+	p.Logger.Info("Action >> Serve Server", "dir", dir, "file", file, "status", strconv.Itoa(status), "ctx", util.LazyFiberContext{Ctx: p.FCtx})
 
 	html := config.DefaultNotFoundHTML
 	if serverData.NotFoundHTML != nil {
@@ -290,33 +271,7 @@ func (h *ServerHandler) sendErrorPage(p *ProcessData, serverData *config.ActionS
 	return p.FCtx.SendString(html)
 }
 
-func (h *ServerHandler) findIndexFile(fullPath string, indexFiles []*reader.String) string {
-	if len(indexFiles) == 0 {
-		indexFiles = []*reader.String{
-			reader.NewStr("index.html"),
-			reader.NewStr("index.htm"),
-		}
-	}
-
-	for _, sf := range indexFiles {
-		if sf == nil {
-			continue
-		}
-
-		indexPath := filepath.Join(fullPath, sf.Must())
-		if _, err := os.Stat(indexPath); err == nil {
-			return indexPath
-		}
-	}
-
-	return ""
-}
-
 type ReloadHandler struct{}
-
-func NewReload() Handler {
-	return &ReloadHandler{}
-}
 
 func (h *ReloadHandler) ProcessAction(p *ProcessData) ExecutionResult {
 	_, ok := p.Payload.(*config.ActionReloadData)
@@ -329,13 +284,13 @@ func (h *ReloadHandler) ProcessAction(p *ProcessData) ExecutionResult {
 	}
 
 	if err := p.Reloader.Reload(); err != nil {
-		p.CStx.Logger.Error("Action >> Reload Config Failed", "error", err, "stack", util.LazyStack(), "ctx", util.LazyFiberContext(p.FCtx))
+		p.Logger.Error("Action >> Reload Config Failed", "error", err, "stack", util.LazyStack{}, "ctx", util.LazyFiberContext{Ctx: p.FCtx})
 		p.FCtx.Status(fiber.StatusInternalServerError)
 
 		return ExecutionResult{Err: p.FCtx.SendString(fmt.Sprintf("Config reload failed: %v", err))}
 	}
 
-	p.CStx.Logger.Info("Action >> Reload Config Success", "ctx", util.LazyFiberContext(p.FCtx))
+	p.Logger.Info("Action >> Reload Config Success", "ctx", util.LazyFiberContext{Ctx: p.FCtx})
 	p.FCtx.Status(fiber.StatusOK)
 
 	return ExecutionResult{Err: p.FCtx.SendString("Config reloaded successfully")}

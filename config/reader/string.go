@@ -23,33 +23,12 @@ type String struct {
 	value   string
 	err     error
 	once    sync.Once
-	mu      sync.Mutex
-}
-
-func NewAuto(s string) *String {
-	return &String{Type: StringTypeAuto, Content: s}
-}
-
-func NewStr(s string) *String {
-	return &String{Type: StringTypeString, Content: s}
-}
-
-func NewPath(path string) *String {
-	return &String{Type: StringTypePath, Content: path}
-}
-
-func NewHTTP(s string) *String {
-	return &String{Type: StringTypeHTTP, Content: s}
 }
 
 func (r *String) Must() string {
 	s, _ := r.ReadString(context.Background())
 
 	return s
-}
-
-func (r *String) Trim() string {
-	return strings.TrimSpace(r.Must())
 }
 
 func (r *String) Literal() (string, bool) {
@@ -80,9 +59,7 @@ func (r *String) ValidateNoIO() error {
 	}
 
 	switch r.Type {
-	case "", StringTypeString, StringTypeAuto:
-		return nil
-	case StringTypePath:
+	case "", StringTypeString, StringTypeAuto, StringTypePath:
 		return nil
 	case StringTypeHTTP:
 		_, err := parseHTTPURL(r.Content)

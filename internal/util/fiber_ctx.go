@@ -1,17 +1,18 @@
 package util
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/Sn0wo2/go-common/helper"
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/utils/v2"
 )
 
-func FiberContextString(ctx fiber.Ctx) string {
+type LazyFiberContext struct{ fiber.Ctx }
+
+func (ctx LazyFiberContext) LogValue() slog.Value {
 	var sb strings.Builder
 
 	ips := ctx.IPs()
@@ -26,28 +27,25 @@ func FiberContextString(ctx fiber.Ctx) string {
 
 	sb.WriteString(" ")
 
-	if ctx.Response().StatusCode() != 0 {
-		statusCode := ctx.Response().StatusCode()
+	if statusCode := ctx.Response().StatusCode(); statusCode != 0 {
 		sb.WriteString(strconv.Itoa(statusCode))
 		sb.WriteString(" ")
 		sb.WriteString(http.StatusText(statusCode))
 		sb.WriteString(" ")
 	}
 
-	sb.WriteString(helper.BytesToString(ctx.Request().RequestURI()))
+	sb.WriteString(utils.UnsafeString(ctx.Request().RequestURI()))
 
 	var headers []string
 
-	ctx.Request().Header.All()(func(key, value []byte) bool {
-		v := helper.BytesToString(value)
+	for key, value := range ctx.Request().Header.All() {
+		v := utils.UnsafeString(value)
 		if len(v) > 20 {
 			v = v[:12] + "..."
 		}
 
-		headers = append(headers, fmt.Sprintf("%s:%s", helper.BytesToString(key), v))
-
-		return true
-	})
+		headers = append(headers, utils.UnsafeString(key)+":"+v)
+	}
 
 	if len(headers) > 0 {
 		sb.WriteString(" { ")
@@ -55,18 +53,5 @@ func FiberContextString(ctx fiber.Ctx) string {
 		sb.WriteString(" }")
 	}
 
-	return sb.String()
-}
-
-type lazyCtxValue struct {
-	ctx fiber.Ctx
-}
-
-func (l lazyCtxValue) LogValue() slog.Value {
-	return slog.StringValue(FiberContextString(l.ctx))
-}
-
-// LazyFiberContext formats the request only when the log entry is written.
-func LazyFiberContext(ctx fiber.Ctx) slog.LogValuer {
-	return lazyCtxValue{ctx: ctx}
+	return slog.StringValue(sb.String())
 }

@@ -27,11 +27,10 @@ builds:
       - -tags=catsync_all
     ldflags:
       - -s -w
-      - -X github.com/Sn0wo2/{{ .ProjectName }}/cli.version={{.Version}}
-      - -X github.com/Sn0wo2/{{ .ProjectName }}/cli.commit={{.Commit}}
-      - -X github.com/Sn0wo2/{{ .ProjectName }}/cli.date={{.Date}}
-      - -X github.com/Sn0wo2/{{ .ProjectName }}/cli.osName={{.Os}}
-      - -X github.com/Sn0wo2/{{ .ProjectName }}/cli.arch={{.Arch}}{{.Amd64}}{{.Arm}}
+      - -X github.com/prometheus/common/version.Version={{.Version}}
+      - -X github.com/prometheus/common/version.Revision={{.Commit}}
+      - -X github.com/prometheus/common/version.Branch={{.Branch}}
+      - -X github.com/prometheus/common/version.BuildDate={{.Date}}
 
 dockers_v2:
   - ids:

@@ -1,24 +1,17 @@
 package log
 
 import (
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/Sn0wo2/CatSync/internal/util"
 	"github.com/Sn0wo2/caelum"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-type nonClosingWriter struct {
-	io.Writer
-}
-
-func (w nonClosingWriter) Unwrap() io.Writer {
-	return w.Writer
-}
-
-func NewLog(dir, logLevel, logFileFormat string) *caelum.Logger {
+func NewLog(dir, logLevel, logFileFormat string) (*caelum.Logger, *lumberjack.Logger) {
 	level := caelum.LevelDebug
 
 	switch strings.ToLower(strings.TrimSpace(logLevel)) {
@@ -33,11 +26,13 @@ func NewLog(dir, logLevel, logFileFormat string) *caelum.Logger {
 	}
 
 	targets := []caelum.Target{{
-		Writer:     nonClosingWriter{Writer: os.Stdout},
+		Writer:     util.NonClosingWriter{Writer: os.Stdout},
 		Format:     caelum.Compact,
 		ShowSource: true,
 		TimeFormat: "2006-01-02 15:04:05",
 	}}
+
+	var file *lumberjack.Logger
 
 	if dir != "" {
 		logDir, err := filepath.Abs(dir)
@@ -49,19 +44,18 @@ func NewLog(dir, logLevel, logFileFormat string) *caelum.Logger {
 			panic("failed to create log directory: " + err.Error())
 		}
 
-		fileTarget := caelum.FileTarget(caelum.FileOptions{
-			Path:       filepath.Join(logDir, time.Now().Format(logFileFormat)),
-			MaxSizeMB:  10,
+		file = &lumberjack.Logger{
+			Filename:   filepath.Join(logDir, time.Now().Format(logFileFormat)),
+			MaxSize:    10,
 			MaxBackups: 5,
-			MaxAgeDays: 30,
+			MaxAge:     30,
 			Compress:   true,
-		})
-		fileTarget.ShowSource = true
-		targets = append(targets, fileTarget)
+		}
+		targets = append(targets, caelum.Target{Writer: file, Format: caelum.JSON, ShowSource: true})
 	}
 
 	return caelum.New(caelum.Config{
 		Level:   level,
 		Targets: targets,
-	})
+	}), file
 }

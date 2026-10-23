@@ -7,14 +7,12 @@ import (
 	"sync"
 )
 
-type Buffer struct {
+var buf struct {
 	buf bytes.Buffer
 	mu  sync.Mutex
 }
 
-var buf Buffer
-
-func Writef(format string, args ...interface{}) {
+func Writef(format string, args ...any) {
 	buf.mu.Lock()
 	defer buf.mu.Unlock()
 
@@ -26,13 +24,11 @@ func Flush(logger *slog.Logger) {
 	buf.mu.Lock()
 	defer buf.mu.Unlock()
 
-	if buf.buf.Len() > 0 {
-		for _, line := range bytes.Split(buf.buf.Bytes(), []byte{'\n'}) {
-			if len(line) > 0 {
-				logger.Info(string(line))
-			}
+	for line := range bytes.SplitSeq(buf.buf.Bytes(), []byte{'\n'}) {
+		if len(line) > 0 {
+			logger.Info(string(line))
 		}
-
-		buf.buf.Reset()
 	}
+
+	buf.buf.Reset()
 }

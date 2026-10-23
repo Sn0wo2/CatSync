@@ -26,7 +26,7 @@ type AuthModifier struct {
 }
 
 func (m *AuthModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
-	logger := p.CStx.Logger
+	logger := p.Logger
 
 	if m.ipWhiteList != nil {
 		ips := p.FCtx.IPs()
@@ -37,7 +37,7 @@ func (m *AuthModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
 		if !m.ipWhiteList.IsAllow(ips) {
 			logger.Info("Auth >> IP not allowed",
 				"actual", ips,
-				"ctx", util.LazyFiberContext(p.FCtx),
+				"ctx", util.LazyFiberContext{Ctx: p.FCtx},
 			)
 
 			return p, m.HandleFallback()
@@ -58,7 +58,7 @@ func (m *AuthModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
 		}
 
 		if len(values) == 0 {
-			logger.Info("Auth >> Header missing", "header", k, "ctx", util.LazyFiberContext(p.FCtx))
+			logger.Info("Auth >> Header missing", "header", k, "ctx", util.LazyFiberContext{Ctx: p.FCtx})
 
 			return p, m.HandleFallback()
 		}
@@ -81,7 +81,7 @@ func (m *AuthModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
 				"header", k,
 				"patterns", patterns,
 				"actual", values,
-				"ctx", util.LazyFiberContext(p.FCtx),
+				"ctx", util.LazyFiberContext{Ctx: p.FCtx},
 			)
 
 			return p, m.HandleFallback()
@@ -96,7 +96,7 @@ func (m *AuthModifier) Before(p *ProcessData) (*ProcessData, ExecutionResult) {
 				"key", k,
 				"pattern", rule.String(),
 				"actual", actual,
-				"ctx", util.LazyFiberContext(p.FCtx),
+				"ctx", util.LazyFiberContext{Ctx: p.FCtx},
 			)
 
 			return p, m.HandleFallback()

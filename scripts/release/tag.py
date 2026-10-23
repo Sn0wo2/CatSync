@@ -7,43 +7,29 @@ import sys
 
 
 def run_cmd(command: str, *args: str) -> str:
-    proc = subprocess.run(
-        [command, *args],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        check=False,
-    )
-
-    output = proc.stdout.strip()
-    if proc.returncode != 0:
+    try:
+        return subprocess.check_output(
+            [command, *args], stderr=subprocess.STDOUT, text=True
+        ).strip()
+    except subprocess.CalledProcessError as exc:
+        output = exc.output.strip()
         if "No names found" in output:
             return ""
         raise RuntimeError(
             f"failed to run command '{command} {' '.join(args)}':\n{output}"
-        )
-
-    return output
-
-
-def execute_step(description: str, command: str, *args: str) -> None:
-    print(description)
-    subprocess.run([command, *args], check=True)
+        ) from exc
 
 
 def main() -> int:
     run_cmd("git", "fetch", "origin")
 
-    status = run_cmd("git", "status", "--porcelain")
-    if status:
+    if run_cmd("git", "status", "--porcelain"):
         raise RuntimeError("Uncommitted changes found, please commit or stash them first.")
 
     local = run_cmd("git", "rev-parse", "@")
 
     try:
-        remote = run_cmd("git", "rev-parse", "@{upstream}")
-
-        if local != remote:
+        if local != run_cmd("git", "rev-parse", "@{upstream}"):
             print("Local branch is not up to date with remote, pulling...")
             run_cmd("git", "pull")
     except RuntimeError:
@@ -59,8 +45,10 @@ def main() -> int:
     if not new_tag:
         raise RuntimeError("No tag entered, aborting.")
 
-    execute_step(f"Tagging {new_tag}...", "git", "tag", new_tag)
-    execute_step(f"Pushing tag {new_tag}...", "git", "push", "origin", new_tag)
+    print(f"Tagging {new_tag}...")
+    subprocess.run(["git", "tag", new_tag], check=True)
+    print(f"Pushing tag {new_tag}...")
+    subprocess.run(["git", "push", "origin", new_tag], check=True)
     print(f"Successfully tagged and pushed {new_tag}.")
     return 0
 

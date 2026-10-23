@@ -1,54 +1,38 @@
 package router
 
 import (
-	"github.com/Sn0wo2/CatSync/action"
 	"github.com/Sn0wo2/CatSync/action/execute"
-	"github.com/Sn0wo2/CatSync/internal/cstx"
 	"github.com/Sn0wo2/CatSync/runtime"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/compress"
-	"github.com/gofiber/fiber/v3/middleware/recover"
+	recoverer "github.com/gofiber/fiber/v3/middleware/recover"
 )
 
-type Runtime interface {
-	action.Reloader
-	Current() *runtime.Snapshot
-}
-
-func Init(c *cstx.Ctx, manager Runtime) {
-	server := c.FW
+func Init(server *fiber.App, manager *runtime.Manager) {
 	if server == nil {
 		panic("framework not found")
 	}
 
-	server.Use(recover.New())
+	server.Use(recoverer.New())
 	server.Use(compress.New(compress.Config{
 		Level: compress.LevelBestSpeed,
 	}))
 
-	server.Use(Actions(c, manager))
-}
-
-func Actions(c *cstx.Ctx, manager Runtime) fiber.Handler {
-	return func(ctx fiber.Ctx) error {
-		snapshot := manager.Current()
-		if snapshot == nil || snapshot.Executor == nil {
+	server.Use(func(ctx fiber.Ctx) error {
+		executor := manager.Executor.Load()
+		if executor == nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "runtime snapshot unavailable")
 		}
 
-		matched, err := snapshot.Executor.Dispatch(&execute.RequestContext{
-			Ctx:      c,
+		matched, err := executor.Dispatch(&execute.RequestContext{
+			Logger:   manager.Logger,
 			FiberCtx: ctx,
 			Reloader: manager,
 		})
-		if err != nil {
+		if err != nil || matched {
 			return err
 		}
 
-		if matched {
-			return nil
-		}
-
 		return ctx.Next()
-	}
+	})
 }

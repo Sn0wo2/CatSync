@@ -6,11 +6,6 @@ import (
 	"github.com/Sn0wo2/CatSync/config/reader"
 )
 
-type LoadResult struct {
-	Config *Config
-	Path   string
-}
-
 type Config struct {
 	Log       Log              `json:"log"                 yaml:"log"`
 	Server    Server           `json:"server"              yaml:"server"`

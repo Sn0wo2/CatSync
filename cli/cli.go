@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	"github.com/prometheus/common/version"
 )
 
 type Options struct {
@@ -21,15 +23,12 @@ func Execute() *Options {
 		flags.PrintDefaults()
 	}
 
-	var (
-		opts    Options
-		version bool
-	)
+	opts := &Options{}
 
 	flags.StringVar(&opts.ConfigPath, "config", "", "Path to the configuration file")
 	flags.BoolVar(&opts.CheckOnly, "check", false, "Validate configuration and exit")
 	flags.BoolVar(&opts.CheckOnly, "c", false, "Validate configuration and exit")
-	flags.BoolVar(&version, "version", false, "Print version and exit")
+	showVersion := flags.Bool("version", false, "Print version and exit")
 
 	if err := flags.Parse(os.Args[1:]); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -39,11 +38,11 @@ func Execute() *Options {
 		os.Exit(1)
 	}
 
-	if version {
-		_, _ = fmt.Fprintln(os.Stdout, GetCLIVersion())
+	if *showVersion {
+		_, _ = fmt.Fprintln(os.Stdout, version.Print("CatSync"))
 
 		return nil
 	}
 
-	return &opts
+	return opts
 }

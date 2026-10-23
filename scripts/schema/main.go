@@ -78,15 +78,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	f, err := os.Create(absOutput)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating file: %v\n", err)
-		os.Exit(1)
-	}
-	defer f.Close()
-
-	_, err = f.Write(data)
-	if err != nil {
+	if err := os.WriteFile(absOutput, data, 0o666); err != nil {
 		fmt.Fprintf(os.Stderr, "Error writing file: %v\n", err)
 		os.Exit(1)
 	}
