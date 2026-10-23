@@ -1,26 +1,36 @@
-BINARY_NAME=CatSync
-TAGS=catsync_all
-LDFLAGS=-s -w
-GOFLAGS=-trimpath
+BINARY_NAME ?= $(notdir $(CURDIR))
+TAGS ?= catsync_all
 
-.PHONY: build run clean schema test_goreleaser
+.PHONY: lint lint-fix test build run clean schema security ci release dry-release
+
+lint:
+	golangci-lint run
+
+lint-fix:
+	golangci-lint run --fix
+
+test:
+	go test -race -tags "$(TAGS)" ./...
 
 build:
-	@printf 'Building CatSync (all features)...\n'
-	@go build $(GOFLAGS) -tags $(TAGS) -ldflags="$(LDFLAGS)" -o $(BINARY_NAME) ./cmd
+	go build -trimpath -tags "$(TAGS)" -ldflags "-s -w" -o $(BINARY_NAME) ./cmd
 
 run: build
 	./$(BINARY_NAME)
 
 clean:
-	rm -f $(BINARY_NAME)
+	rm -f $(BINARY_NAME) $(BINARY_NAME).exe
 
 schema:
-	@echo Generating schema...
-	@go run ./scripts/schema/main.go
+	go run ./scripts/schema/main.go
 
-test_goreleaser:
-	@echo Running goreleaser...
-	@goreleaser release --snapshot --clean
+security:
+	go run golang.org/x/vuln/cmd/govulncheck@latest -tags "$(TAGS)" ./...
 
--include Makefile.local
+ci: lint test security
+
+release:
+	goreleaser release --clean
+
+dry-release:
+	goreleaser release --snapshot --clean

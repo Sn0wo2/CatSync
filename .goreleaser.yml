@@ -1,20 +1,12 @@
 version: 2
 project_name: CatSync
 
-release:
-  prerelease: auto
-
 builds:
-  - id: "{{ .ProjectName }}"
+  - id: app
     main: ./cmd
     binary: "{{ .ProjectName }}"
     env:
       - CGO_ENABLED=0
-      - TZ=Asia/Shanghai
-    goos:
-      - windows
-      - linux
-      - darwin
     goarch:
       - amd64
       - arm64
@@ -33,38 +25,33 @@ builds:
       - -X github.com/prometheus/common/version.BuildDate={{.Date}}
 
 dockers_v2:
-  - ids:
-      - "{{ .ProjectName }}"
-    images:
+  - images:
       - ghcr.io/sn0wo2/catsync
     tags:
       - "v{{ .Version }}"
       - "{{ if not .Prerelease }}latest{{ end }}"
       - "beta-latest"
-    platforms:
-      - linux/amd64
-      - linux/arm64
+    flags:
+      - '{{ if eq (index .Env "GITHUB_ACTIONS") "true" }}--cache-from=type=gha,version=2,scope={{ .ProjectName }}{{ end }}'
+      - '{{ if eq (index .Env "GITHUB_ACTIONS") "true" }}--cache-to=type=gha,version=2,mode=max,scope={{ .ProjectName }},ignore-error=true{{ end }}'
     labels:
       org.opencontainers.image.title: "{{ .ProjectName }}"
       org.opencontainers.image.description: "Sync the\u300Ccat\u300Dconfig."
       org.opencontainers.image.source: "https://github.com/Sn0wo2/{{ .ProjectName }}"
       org.opencontainers.image.url: "https://github.com/Sn0wo2/{{ .ProjectName }}"
-      org.opencontainers.image.vendor: "Sn0wo2"
-      org.opencontainers.image.authors: "Sn0wo2"
-      org.opencontainers.image.licenses: "MIT"
-      org.opencontainers.image.license.name: "MIT License"
-      org.opencontainers.image.license.spdx: "MIT"
-      org.opencontainers.image.version: "{{.Version}}"
-      org.opencontainers.image.revision: "{{.Commit}}"
-      org.opencontainers.image.git.branch: "{{ .Branch }}"
-      org.opencontainers.image.created: "{{.Date}}"
+      org.opencontainers.image.licenses: "Apache-2.0"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .Commit }}"
+      org.opencontainers.image.created: "{{ .Date }}"
+
+snapshot:
+  version_template: "{{ .Version }}-next"
 
 changelog:
   use: github
   groups:
     - title: 「Features」
       regexp: "^.*feat(?:\\([^)]+\\))?:+.*$"
-      order: 0
     - title: 「Bug Fixes」
       regexp: "^.*fix(?:\\([^)]+\\))?:+.*$"
       order: 1
@@ -88,3 +75,11 @@ changelog:
       order: 7
     - title: 「Others」
       order: 999
+
+release:
+  prerelease: auto
+  replace_existing_artifacts: true
+  header: |
+    {{ if .Prerelease }}
+    > ⚠️ **WARNING: This is a pre-release version and is not recommended for production use.**
+    {{ end }}
