@@ -1,4 +1,4 @@
-BINARY_NAME ?= $(notdir $(CURDIR))
+BINARY_NAME ?= CatSync
 TAGS ?= catsync_all
 
 .PHONY: lint lint-fix test build run clean schema security ci release dry-release
@@ -10,7 +10,7 @@ lint-fix:
 	golangci-lint run --fix
 
 test:
-	go test -race -tags "$(TAGS)" ./...
+	go test $(if $(filter 1,$(shell go env CGO_ENABLED)),-race) -tags "$(TAGS)" ./...
 
 build:
 	go build -trimpath -tags "$(TAGS)" -ldflags "-s -w" -o $(BINARY_NAME) ./cmd

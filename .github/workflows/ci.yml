@@ -6,8 +6,7 @@ on:
   pull_request:
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
@@ -17,6 +16,8 @@ jobs:
   check:
     name: Checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       autofix: ${{ steps.patch.outputs.changed }}
     steps:
@@ -58,7 +59,15 @@ jobs:
           echo "::error::Lint failed or requires fixes. Download the lint-fixes artifact if available."
           exit 1
 
-      - run: make test security
+      - run: make test
+
+      - uses: golang/govulncheck-action@v1
+        with:
+          go-version-file: go.mod
+          cache: false
+          repo-checkout: false
+        env:
+          GOFLAGS: -tags=catsync_all
 
   autofix:
     needs: check

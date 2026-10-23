@@ -9,9 +9,7 @@ on:
     - cron: "0 0 * * 0"
       timezone: "Asia/Hong_Kong"
 
-permissions:
-  contents: read
-  security-events: write
+permissions: {}
 
 concurrency:
   group: codeql-${{ github.event.pull_request.number || github.ref }}
@@ -21,6 +19,9 @@ jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
 
     strategy:
       fail-fast: false
