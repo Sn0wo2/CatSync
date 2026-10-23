@@ -3,7 +3,7 @@ TAGS=catsync_all
 LDFLAGS=-s -w
 GOFLAGS=-trimpath
 
-.PHONY: build run clean release schema test_goreleaser
+.PHONY: build run clean schema test_goreleaser
 
 build:
 	@printf 'Building CatSync (all features)...\n'
@@ -14,10 +14,6 @@ run: build
 
 clean:
 	rm -f $(BINARY_NAME)
-
-release:
-	@echo Running release tool...
-	@python ./scripts/release/tag.py
 
 schema:
 	@echo Generating schema...
