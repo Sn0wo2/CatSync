@@ -7,7 +7,7 @@ require (
 	github.com/Sn0wo2/caelum v0.5.0
 	github.com/Sn0wo2/ordo v0.0.0-20260924234257-551a5fa7b264
 	github.com/gofiber/fiber/v3 v3.6.1
-	github.com/gofiber/utils/v2 v2.6.2
+	github.com/gofiber/utils/v2 v2.6.3
 	github.com/google/uuid v1.6.0
 	github.com/jellydator/ttlcache/v3 v3.4.1
 	github.com/joho/godotenv v1.5.1
