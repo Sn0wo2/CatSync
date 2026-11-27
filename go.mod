@@ -4,7 +4,7 @@ go 1.27.3
 
 require (
 	filippo.io/age v1.3.2
-	github.com/Sn0wo2/caelum v0.5.0
+	github.com/Sn0wo2/caelum v0.5.1
 	github.com/Sn0wo2/ordo v0.0.0
 	github.com/gofiber/fiber/v3 v3.7.0
 	github.com/gofiber/utils/v2 v2.6.5
@@ -19,6 +19,7 @@ require (
 require (
 	filippo.io/hpke v0.4.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
+	github.com/ebitengine/purego v0.11.3 // indirect
 	github.com/gofiber/schema v1.9.3 // indirect
 	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
